@@ -1,0 +1,4 @@
+*.o
+*.so
+/config.*
+/src/onig/config.h
