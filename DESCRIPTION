@@ -6,7 +6,7 @@ Author: Jon Clayden
 Maintainer: Jon Clayden <code@clayden.org>
 Depends: R (>= 2.12.1)
 Imports: reportr
-Description: This package provides an alternative to R's built-in functionality for handling regular expressions, based on the Oniguruma library.
+Description: This package provides an alternative to R's built-in functionality for handling regular expressions, based on the Oniguruma library. Oniguruma means "Devil's chariot" in English, at least according to Wikipedia, and that is the basis for the name of this package.
 Encoding: UTF-8
 License: GPL-2
 URL: https://github.com/jonclayden/chariot
