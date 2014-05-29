@@ -12,6 +12,6 @@ int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, 
 
 SEXP chariot_compile (SEXP pattern_, SEXP options_);
 
-SEXP onig_search_R (SEXP pattern_, SEXP text_);
+SEXP chariot_search (SEXP regex_ptr, SEXP text_);
 
 #endif
