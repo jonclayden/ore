@@ -5,6 +5,47 @@
 #include "oniguruma.h"
 #include "main.h"
 
+SEXP chariot_compile (SEXP pattern_, SEXP options_)
+{
+    int return_value;
+    OnigErrorInfo einfo;
+    regex_t *regex;
+    
+    const char *pattern = CHAR(STRING_ELT(pattern_, 0));
+    const char *options = CHAR(STRING_ELT(options_, 0));
+    
+    OnigOptionType onig_options = ONIG_OPTION_NONE;
+    char *option_pointer = options;
+    while (*option_pointer)
+    {
+        switch (*option_pointer)
+        {
+            case 'm':
+            onig_options = onig_options | ONIG_OPTION_MULTILINE;
+            break;
+            
+            case 'i':
+            onig_options = onig_options | ONIG_OPTION_IGNORECASE;
+            break;
+        }
+        
+        option_pointer++;
+    }
+    
+    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, ONIG_ENCODING_ASCII, ONIG_SYNTAX_DEFAULT, &einfo);
+    if (return_value != ONIG_NORMAL)
+    {
+        char message[ONIG_MAX_ERROR_MESSAGE_LEN];
+        onig_error_code_to_str(message, return_value, &einfo);
+        error("Oniguruma compile: %s\n", message);
+    }
+    
+    if (onig_number_of_names(regex) > 0)
+    {
+        // int onig_foreach_name(regex_t* reg, int (*func)(const UChar*, const UChar*, int,int*,regex_t*,void*), void* arg)
+    }
+}
+
 SEXP onig_search_R (SEXP pattern_, SEXP text_)
 {
     int return_value;
