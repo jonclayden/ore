@@ -5,27 +5,56 @@
 #include "oniguruma.h"
 #include "main.h"
 
+SEXP chariot_init ()
+{
+    onig_init();
+    return R_NilValue;
+}
+
+SEXP chariot_done ()
+{
+    onig_end();
+    return R_NilValue;
+}
+
+void chariot_regex_finaliser (SEXP regex_ptr)
+{
+    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    onig_free(regex);
+    R_ClearExternalPtr(regex_ptr);
+}
+
+int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
+{
+    SEXP name_vector = (SEXP) arg;
+    for (int i=0; i<n_groups; i++)
+        SET_STRING_ELT(name_vector, group_numbers[i]-1, mkChar(name));
+    
+    return 0;
+}
+
 SEXP chariot_compile (SEXP pattern_, SEXP options_)
 {
-    int return_value;
+    int return_value, n_groups;
     OnigErrorInfo einfo;
     regex_t *regex;
+    SEXP list, names, regex_ptr;
     
     const char *pattern = CHAR(STRING_ELT(pattern_, 0));
     const char *options = CHAR(STRING_ELT(options_, 0));
     
     OnigOptionType onig_options = ONIG_OPTION_NONE;
-    char *option_pointer = options;
+    char *option_pointer = (char *) options;
     while (*option_pointer)
     {
         switch (*option_pointer)
         {
             case 'm':
-            onig_options = onig_options | ONIG_OPTION_MULTILINE;
+            onig_options |= ONIG_OPTION_MULTILINE;
             break;
             
             case 'i':
-            onig_options = onig_options | ONIG_OPTION_IGNORECASE;
+            onig_options |= ONIG_OPTION_IGNORECASE;
             break;
         }
         
@@ -40,10 +69,25 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
         error("Oniguruma compile: %s\n", message);
     }
     
-    if (onig_number_of_names(regex) > 0)
+    n_groups = onig_number_of_captures(regex);
+    PROTECT(list = NEW_LIST(n_groups>0 ? 2 : 1));
+    
+    PROTECT(regex_ptr = R_MakeExternalPtr(regex, R_NilValue, R_NilValue));
+    R_RegisterCFinalizerEx(regex_ptr, &chariot_regex_finaliser, FALSE);
+    SET_ELEMENT(list, 0, regex_ptr);
+    
+    if (n_groups > 0)
     {
-        // int onig_foreach_name(regex_t* reg, int (*func)(const UChar*, const UChar*, int,int*,regex_t*,void*), void* arg)
+        PROTECT(names = NEW_CHARACTER(n_groups));
+        for (int i=0; i<n_groups; i++)
+            SET_STRING_ELT(names, i, NA_STRING);
+        return_value = onig_foreach_name(regex, &chariot_store_name, names);
+        SET_ELEMENT(list, 1, names);
+        UNPROTECT(1);
     }
+    
+    UNPROTECT(2);
+    return list;
 }
 
 SEXP onig_search_R (SEXP pattern_, SEXP text_)
