@@ -8,9 +8,15 @@ ore <- function (pattern, options = "")
     
     result <- .Call("chariot_compile", pattern, as.character(options), PACKAGE="chariot")
     
-    regex <- structure(pattern, .compiled=result[[1]], nGroups=length(result[[2]]), class="ore")
-    if (any(!is.na(result[[2]])))
-        attr(regex, "groupNames") <- result[[2]]
+    regex <- structure(pattern, .compiled=result[[1]], class="ore")
+    if (length(result) == 2)
+    {
+        attr(regex, "nGroups") <- length(result[[2]])
+        if (any(!is.na(result[[2]])))
+            attr(regex, "groupNames") <- result[[2]]
+    }
+    else
+        attr(regex, "nGroups") <- 0L
     
     return (regex)
 }
