@@ -1,7 +1,6 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
-
 SEXP chariot_init ();
 
 SEXP chariot_done ();
@@ -12,6 +11,6 @@ int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, 
 
 SEXP chariot_compile (SEXP pattern_, SEXP options_);
 
-SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP start_);
+SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_);
 
 #endif

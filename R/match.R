@@ -1,28 +1,45 @@
-ore.search <- function (regex, text, start = 1L, envir = parent.frame())
+ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, envir = parent.frame())
 {
     if (!is.ore(regex))
         regex <- ore(regex)
     if (!is.character(text))
         text <- as.character(text)
     
-    result <- .Call("chariot_search", attr(regex,".compiled"), text, as.integer(start), PACKAGE="chariot")
-    
-    if (is.null(result))
-        match <- NULL
+    if (length(text) < 1)
+        error("The text vector is empty")
+    else if (length(text) > 1)
+    {
+        start <- rep(start, length.out=length(text))
+        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], matches=matches, all=all, start=start[i], envir=NULL))
+    }
     else
     {
-        match <- list(offset=result[[2]][1], length=result[[3]][1], text=substr(text,result[[2]][1],result[[2]][1]+result[[3]][1]-1))
-        if (attr(regex, "nGroups") > 0)
+        result <- .Call("chariot_search", attr(regex,".compiled"), text, as.logical(all), as.integer(start), PACKAGE="chariot")
+    
+        if (is.null(result))
+            match <- NULL
+        else
         {
-            match$groups <- list(offsets=result[[2]][-1], lengths=result[[3]][-1])
-            match$groups$text <- sapply(seq_len(length(result[[2]])-1), function(i) substr(text,result[[2]][i+1],result[[2]][i+1]+result[[3]][i+1]-1))
-            if (!is.null(attr(regex, "groupNames")))
+            nMatches <- result[[1]]
+            offsets <- matrix(result[[2]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
+            lengths <- matrix(result[[3]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
+            if (matches)
+                matchdata <- sapply(1:length(offsets), function(i) substr(text, offsets[i], offsets[i]+lengths[i]-1))
+            else
+                matchdata <- rep(NA, length(offsets))
+            dim(matchdata) <- dim(offsets)
+        
+            match <- list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all])
+            if (attr(regex, "nGroups") > 0)
             {
-                groupNames <- attr(regex, "groupNames")
-                groupNames[is.na(groupNames)] <- ""
-                names(match$groups$offsets) <- groupNames
-                names(match$groups$lengths) <- groupNames
-                names(match$groups$text) <- groupNames
+                match$groups <- list(offsets=offsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
+                if (!is.null(attr(regex, "groupNames")))
+                {
+                    groupNames <- attr(regex, "groupNames")
+                    rownames(match$groups$offsets) <- groupNames
+                    rownames(match$groups$lengths) <- groupNames
+                    rownames(match$groups$matches) <- groupNames
+                }
             }
         }
     }

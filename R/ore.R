@@ -12,7 +12,7 @@ ore <- function (pattern, options = "")
     if (length(result) == 2)
     {
         attr(regex, "nGroups") <- length(result[[2]])
-        if (any(!is.na(result[[2]])))
+        if (any(result[[2]] != ""))
             attr(regex, "groupNames") <- result[[2]]
     }
     else

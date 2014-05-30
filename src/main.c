@@ -5,6 +5,8 @@
 #include "oniguruma.h"
 #include "main.h"
 
+#define MAX_MATCHES 128
+
 SEXP chariot_init ()
 {
     onig_init();
@@ -80,7 +82,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
     {
         PROTECT(names = NEW_CHARACTER(n_groups));
         for (int i=0; i<n_groups; i++)
-            SET_STRING_ELT(names, i, NA_STRING);
+            SET_STRING_ELT(names, i, mkChar(""));
         return_value = onig_foreach_name(regex, &chariot_store_name, names);
         SET_ELEMENT(list, 1, names);
         UNPROTECT(1);
@@ -90,51 +92,72 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
     return list;
 }
 
-SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP start_)
+SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
 {
     int return_value;
-    SEXP offset, offsets, lengths, list;
+    SEXP n_matches, offsets, lengths, list;
     
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     const char *text = CHAR(STRING_ELT(text_, 0));
     const size_t text_len = strlen(text);
-    const char *start = text + asInteger(start_) - 1;
+    const Rboolean all = asLogical(all_);
     OnigRegion *region = onig_region_new();
     
-    return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) start, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
+    list = R_NilValue;
+    size_t start = (size_t) asInteger(start_) - 1;
+    size_t max_matches = all ? MAX_MATCHES : 1;
+    int match_number = 0;
+    Rboolean vars_created = FALSE;
     
-    if (return_value == ONIG_MISMATCH)
-        list = R_NilValue;
-    else if (return_value >= 0)
+    while (TRUE)
     {
-        PROTECT(list = NEW_LIST(3));
-        PROTECT(offset = NEW_INTEGER(1));
-        PROTECT(offsets = NEW_INTEGER(region->num_regs));
-        PROTECT(lengths = NEW_INTEGER(region->num_regs));
-        
-        *INTEGER(offset) = return_value + 1;
-        for (int i=0; i<region->num_regs; i++)
+        return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) text+start, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
+    
+        if (return_value == ONIG_MISMATCH)
+            break;
+        else if (return_value >= 0)
         {
-            INTEGER(offsets)[i] = region->beg[i] + 1;
-            INTEGER(lengths)[i] = region->end[i] - region->beg[i];
+            if (!vars_created)
+            {
+                PROTECT(list = NEW_LIST(4));
+                PROTECT(n_matches = NEW_INTEGER(1));
+                PROTECT(offsets = NEW_INTEGER(max_matches * region->num_regs));
+                PROTECT(lengths = NEW_INTEGER(max_matches * region->num_regs));
+                vars_created = TRUE;
+            }
+        
+            for (int i=0; i<region->num_regs; i++)
+            {
+                INTEGER(offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
+                INTEGER(lengths)[match_number * region->num_regs + i] = region->end[i] - region->beg[i];
+            }
+            
+            start = region->end[0] + 1;
+            match_number++;
+        }
+        else
+        {
+            char message[ONIG_MAX_ERROR_MESSAGE_LEN];
+            onig_error_code_to_str(message, return_value);
+            error("Oniguruma search: %s\n", message);
         }
         
-        SET_ELEMENT(list, 0, offset);
+        onig_region_free(region, 0);
+        
+        if (!all)
+            break;
+    }
+    
+    if (!isNull(list))
+    {
+        *INTEGER(n_matches) = match_number;
+        SET_ELEMENT(list, 0, n_matches);
         SET_ELEMENT(list, 1, offsets);
         SET_ELEMENT(list, 2, lengths);
-        UNPROTECT(3);
-    }
-    else
-    {
-        char message[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(message, return_value);
-        error("Oniguruma search: %s\n", message);
+        UNPROTECT(4);
     }
     
     onig_region_free(region, 1);
-    
-    if (!isNull(list))
-        UNPROTECT(1);
     
     return list;
 }
