@@ -1,11 +1,11 @@
-ore.search <- function (regex, text, envir=parent.frame())
+ore.search <- function (regex, text, start = 1L, envir = parent.frame())
 {
     if (!is.ore(regex))
         regex <- ore(regex)
     if (!is.character(text))
         text <- as.character(text)
     
-    result <- .Call("chariot_search", attr(regex,".compiled"), text, PACKAGE="chariot")
+    result <- .Call("chariot_search", attr(regex,".compiled"), text, as.integer(start), PACKAGE="chariot")
     
     if (is.null(result))
         match <- NULL
@@ -27,7 +27,9 @@ ore.search <- function (regex, text, envir=parent.frame())
         }
     }
     
-    assign(".ore.last", match, envir=envir)
+    if (!is.null(envir))
+        assign(".ore.last", match, envir=envir)
+    
     return (match)
 }
 

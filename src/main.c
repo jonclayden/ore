@@ -90,7 +90,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
     return list;
 }
 
-SEXP chariot_search (SEXP regex_ptr, SEXP text_)
+SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP start_)
 {
     int return_value;
     SEXP offset, offsets, lengths, list;
@@ -98,9 +98,10 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_)
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     const char *text = CHAR(STRING_ELT(text_, 0));
     const size_t text_len = strlen(text);
+    const char *start = text + asInteger(start_) - 1;
     OnigRegion *region = onig_region_new();
     
-    return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) text, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
+    return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) start, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
     
     if (return_value == ONIG_MISMATCH)
         list = R_NilValue;
