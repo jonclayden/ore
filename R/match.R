@@ -7,7 +7,7 @@ ore.search <- function (regex, text, envir=parent.frame())
     
     result <- .Call("chariot_search", attr(regex,".compiled"), text, PACKAGE="chariot")
     
-    if (is.na(result[[1]]))
+    if (is.null(result))
         match <- NULL
     else
     {

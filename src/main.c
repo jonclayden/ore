@@ -102,19 +102,12 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_)
     
     return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) text, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
     
-    PROTECT(offset = NEW_INTEGER(1));
-    
     if (return_value == ONIG_MISMATCH)
-    {
-        PROTECT(offsets = NEW_INTEGER(1));
-        PROTECT(lengths = NEW_INTEGER(1));
-        
-        *INTEGER(offset) = NA_INTEGER;
-        *INTEGER(offsets) = NA_INTEGER;
-        *INTEGER(lengths) = NA_INTEGER;
-    }
+        list = R_NilValue;
     else if (return_value >= 0)
     {
+        PROTECT(list = NEW_LIST(3));
+        PROTECT(offset = NEW_INTEGER(1));
         PROTECT(offsets = NEW_INTEGER(region->num_regs));
         PROTECT(lengths = NEW_INTEGER(region->num_regs));
         
@@ -124,6 +117,11 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_)
             INTEGER(offsets)[i] = region->beg[i] + 1;
             INTEGER(lengths)[i] = region->end[i] - region->beg[i];
         }
+        
+        SET_ELEMENT(list, 0, offset);
+        SET_ELEMENT(list, 1, offsets);
+        SET_ELEMENT(list, 2, lengths);
+        UNPROTECT(3);
     }
     else
     {
@@ -132,14 +130,10 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_)
         error("Oniguruma search: %s\n", message);
     }
     
-    PROTECT(list = NEW_LIST(3));
-    SET_ELEMENT(list, 0, offset);
-    SET_ELEMENT(list, 1, offsets);
-    SET_ELEMENT(list, 2, lengths);
-    
     onig_region_free(region, 1);
     
-    UNPROTECT(4);
+    if (!isNull(list))
+        UNPROTECT(1);
     
     return list;
 }
