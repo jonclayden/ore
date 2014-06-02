@@ -132,7 +132,7 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
                 INTEGER(lengths)[match_number * region->num_regs + i] = region->end[i] - region->beg[i];
             }
             
-            start = region->end[0] + 1;
+            start = region->end[0];
             match_number++;
         }
         else
@@ -144,7 +144,7 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         
         onig_region_free(region, 0);
         
-        if (!all)
+        if (!all || match_number == max_matches)
             break;
     }
     
