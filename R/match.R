@@ -1,3 +1,5 @@
+.Workspace <- new.env()
+
 ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, envir = parent.frame())
 {
     if (!is.ore(regex))
@@ -70,37 +72,57 @@ ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
     return (ore.ismatch(Y, X, all=TRUE, envir=parent.frame()))
 }
 
-# NB: allow "replacement" to be a function
+.ore.substitute <- function (match, replacement, text)
+{
+    start <- 1
+    result <- ""
+    for (i in seq_len(match$nMatches))
+    {
+        result <- paste(result, substr(text,start,match$offsets[i]-1), replacement[i], sep="")
+        start <- match$offsets[i] + match$lengths[i]
+    }
+    result <- paste(result, substr(text,start,nchar(text)), sep="")
+    return (result)
+}
+
 ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
     if (is.character(replacement))
     {
-        groupNumberRegex <- ore("\\\\(\\d+)")
-        groupNameRegex <- ore("\\\\\\k\\<(\\w+)\\>")
+        if (!exists("groupNumberRegex", .Workspace))
+        {
+            .Workspace$groupNumberRegex <- ore("\\\\(\\d+)")
+            .Workspace$groupNameRegex <- ore("\\\\\\k\\<(\\w+)\\>")
+        }
+        groupNumberMatch <- ore.search(.Workspace$groupNumberRegex, replacement, all=TRUE, envir=NULL)
+        groupNameMatch <- ore.search(.Workspace$groupNameRegex, replacement, all=TRUE, envir=NULL)
     }
     else
         replacement <- match.fun(replacement)
     
-    numberReplaceFunction <- function (match, groupNumbers) match$groups$matches[as.integer(groupNumbers),]
-    nameReplaceFunction <- function (match, groupNames) match$groups$matches[groupNames,]
-    
-    result <- sapply(text, function(currentText) {
-        currentMatch <- ore.search(regex, currentText, all=global)
+    result <- character(length(text))
+    for (i in seq_along(text))
+    {
+        currentMatch <- ore.search(regex, text[i], all=global)
         if (is.null(currentMatch))
-            return (currentText)
+            result[i] <- text[i]
         else
         {
             if (is.function(replacement))
-                currentReplacements <- replacement(currentMatch, ...)
+                currentReplacements <- replacement(currentMatch$matches, ...)
             else
             {
-                if (replacement %~~% groupNumberRegex)
-                    return (ore.subst(groupNumberRegex, numberReplaceFunction, replacement, global=TRUE, groupMatches=))
+                currentReplacements <- rep(replacement, length.out=currentMatch$nMatches)
+                if (!is.null(groupNumberMatch))
+                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) .ore.substitute(groupNumberMatch,x,replacement))
+                if (!is.null(groupNameMatch))
+                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) .ore.substitute(groupNameMatch,x,replacement))
             }
-        else
-        {
-            if (replacement %~~% groupNumberRegex)
-                return (ore.subst(groupNumberRegex, numberReplaceFunction, replacement, global=TRUE, groupMatches=))
+            
+            result[i] <- .ore.substitute(currentMatch, currentReplacements, text[i])
         }
-    })
+    }
+    
+    names(result) <- NULL
+    return (result)
 }
