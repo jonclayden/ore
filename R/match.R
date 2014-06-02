@@ -50,8 +50,57 @@ ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, en
     return (match)
 }
 
+ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
+{
+    match <- ore.search(regex, text, matches=TRUE, all=all, start=1L, envir=envir)
+    
+    if (length(text) == 1)
+        return (!is.null(match))
+    else
+        return (!sapply(match, is.null))
+}
+
+"%~%" <- function (X, Y)
+{
+    return (ore.ismatch(Y, X, all=FALSE, envir=parent.frame()))
+}
+
+"%~~%" <- function (X, Y)
+{
+    return (ore.ismatch(Y, X, all=TRUE, envir=parent.frame()))
+}
+
 # NB: allow "replacement" to be a function
 ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
+    if (is.character(replacement))
+    {
+        groupNumberRegex <- ore("\\\\(\\d+)")
+        groupNameRegex <- ore("\\\\\\k\\<(\\w+)\\>")
+    }
+    else
+        replacement <- match.fun(replacement)
     
+    numberReplaceFunction <- function (match, groupNumbers) match$groups$matches[as.integer(groupNumbers),]
+    nameReplaceFunction <- function (match, groupNames) match$groups$matches[groupNames,]
+    
+    result <- sapply(text, function(currentText) {
+        currentMatch <- ore.search(regex, currentText, all=global)
+        if (is.null(currentMatch))
+            return (currentText)
+        else
+        {
+            if (is.function(replacement))
+                currentReplacements <- replacement(currentMatch, ...)
+            else
+            {
+                if (replacement %~~% groupNumberRegex)
+                    return (ore.subst(groupNumberRegex, numberReplaceFunction, replacement, global=TRUE, groupMatches=))
+            }
+        else
+        {
+            if (replacement %~~% groupNumberRegex)
+                return (ore.subst(groupNumberRegex, numberReplaceFunction, replacement, global=TRUE, groupMatches=))
+        }
+    })
 }
