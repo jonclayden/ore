@@ -69,21 +69,14 @@ ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
     return (ore.ismatch(Y, X, all=TRUE, envir=parent.frame()))
 }
 
-.ore.substitute <- function (match, replacement, text)
-{
-    start <- 1
-    result <- ""
-    for (i in seq_len(match$nMatches))
-    {
-        result <- paste(result, substr(text,start,match$offsets[i]-1), replacement[i], sep="")
-        start <- match$offsets[i] + match$lengths[i]
-    }
-    result <- paste(result, substr(text,start,nchar(text)), sep="")
-    return (result)
-}
-
 ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
+    doSubst <- function (match, replacement, text)
+    {
+        result <- .Call("chariot_substitute", text, match$nMatches, match$offsets, match$lengths, replacement, PACKAGE="chariot")
+        return (result)
+    }
+    
     if (is.character(replacement))
     {
         if (!exists("groupNumberRegex", .Workspace))
@@ -111,12 +104,12 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
             {
                 currentReplacements <- rep(replacement, length.out=currentMatch$nMatches)
                 if (!is.null(groupNumberMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) .ore.substitute(groupNumberMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) doSubst(groupNumberMatch,x,replacement))
                 if (!is.null(groupNameMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) .ore.substitute(groupNameMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) doSubst(groupNameMatch,x,replacement))
             }
             
-            result[i] <- .ore.substitute(currentMatch, currentReplacements, text[i])
+            result[i] <- doSubst(currentMatch, currentReplacements, text[i])
         }
     }
     
