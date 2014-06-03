@@ -47,6 +47,23 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
     const char *pattern = CHAR(STRING_ELT(pattern_, 0));
     const char *options = CHAR(STRING_ELT(options_, 0));
     
+    cetype_t encoding = getCharCE(pattern_);
+    OnigEncoding onig_encoding;
+    switch (encoding)
+    {
+        case CE_UTF8:
+        onig_encoding = ONIG_ENCODING_UTF8;
+        break;
+        
+        case CE_LATIN1:
+        onig_encoding = ONIG_ENCODING_ISO_8859_1;
+        break;
+        
+        default:
+        onig_encoding = ONIG_ENCODING_ASCII;
+        break;
+    }
+    
     OnigOptionType onig_options = ONIG_OPTION_NONE;
     char *option_pointer = (char *) options;
     while (*option_pointer)
@@ -65,7 +82,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
         option_pointer++;
     }
     
-    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, ONIG_ENCODING_ASCII, ONIG_SYNTAX_DEFAULT, &einfo);
+    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, ONIG_SYNTAX_DEFAULT, &einfo);
     if (return_value != ONIG_NORMAL)
     {
         char message[ONIG_MAX_ERROR_MESSAGE_LEN];
