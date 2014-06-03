@@ -2,3 +2,4 @@
 *.so
 /config.*
 /src/onig/config.h
+/Rprof.out
