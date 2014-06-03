@@ -2,6 +2,8 @@
 #include <Rdefines.h>
 #include <Rinternals.h>
 
+#include <string.h>
+
 #include "oniguruma.h"
 #include "main.h"
 
@@ -94,8 +96,8 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
 
 SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
 {
-    int return_value;
-    SEXP n_matches, offsets, lengths, list;
+    int return_value, length;
+    SEXP n_matches, offsets, lengths, matches, list;
     
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     const char *text = CHAR(STRING_ELT(text_, 0));
@@ -123,13 +125,25 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
                 PROTECT(n_matches = NEW_INTEGER(1));
                 PROTECT(offsets = NEW_INTEGER(max_matches * region->num_regs));
                 PROTECT(lengths = NEW_INTEGER(max_matches * region->num_regs));
+                PROTECT(matches = NEW_CHARACTER(max_matches * region->num_regs));
                 vars_created = TRUE;
             }
-        
+            
             for (int i=0; i<region->num_regs; i++)
             {
+                length = region->end[i] - region->beg[i];
                 INTEGER(offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
-                INTEGER(lengths)[match_number * region->num_regs + i] = region->end[i] - region->beg[i];
+                INTEGER(lengths)[match_number * region->num_regs + i] = length;
+                
+                if (length == 0)
+                    SET_STRING_ELT(matches, match_number * region->num_regs + i, NA_STRING);
+                else
+                {
+                    char *match_ptr = R_alloc(length+1, 1);
+                    strncpy(match_ptr, text+region->beg[i], length);
+                    *(match_ptr + length) = '\0';
+                    SET_STRING_ELT(matches, match_number * region->num_regs + i, mkChar(match_ptr));
+                }
             }
             
             start = region->end[0];
@@ -154,7 +168,8 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         SET_ELEMENT(list, 0, n_matches);
         SET_ELEMENT(list, 1, offsets);
         SET_ELEMENT(list, 2, lengths);
-        UNPROTECT(4);
+        SET_ELEMENT(list, 3, matches);
+        UNPROTECT(5);
     }
     
     onig_region_free(region, 1);

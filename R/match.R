@@ -25,11 +25,7 @@ ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, en
             nMatches <- result[[1]]
             offsets <- matrix(result[[2]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
             lengths <- matrix(result[[3]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
-            if (matches)
-                matchdata <- sapply(1:length(offsets), function(i) substr(text, offsets[i], offsets[i]+lengths[i]-1))
-            else
-                matchdata <- rep(NA, length(offsets))
-            dim(matchdata) <- dim(offsets)
+            matchdata <- matrix(result[[4]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
         
             match <- list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all])
             if (attr(regex, "nGroups") > 0)
