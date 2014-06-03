@@ -1,6 +1,6 @@
 .Workspace <- new.env()
 
-ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, envir = parent.frame())
+ore.search <- function (regex, text, all = FALSE, start = 1L, envir = parent.frame())
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -12,7 +12,7 @@ ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, en
     else if (length(text) > 1)
     {
         start <- rep(start, length.out=length(text))
-        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], matches=matches, all=all, start=start[i], envir=NULL))
+        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], all=all, start=start[i], envir=NULL))
     }
     else
     {
@@ -50,7 +50,7 @@ ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, en
 
 ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
 {
-    match <- ore.search(regex, text, matches=TRUE, all=all, start=1L, envir=envir)
+    match <- ore.search(regex, text, all=all, start=1L, envir=envir)
     
     if (length(text) == 1)
         return (!is.null(match))
