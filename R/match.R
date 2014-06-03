@@ -23,9 +23,10 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, envir = parent.fra
         else
         {
             nMatches <- result[[1]]
-            offsets <- matrix(result[[2]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
-            lengths <- matrix(result[[3]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
-            matchdata <- matrix(result[[4]], nrow=attr(regex,"nGroups")+1)[,1:nMatches,drop=FALSE]
+            indices <- seq_len(nMatches * (attr(regex,"nGroups") + 1))
+            offsets <- matrix(result[[2]][indices], ncol=nMatches)
+            lengths <- matrix(result[[3]][indices], ncol=nMatches)
+            matchdata <- matrix(result[[4]][indices], ncol=nMatches)
         
             match <- list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all])
             if (attr(regex, "nGroups") > 0)
