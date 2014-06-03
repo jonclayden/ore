@@ -2,10 +2,10 @@
 
 ore.search <- function (regex, text, matches = TRUE, all = FALSE, start = 1L, envir = parent.frame())
 {
-    if (!is.ore(regex))
-        regex <- ore(regex)
     if (!is.character(text))
         text <- as.character(text)
+    if (!is.ore(regex))
+        regex <- ore(regex, encoding=Encoding(text))
     
     if (length(text) < 1)
         error("The text vector is empty")
