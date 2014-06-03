@@ -7,7 +7,11 @@
 #include "oniguruma.h"
 #include "main.h"
 
-#define MAX_MATCHES 128
+#define MAX_MATCHES     128
+
+#define ENCODING_ASCII  0
+#define ENCODING_UTF8   1
+#define ENCODING_LATIN1 2
 
 SEXP chariot_init ()
 {
@@ -37,7 +41,7 @@ int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, 
     return 0;
 }
 
-SEXP chariot_compile (SEXP pattern_, SEXP options_)
+SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
 {
     int return_value, n_groups;
     OnigErrorInfo einfo;
@@ -47,15 +51,15 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_)
     const char *pattern = CHAR(STRING_ELT(pattern_, 0));
     const char *options = CHAR(STRING_ELT(options_, 0));
     
-    cetype_t encoding = getCharCE(pattern_);
     OnigEncoding onig_encoding;
+    const int encoding = asInteger(encoding_);
     switch (encoding)
     {
-        case CE_UTF8:
+        case ENCODING_UTF8:
         onig_encoding = ONIG_ENCODING_UTF8;
         break;
         
-        case CE_LATIN1:
+        case ENCODING_LATIN1:
         onig_encoding = ONIG_ENCODING_ISO_8859_1;
         break;
         
