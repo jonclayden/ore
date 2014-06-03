@@ -197,3 +197,42 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     
     return list;
 }
+
+SEXP chariot_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
+{
+    SEXP result;
+    
+    const char *text = CHAR(STRING_ELT(text_, 0));
+    const int n_matches = asInteger(n_matches_);
+    int *offsets = INTEGER(offsets_);
+    int *lengths = INTEGER(lengths_);
+    
+    int *rep_lengths = (int *) R_alloc(n_matches, sizeof(int));
+    size_t orig_len = strlen(text);
+    size_t string_len = orig_len + 1;
+    for (int i=0; i<n_matches; i++)
+    {
+        rep_lengths[i] = strlen(CHAR(STRING_ELT(replacements_, i)));
+        string_len += rep_lengths[i] - lengths[i];
+    }
+    
+    int start = 0;
+    char *replacement = R_alloc(string_len, 1);
+    char *repl_ptr = replacement;
+    for (int i=0; i<n_matches; i++)
+    {
+        strncpy(repl_ptr, text+start, offsets[i]-1-start);
+        repl_ptr += offsets[i] - 1 - start;
+        strncpy(repl_ptr, CHAR(STRING_ELT(replacements_, i)), rep_lengths[i]);
+        start = offsets[i] - 1 + lengths[i];
+    }
+    
+    if (start < orig_len)
+        strncpy(repl_ptr, text+start, orig_len-start);
+    
+    PROTECT(result = NEW_CHARACTER(1));
+    SET_STRING_ELT(result, 0, mkChar(replacement));
+    UNPROTECT(1);
+    
+    return result;
+}
