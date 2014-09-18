@@ -5,7 +5,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L)
     if (!is.character(text))
         text <- as.character(text)
     if (!is.ore(regex))
-        regex <- ore(regex, encoding=Encoding(text))
+        regex <- ore(regex, encoding=.getEncoding(text))
     
     if (length(text) < 1)
         error("The text vector is empty")

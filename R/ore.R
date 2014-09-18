@@ -1,3 +1,15 @@
+.getEncoding <- function (x)
+{
+    encoding <- Encoding(x)
+    notUnknown <- unique(encoding[encoding != "unknown"])
+    if (length(notUnknown) == 0)
+        return ("unknown")
+    else if (length(notUnknown) == 1)
+        return (notUnknown)
+    else
+        error("Mixed-encoding character vectors are currently not supported")
+}
+
 ore <- function (pattern, options = "", encoding = "auto")
 {
     pattern <- as.character(pattern)
@@ -7,7 +19,7 @@ ore <- function (pattern, options = "", encoding = "auto")
         warning("Pattern vector has more than one element")
     
     if (encoding == "auto")
-        encoding <- Encoding(pattern)
+        encoding <- .getEncoding(pattern)
     encodingCode <- switch(tolower(encoding), "utf-8"=1L, "utf8"=1L, "latin1"=2L, 0L)
     encodingName <- switch(tolower(encoding), "utf-8"="UTF-8", "utf8"="UTF-8", "latin1"="latin1", "bytes"="bytes", "unknown")
     
