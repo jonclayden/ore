@@ -1,6 +1,6 @@
 .Workspace <- new.env()
 
-ore.search <- function (regex, text, all = FALSE, start = 1L, envir = parent.frame())
+ore.search <- function (regex, text, all = FALSE, start = 1L)
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -12,7 +12,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, envir = parent.fra
     else if (length(text) > 1)
     {
         start <- rep(start, length.out=length(text))
-        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], all=all, start=start[i], envir=NULL))
+        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], all=all, start=start[i]))
     }
     else
     {
@@ -43,15 +43,21 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, envir = parent.fra
         }
     }
     
-    if (!is.null(envir))
-        assign(".ore.last", match, envir=envir)
-    
-    return (match)
+    .Workspace$lastMatch <- match
+    return (invisible(match))
 }
 
-ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
+ore.lastmatch <- function ()
 {
-    match <- ore.search(regex, text, all=all, start=1L, envir=envir)
+    if (!exists("lastMatch", envir=.Workspace))
+        return (NULL)
+    else
+        return (.Workspace$lastMatch)
+}
+
+ore.ismatch <- function (regex, text, all = FALSE)
+{
+    match <- ore.search(regex, text, all=all, start=1L)
     
     if (length(text) == 1)
         return (!is.null(match))
@@ -61,12 +67,12 @@ ore.ismatch <- function (regex, text, all = FALSE, envir = parent.frame())
 
 "%~%" <- function (X, Y)
 {
-    return (ore.ismatch(Y, X, all=FALSE, envir=parent.frame()))
+    return (ore.ismatch(Y, X, all=FALSE))
 }
 
 "%~~%" <- function (X, Y)
 {
-    return (ore.ismatch(Y, X, all=TRUE, envir=parent.frame()))
+    return (ore.ismatch(Y, X, all=TRUE))
 }
 
 ore.sub <- function (regex, replacement, text, global = FALSE, ...)
@@ -84,8 +90,8 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
             .Workspace$groupNumberRegex <- ore("\\\\(\\d+)")
             .Workspace$groupNameRegex <- ore("\\\\\\k\\<(\\w+)\\>")
         }
-        groupNumberMatch <- ore.search(.Workspace$groupNumberRegex, replacement, all=TRUE, envir=NULL)
-        groupNameMatch <- ore.search(.Workspace$groupNameRegex, replacement, all=TRUE, envir=NULL)
+        groupNumberMatch <- ore.search(.Workspace$groupNumberRegex, replacement, all=TRUE)
+        groupNameMatch <- ore.search(.Workspace$groupNameRegex, replacement, all=TRUE)
     }
     else
         replacement <- match.fun(replacement)
