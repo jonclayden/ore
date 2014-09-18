@@ -198,6 +198,42 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     return list;
 }
 
+SEXP chariot_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
+{
+    SEXP result;
+    
+    const char *text = CHAR(STRING_ELT(text_, 0));
+    const int n_matches = asInteger(n_matches_);
+    const int *offsets = INTEGER(offsets_);
+    const int *lengths = INTEGER(lengths_);
+    
+    PROTECT(result = NEW_CHARACTER(n_matches + 1));
+    
+    int start = 0;
+    char *fragment;
+    size_t current_length;
+    for (int i=0; i<n_matches; i++)
+    {
+        current_length = offsets[i] - 1 - start;
+        fragment = R_alloc(current_length+1, 1);
+        if (current_length > 0)
+            strncpy(fragment, text+start, current_length);
+        *(fragment + current_length) = '\0';
+        SET_STRING_ELT(result, i, mkChar(fragment));
+        start += current_length + lengths[i];
+    }
+    
+    current_length = strlen(text) - start;
+    fragment = R_alloc(current_length+1, 1);
+    if (current_length > 0)
+        strncpy(fragment, text+start, current_length);
+    *(fragment + current_length) = '\0';
+    SET_STRING_ELT(result, n_matches, mkChar(fragment));
+    
+    UNPROTECT(1);
+    return result;
+}
+
 SEXP chariot_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
 {
     SEXP result;

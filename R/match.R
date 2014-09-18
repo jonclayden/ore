@@ -75,6 +75,24 @@ ore.ismatch <- function (regex, text, all = FALSE)
     return (ore.ismatch(Y, X, all=TRUE))
 }
 
+ore.split <- function (regex, text, start = 1L)
+{
+    match <- ore.search(regex, text, all=TRUE, start=start)
+    if (length(text) == 1)
+        result <- .Call("chariot_split", text, match$nMatches, match$offsets, match$lengths, PACKAGE="chariot")
+    else
+    {
+        result <- lapply(seq_along(text), function(i) {
+            if (match[[i]]$nMatches == 0)
+                return (text[i])
+            else
+                return (.Call("chariot_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="chariot"))
+        })
+    }
+    
+    return (result)
+}
+
 ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
     doSubst <- function (match, replacement, text)

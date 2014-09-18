@@ -13,4 +13,8 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_);
 
 SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_);
 
+SEXP chariot_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_);
+
+SEXP chariot_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_);
+
 #endif
