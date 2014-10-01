@@ -16,7 +16,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
     }
     else
     {
-        result <- .Call("chariot_search", attr(regex,".compiled"), text, as.logical(all), as.integer(start), PACKAGE="chariot")
+        result <- .Call("ore_search", attr(regex,".compiled"), text, as.logical(all), as.integer(start), PACKAGE="ore")
     
         if (is.null(result))
             match <- NULL
@@ -104,7 +104,7 @@ ore.split <- function (regex, text, start = 1L)
         if (match[[i]]$nMatches == 0)
             return (text[i])
         else
-            return (.Call("chariot_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="chariot"))
+            return (.Call("ore_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="ore"))
     })
     
     return (result)
@@ -114,7 +114,7 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
     doSubst <- function (match, replacement, text)
     {
-        result <- .Call("chariot_substitute", text, match$nMatches, match$offsets, match$lengths, replacement, PACKAGE="chariot")
+        result <- .Call("ore_substitute", text, match$nMatches, match$offsets, match$lengths, replacement, PACKAGE="ore")
         return (result)
     }
     

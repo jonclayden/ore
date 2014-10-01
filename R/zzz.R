@@ -1,9 +1,9 @@
 .onLoad <- function (libname, pkgname)
 {
-    .Call("chariot_init", PACKAGE="chariot")
+    .Call("ore_init", PACKAGE="ore")
 }
 
 .onUnload <- function (libpath)
 {
-    .Call("chariot_done", PACKAGE="chariot")
+    .Call("ore_done", PACKAGE="ore")
 }

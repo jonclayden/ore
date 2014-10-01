@@ -13,26 +13,26 @@
 #define ENCODING_UTF8   1
 #define ENCODING_LATIN1 2
 
-SEXP chariot_init ()
+SEXP ore_init ()
 {
     onig_init();
     return R_NilValue;
 }
 
-SEXP chariot_done ()
+SEXP ore_done ()
 {
     onig_end();
     return R_NilValue;
 }
 
-void chariot_regex_finaliser (SEXP regex_ptr)
+void ore_regex_finaliser (SEXP regex_ptr)
 {
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     onig_free(regex);
     R_ClearExternalPtr(regex_ptr);
 }
 
-int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
+int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
 {
     SEXP name_vector = (SEXP) arg;
     for (int i=0; i<n_groups; i++)
@@ -41,7 +41,7 @@ int chariot_store_name (const UChar *name, const UChar *name_end, int n_groups, 
     return 0;
 }
 
-SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
+SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
 {
     int return_value, n_groups;
     OnigErrorInfo einfo;
@@ -98,7 +98,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     PROTECT(list = NEW_LIST(n_groups>0 ? 2 : 1));
     
     PROTECT(regex_ptr = R_MakeExternalPtr(regex, R_NilValue, R_NilValue));
-    R_RegisterCFinalizerEx(regex_ptr, &chariot_regex_finaliser, FALSE);
+    R_RegisterCFinalizerEx(regex_ptr, &ore_regex_finaliser, FALSE);
     SET_ELEMENT(list, 0, regex_ptr);
     
     if (n_groups > 0)
@@ -106,7 +106,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
         PROTECT(names = NEW_CHARACTER(n_groups));
         for (int i=0; i<n_groups; i++)
             SET_STRING_ELT(names, i, mkChar(""));
-        return_value = onig_foreach_name(regex, &chariot_store_name, names);
+        return_value = onig_foreach_name(regex, &ore_store_name, names);
         SET_ELEMENT(list, 1, names);
         UNPROTECT(1);
     }
@@ -115,7 +115,7 @@ SEXP chariot_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     return list;
 }
 
-SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
+SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
 {
     int return_value, length;
     SEXP n_matches, offsets, lengths, matches, list;
@@ -198,7 +198,7 @@ SEXP chariot_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     return list;
 }
 
-SEXP chariot_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
+SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
 {
     SEXP result;
     
@@ -234,7 +234,7 @@ SEXP chariot_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
     return result;
 }
 
-SEXP chariot_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
+SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
 {
     SEXP result;
     

@@ -23,7 +23,7 @@ ore <- function (pattern, options = "", encoding = "auto")
     encodingCode <- switch(tolower(encoding), "utf-8"=1L, "utf8"=1L, "latin1"=2L, 0L)
     encodingName <- switch(tolower(encoding), "utf-8"="UTF-8", "utf8"="UTF-8", "latin1"="latin1", "bytes"="bytes", "unknown")
     
-    result <- .Call("chariot_compile", pattern, as.character(options), encodingCode, PACKAGE="chariot")
+    result <- .Call("ore_compile", pattern, as.character(options), encodingCode, PACKAGE="ore")
     
     regex <- structure(pattern, .compiled=result[[1]], options=options, encoding=encodingName, class="ore")
     if (length(result) == 2)
