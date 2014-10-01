@@ -1,6 +1,6 @@
 .Workspace <- new.env()
 
-ore.search <- function (regex, text, all = FALSE, start = 1L)
+ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -28,7 +28,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L)
             lengths <- matrix(result[[3]][indices], ncol=nMatches)
             matchdata <- matrix(result[[4]][indices], ncol=nMatches)
         
-            match <- list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all])
+            match <- structure(list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
             if (attr(regex, "nGroups") > 0)
             {
                 match$groups <- list(offsets=offsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
@@ -41,10 +41,18 @@ ore.search <- function (regex, text, all = FALSE, start = 1L)
                 }
             }
         }
+        
+        if (!simplify)
+            match <- list(match)
     }
     
     .Workspace$lastMatch <- match
     return (invisible(match))
+}
+
+is.orematch <- function (x)
+{
+    return ("orematch" %in% class(x))
 }
 
 ore.lastmatch <- function ()
@@ -57,12 +65,8 @@ ore.lastmatch <- function ()
 
 ore.ismatch <- function (regex, text, all = FALSE)
 {
-    match <- ore.search(regex, text, all=all, start=1L)
-    
-    if (length(text) == 1)
-        return (!is.null(match))
-    else
-        return (!sapply(match, is.null))
+    match <- ore.search(regex, text, all=all, start=1L, simplify=FALSE)
+    return (!sapply(match, is.null))
 }
 
 "%~%" <- function (X, Y)
@@ -77,18 +81,13 @@ ore.ismatch <- function (regex, text, all = FALSE)
 
 ore.split <- function (regex, text, start = 1L)
 {
-    match <- ore.search(regex, text, all=TRUE, start=start)
-    if (length(text) == 1)
-        result <- .Call("chariot_split", text, match$nMatches, match$offsets, match$lengths, PACKAGE="chariot")
-    else
-    {
-        result <- lapply(seq_along(text), function(i) {
-            if (match[[i]]$nMatches == 0)
-                return (text[i])
-            else
-                return (.Call("chariot_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="chariot"))
-        })
-    }
+    match <- ore.search(regex, text, all=TRUE, start=start, simplify=FALSE)
+    result <- lapply(seq_along(text), function(i) {
+        if (match[[i]]$nMatches == 0)
+            return (text[i])
+        else
+            return (.Call("chariot_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="chariot"))
+    })
     
     return (result)
 }
