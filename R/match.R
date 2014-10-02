@@ -28,7 +28,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
             lengths <- matrix(result[[3]][indices], ncol=nMatches)
             matchdata <- matrix(result[[4]][indices], ncol=nMatches)
         
-            match <- structure(list(nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
+            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
             if (attr(regex, "nGroups") > 0)
             {
                 match$groups <- list(offsets=offsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
@@ -53,6 +53,35 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 is.orematch <- function (x)
 {
     return ("orematch" %in% class(x))
+}
+
+print.orematch <- function (x, ...)
+{
+    if (x$nMatches == 0)
+        cat(paste(text, "\n", sep=""))
+    else
+    {
+        context <- "context: "
+        matches <- "  match: "
+        numbers <- " number: "
+        
+        ends <- c(1, x$offsets+x$lengths)
+        for (i in 1:x$nMatches)
+        {
+            leadingSpace <- paste(rep(" ",x$offsets[i]-ends[i]), collapse="")
+            context <- paste0(context, substr(x$text,ends[i],x$offsets[i]-1), paste(rep(" ",x$lengths[i]),collapse=""))
+            matches <- paste0(matches, leadingSpace, x$matches[i])
+            
+            # NB: this could break for matches with numbers > 9 whose length is 1
+            if (x$nMatches > 1)
+                numbers <- paste0(numbers, leadingSpace, i, paste(rep("=",x$lengths[i]-nchar(as.character(i))),collapse=""))
+        }
+        context <- paste0(context, substr(x$text,ends[length(ends)],nchar(x$text)))
+        
+        cat(paste(matches, "\n", context, "\n", sep=""))
+        if (x$nMatches > 1)
+            cat(paste(numbers, "\n", sep=""))
+    }
 }
 
 ore.lastmatch <- function ()
