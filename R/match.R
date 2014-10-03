@@ -17,7 +17,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
     else
     {
         result <- .Call("ore_search", attr(regex,".compiled"), text, as.logical(all), as.integer(start), PACKAGE="ore")
-    
+        
         if (is.null(result))
             match <- NULL
         else
@@ -26,19 +26,26 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
             indices <- seq_len(nMatches * (attr(regex,"nGroups") + 1))
             offsets <- matrix(result[[2]][indices], ncol=nMatches)
             lengths <- matrix(result[[3]][indices], ncol=nMatches)
-            matchdata <- matrix(result[[4]][indices], ncol=nMatches)
-        
-            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
+            bytes <- matrix(result[[4]][indices], ncol=nMatches)
+            matchdata <- matrix(result[[5]][indices], ncol=nMatches)
+            
+            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[1,,drop=!all], lengths=lengths[1,,drop=!all], bytes=bytes[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
+            
+            sourceEncoding <- .getEncoding(text)
+            Encoding(match$matches) <- sourceEncoding
+            
             if (attr(regex, "nGroups") > 0)
             {
-                match$groups <- list(offsets=offsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
+                match$groups <- list(offsets=offsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], bytes=bytes[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
                 if (!is.null(attr(regex, "groupNames")))
                 {
                     groupNames <- attr(regex, "groupNames")
                     rownames(match$groups$offsets) <- groupNames
                     rownames(match$groups$lengths) <- groupNames
+                    rownames(match$groups$bytes) <- groupNames
                     rownames(match$groups$matches) <- groupNames
                 }
+                Encoding(match$groups$matches) <- sourceEncoding
             }
         }
         
@@ -128,12 +135,17 @@ ore.map <- function (regex, text, fun, ..., all = FALSE, start = 1L)
 
 ore.split <- function (regex, text, start = 1L)
 {
+    sourceEncoding <- .getEncoding(text)
     match <- ore.search(regex, text, all=TRUE, start=start, simplify=FALSE)
     result <- lapply(seq_along(text), function(i) {
         if (match[[i]]$nMatches == 0)
             return (text[i])
         else
-            return (.Call("ore_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$lengths, PACKAGE="ore"))
+        {
+            parts <- .Call("ore_split", text[i], match[[i]]$nMatches, match[[i]]$offsets, match[[i]]$bytes, PACKAGE="ore")
+            Encoding(parts) <- sourceEncoding
+            return (parts)
+        }
     })
     
     return (result)
@@ -143,7 +155,7 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
 {
     doSubst <- function (match, replacement, text)
     {
-        result <- .Call("ore_substitute", text, match$nMatches, match$offsets, match$lengths, replacement, PACKAGE="ore")
+        result <- .Call("ore_substitute", text, match$nMatches, match$offsets, match$bytes, replacement, PACKAGE="ore")
         return (result)
     }
     
@@ -184,5 +196,6 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
     }
     
     names(result) <- NULL
+    Encoding(result) <- .getEncoding(text)
     return (result)
 }
