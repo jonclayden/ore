@@ -7,6 +7,9 @@
 #include "oniguruma.h"
 #include "main.h"
 
+// Not strictly part of the API, but needed for implementing the "start" argument
+extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
+
 #define MAX_MATCHES     128
 
 #define ENCODING_ASCII  0
@@ -118,11 +121,10 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
 SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
 {
     int return_value, length;
-    SEXP n_matches, offsets, lengths, bytes, matches, list;
+    SEXP n_matches, offsets, byte_offsets, lengths, byte_lengths, matches, list;
     
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     const char *text = CHAR(STRING_ELT(text_, 0));
-    const size_t text_len = strlen(text);
     const Rboolean all = asLogical(all_);
     OnigRegion *region = onig_region_new();
     
@@ -132,9 +134,16 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     int match_number = 0;
     Rboolean vars_created = FALSE;
     
+    UChar *end_ptr = (UChar *) text + strlen(text);
+    UChar *start_ptr;
+    if (start == 0)
+        start_ptr = (UChar *) text;
+    else
+        start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
+    
     while (TRUE)
     {
-        return_value = onig_search(regex, (UChar *) text, (UChar *) text+text_len, (UChar *) text+start, (UChar *) text+text_len, region, ONIG_OPTION_NONE);
+        return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
     
         if (return_value == ONIG_MISMATCH)
             break;
@@ -142,11 +151,12 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         {
             if (!vars_created)
             {
-                PROTECT(list = NEW_LIST(5));
+                PROTECT(list = NEW_LIST(6));
                 PROTECT(n_matches = NEW_INTEGER(1));
                 PROTECT(offsets = NEW_INTEGER(max_matches * region->num_regs));
+                PROTECT(byte_offsets = NEW_INTEGER(max_matches * region->num_regs));
                 PROTECT(lengths = NEW_INTEGER(max_matches * region->num_regs));
-                PROTECT(bytes = NEW_INTEGER(max_matches * region->num_regs));
+                PROTECT(byte_lengths = NEW_INTEGER(max_matches * region->num_regs));
                 PROTECT(matches = NEW_CHARACTER(max_matches * region->num_regs));
                 vars_created = TRUE;
             }
@@ -154,9 +164,10 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
             for (int i=0; i<region->num_regs; i++)
             {
                 length = region->end[i] - region->beg[i];
-                INTEGER(offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
+                INTEGER(offsets)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, text, text+region->beg[i]) + 1;
+                INTEGER(byte_offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
                 INTEGER(lengths)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, text+region->beg[i], text+region->end[i]);
-                INTEGER(bytes)[match_number * region->num_regs + i] = length;
+                INTEGER(byte_lengths)[match_number * region->num_regs + i] = length;
                 
                 if (length == 0)
                     SET_STRING_ELT(matches, match_number * region->num_regs + i, NA_STRING);
@@ -169,7 +180,7 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
                 }
             }
             
-            start = region->end[0];
+            start_ptr = (UChar *) text + region->end[0];
             match_number++;
         }
         else
@@ -190,10 +201,11 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         *INTEGER(n_matches) = match_number;
         SET_ELEMENT(list, 0, n_matches);
         SET_ELEMENT(list, 1, offsets);
-        SET_ELEMENT(list, 2, lengths);
-        SET_ELEMENT(list, 3, bytes);
-        SET_ELEMENT(list, 4, matches);
-        UNPROTECT(6);
+        SET_ELEMENT(list, 2, byte_offsets);
+        SET_ELEMENT(list, 3, lengths);
+        SET_ELEMENT(list, 4, byte_lengths);
+        SET_ELEMENT(list, 5, matches);
+        UNPROTECT(7);
     }
     
     onig_region_free(region, 1);
