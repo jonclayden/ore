@@ -1,3 +1,5 @@
+# Oniguruma Regular Expressions
+
 Welcome to the `ore` package for R. This package provides an alternative to R's standard functions for manipulating strings with regular expressions, based on the Oniguruma regular expression library (rather than PCRE, as in `base`). Although the regex features of the two libraries are quite similar, the R interface provided by `ore` has some notable advantages:
 
 - Regular expressions are themselves first-class objects (of class `ore`), stored with attributes containing information such as the number of parenthesised groups present within them. This means that it is not necessary to compile a particular regex more than once.
@@ -5,6 +7,16 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 - Substitutions can be functions as well as strings.
 
 This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](http://www.geocities.jp/kosako3/oniguruma/doc/RE.txt) for details of supported regular expression syntax.
+
+## Contents
+
+- [Installation](#installation)
+- [Function mapping](#function-mapping)
+- [Basic usage](#basic-usage)
+- [Encodings](#encodings)
+- [Substitutions](#substitutions)
+- [Splitting](#splitting)
+- [Additional convenience functions](#additional-convenience-functions)
 
 ## Installation
 
@@ -16,6 +28,19 @@ devtools::install_github("jonclayden/ore")
 ```
 
 It is also planned to make it available via CRAN shortly, for installation via the standard `install.packages` function.
+
+## Function mapping
+
+| Effect                        | `ore` syntax                                   | Base R syntax                           |
+| ----------------------------- | ---------------------------------------------- | --------------------------------------- |
+| Create a regex object         | `regex <- ore(regex_string)`                   | (no equivalent)                         |
+| Is there a match?             | `ore.ismatch(regex, text)` or `text %~% regex` | `grepl(regex, text, perl=TRUE)`         |
+| Find the first match          | `ore.search(regex, text)`                      | `regexpr(regex, text, perl=TRUE)`       |
+| Find match after character 10 | `ore.search(regex, text, start=10)`            | (no equivalent)                         |
+| Find all matches              | `ore.search(regex, text, all=TRUE)`            | `gregexpr(regex, text, perl=TRUE)`      |
+| Replace first match           | `ore.subst(regex, replace, text)`              | `sub(regex, replace, text, perl=TRUE)`  |
+| Replace all matches           | `ore.subst(regex, replace, text, all=TRUE)`    | `gsub(regex, replace, text, perl=TRUE)` |
+| Split at matches              | `ore.split(regex, text)`                       | `strsplit(text, regex, perl=TRUE)`      |
 
 ## Basic usage
 
@@ -126,4 +151,67 @@ gregexpr("\\b\\w{4}\\b", text, perl=TRUE)
 # [1] 6
 # attr(,"match.length")
 # [1] 4
+```
+
+## Substitutions
+
+The `ore.subst()` function can be used to substitute regex matches with new text. Matched subgroups may be referred to using numerical or named back-references.
+
+```R
+re <- ore("\\b(\\w)(\\w)(\\w)(\\w)\\b", encoding="utf8")
+text <- enc2utf8("I'll have a piña colada")
+ore.subst(re, "\\3\\1\\2\\4", text, all=TRUE)
+# [1] "I'll vhae a ñpia colada"
+
+re <- ore("\\b(?<first>\\w)(?<second>\\w)(?<third>\\w)(?<fourth>\\w)\\b", encoding="utf8")
+ore.subst(re, "\\k<third>\\k<first>\\k<second>\\k<fourth>", text, all=TRUE)
+# [1] "I'll vhae a ñpia colada"
+```
+
+A function may also be provided, which will be used to generate replacement strings. For example, we could find all integers in a string and replace them with their squares:
+
+```R
+re <- ore("-?\\d+")
+text <- "I have 2 dogs, 3 cats and 4 hamsters"
+ore.subst(re, function(i) as.integer(i)^2, text, all=TRUE)
+# [1] "I have 4 dogs, 9 cats and 16 hamsters"
+```
+
+## Splitting
+
+Strings can be split into parts using the `ore.split()` function.
+
+```R
+ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
+# [[1]]
+# [1] "I have "    " dogs, "    " cats and " " hamsters"
+```
+
+## Additional convenience functions
+
+The `ore.ismatch` function will return a logical vector indicating whether or not a match is present in each element of a character vector. The infix notation `%~%` is a shorthand way to achieve the same thing. Either way, the full match data can be obtained without repeating the search, using the `ore.lastmatch()` function.
+
+```R
+if ("I have 2 dogs, 3 cats and 4 hamsters" %~% "-?\\d+")
+  print(ore.lastmatch())
+# [[1]]
+#   match:        2
+# context: I have   dogs, 3 cats and 4 hamsters
+```
+
+The `%~~%` operator works likewise, except that all matches will be found (i.e. it sets `all=TRUE` when calling `ore.search()`).
+
+Text matching the entire regex, or parenthesised groups, can be extracted using the `matches()` and `groups()` convenience functions.
+
+```R
+# An example from ?regexpr
+re <- "^(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)"
+text <- "http://stat.umn.edu:80/xyz"
+match <- ore.search(re, text)
+matches(match)
+# "http://stat.umn.edu:80/xyz"
+
+groups(match)
+#      [,1]      [,2]   [,3]           [,4]  [,5] [,6]  
+# [1,] "http://" "http" "stat.umn.edu" ":80" "80" "/xyz"
 ```
