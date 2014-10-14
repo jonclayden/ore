@@ -1,10 +1,12 @@
-# Oniguruma Regular Expressions
+# Oniguruma Regular Expressions (for R)
 
 Welcome to the `ore` package for R. This package provides an alternative to R's standard functions for manipulating strings with regular expressions, based on the Oniguruma regular expression library (rather than PCRE, as in `base`). Although the regex features of the two libraries are quite similar, the R interface provided by `ore` has some notable advantages:
 
 - Regular expressions are themselves first-class objects (of class `ore`), stored with attributes containing information such as the number of parenthesised groups present within them. This means that it is not necessary to compile a particular regex more than once.
 - Search results focus around the matched substrings rather than the locations of matches. This saves extra work with `substr` to extract the matches themselves.
 - Substitutions can be functions as well as strings.
+- Matches can be efficiently obtained over only part of the strings.
+- Fewer core functions, with more consistent names.
 
 This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](http://www.geocities.jp/kosako3/oniguruma/doc/RE.txt) for details of supported regular expression syntax.
 
