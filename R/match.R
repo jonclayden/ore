@@ -197,11 +197,11 @@ ore.split <- function (regex, text, start = 1L)
     return (result)
 }
 
-ore.sub <- function (regex, replacement, text, global = FALSE, ...)
+ore.subst <- function (regex, replacement, text, all = FALSE, ...)
 {
-    doSubst <- function (match, replacement, text)
+    do.subst <- function (match, replacement, text)
     {
-        result <- .Call("ore_substitute", text, match$nMatches, match$byteOffsets, match$byteLengths, replacement, PACKAGE="ore")
+        result <- .Call("ore_substitute", text, match$nMatches, match$byteOffsets, match$byteLengths, as.character(replacement), PACKAGE="ore")
         return (result)
     }
     
@@ -221,7 +221,7 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
     result <- character(length(text))
     for (i in seq_along(text))
     {
-        currentMatch <- ore.search(regex, text[i], all=global)
+        currentMatch <- ore.search(regex, text[i], all=all)
         if (is.null(currentMatch))
             result[i] <- text[i]
         else
@@ -232,12 +232,12 @@ ore.sub <- function (regex, replacement, text, global = FALSE, ...)
             {
                 currentReplacements <- rep(replacement, length.out=currentMatch$nMatches)
                 if (!is.null(groupNumberMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) doSubst(groupNumberMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) do.subst(groupNumberMatch,x,replacement))
                 if (!is.null(groupNameMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) doSubst(groupNameMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) do.subst(groupNameMatch,x,replacement))
             }
             
-            result[i] <- doSubst(currentMatch, currentReplacements, text[i])
+            result[i] <- do.subst(currentMatch, currentReplacements, text[i])
         }
     }
     
