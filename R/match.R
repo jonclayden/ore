@@ -24,28 +24,28 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
         {
             nMatches <- result[[1]]
             indices <- seq_len(nMatches * (attr(regex,"nGroups") + 1))
-            offsets <- matrix(result[[2]][indices], ncol=nMatches)
-            byteOffsets <- matrix(result[[3]][indices], ncol=nMatches)
-            lengths <- matrix(result[[4]][indices], ncol=nMatches)
-            byteLengths <- matrix(result[[5]][indices], ncol=nMatches)
-            matchdata <- matrix(result[[6]][indices], ncol=nMatches)
+            offsets <- t(matrix(result[[2]][indices], ncol=nMatches))
+            byteOffsets <- t(matrix(result[[3]][indices], ncol=nMatches))
+            lengths <- t(matrix(result[[4]][indices], ncol=nMatches))
+            byteLengths <- t(matrix(result[[5]][indices], ncol=nMatches))
+            matchdata <- t(matrix(result[[6]][indices], ncol=nMatches))
             
-            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[1,,drop=!all], byteOffsets=byteOffsets[1,,drop=!all], lengths=lengths[1,,drop=!all], byteLengths=byteLengths[1,,drop=!all], matches=matchdata[1,,drop=!all]), class="orematch")
+            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[,1], byteOffsets=byteOffsets[,1], lengths=lengths[,1], byteLengths=byteLengths[,1], matches=matchdata[,1]), class="orematch")
             
             sourceEncoding <- .getEncoding(text)
             Encoding(match$matches) <- sourceEncoding
             
             if (attr(regex, "nGroups") > 0)
             {
-                match$groups <- list(offsets=offsets[-1,,drop=FALSE], byteOffsets=byteOffsets[-1,,drop=FALSE], lengths=lengths[-1,,drop=FALSE], byteLengths=byteLengths[-1,,drop=FALSE], matches=matchdata[-1,,drop=FALSE])
+                match$groups <- list(offsets=offsets[,-1,drop=FALSE], byteOffsets=byteOffsets[,-1,drop=FALSE], lengths=lengths[,-1,drop=FALSE], byteLengths=byteLengths[,-1,drop=FALSE], matches=matchdata[,-1,drop=FALSE])
                 if (!is.null(attr(regex, "groupNames")))
                 {
                     groupNames <- attr(regex, "groupNames")
-                    rownames(match$groups$offsets) <- groupNames
-                    rownames(match$groups$byteOffsets) <- groupNames
-                    rownames(match$groups$lengths) <- groupNames
-                    rownames(match$groups$byteLengths) <- groupNames
-                    rownames(match$groups$matches) <- groupNames
+                    colnames(match$groups$offsets) <- groupNames
+                    colnames(match$groups$byteOffsets) <- groupNames
+                    colnames(match$groups$lengths) <- groupNames
+                    colnames(match$groups$byteLengths) <- groupNames
+                    colnames(match$groups$matches) <- groupNames
                 }
                 Encoding(match$groups$matches) <- sourceEncoding
             }
@@ -105,7 +105,7 @@ matches.list <- function (object, ...)
 
 matches.orematch <- function (object, ...)
 {
-    return (drop(object$matches))
+    return (object$matches)
 }
 
 groups <- function (object, ...)
