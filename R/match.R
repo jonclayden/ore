@@ -161,24 +161,6 @@ ore.ismatch <- function (regex, text, all = FALSE)
         return (ore.ismatch(Y, X, all=TRUE))
 }
 
-ore.map <- function (regex, text, fun, ..., all = FALSE, start = 1L)
-{
-    fun <- match.fun(fun)
-    match <- ore.search(regex, text, all=all, start=start, simplify=FALSE)
-    result <- sapply(match, function(x) {
-        if (all)
-        {
-            sapply(1:x$nMatches, function(i) {
-                fun(x$matches[,i], x$groups$matches[,i], ...)
-            })
-        }
-        else
-            fun(x$matches, drop(x$groups$matches), ...)
-    })
-    
-    return (result)
-}
-
 ore.split <- function (regex, text, start = 1L)
 {
     sourceEncoding <- .getEncoding(text)
