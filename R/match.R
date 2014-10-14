@@ -93,6 +93,44 @@ print.orematch <- function (x, ...)
     }
 }
 
+matches <- function (object, ...)
+{
+    UseMethod("matches")
+}
+
+matches.list <- function (object, ...)
+{
+    return (sapply(object, matches, ...))
+}
+
+matches.orematch <- function (object, ...)
+{
+    return (drop(object$matches))
+}
+
+groups <- function (object, ...)
+{
+    UseMethod("groups")
+}
+
+groups.list <- function (object, ...)
+{
+    return (sapply(object, groups, ..., simplify="array"))
+}
+
+groups.orematch <- function (object, ...)
+{
+    return (object$groups$matches)
+}
+
+"[.orematch" <- function (x, i, j, ...)
+{
+    if (missing(j))
+        return (x$matches[i])
+    else
+        return (x$groups$matches[j,i])
+}
+
 ore.lastmatch <- function ()
 {
     if (!exists("lastMatch", envir=.Workspace))
