@@ -147,12 +147,18 @@ ore.ismatch <- function (regex, text, all = FALSE)
 
 "%~%" <- function (X, Y)
 {
-    return (ore.ismatch(Y, X, all=FALSE))
+    if (is.ore(X))
+        return (ore.ismatch(X, Y, all=FALSE))
+    else
+        return (ore.ismatch(Y, X, all=FALSE))
 }
 
 "%~~%" <- function (X, Y)
 {
-    return (ore.ismatch(Y, X, all=TRUE))
+    if (is.ore(X))
+        return (ore.ismatch(X, Y, all=TRUE))
+    else
+        return (ore.ismatch(Y, X, all=TRUE))
 }
 
 ore.map <- function (regex, text, fun, ..., all = FALSE, start = 1L)
