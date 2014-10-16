@@ -89,7 +89,11 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
         option_pointer++;
     }
     
-    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, ONIG_SYNTAX_DEFAULT, &einfo);
+    // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
+    OnigSyntaxType *syntax = ONIG_SYNTAX_RUBY;
+    ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
+    
+    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, syntax, &einfo);
     if (return_value != ONIG_NORMAL)
     {
         char message[ONIG_MAX_ERROR_MESSAGE_LEN];
