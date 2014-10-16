@@ -179,7 +179,7 @@ koi8_r_apply_all_case_fold(OnigCaseFoldType flag,
 			       OnigApplyAllCaseFoldFunc f, void* arg)
 {
   return onigenc_apply_all_case_fold_with_map(
-             sizeof(CaseFoldMap)/sizeof(OnigPairCaseFoldCodes), CaseFoldMap, 0,
+             numberof(CaseFoldMap), CaseFoldMap, 0,
              flag, f, arg);
 }
 
@@ -188,7 +188,7 @@ koi8_r_get_case_fold_codes_by_str(OnigCaseFoldType flag,
     const OnigUChar* p, const OnigUChar* end, OnigCaseFoldCodeItem items[])
 {
   return onigenc_get_case_fold_codes_by_str_with_map(
-	     sizeof(CaseFoldMap)/sizeof(OnigPairCaseFoldCodes), CaseFoldMap, 0,
+	     numberof(CaseFoldMap), CaseFoldMap, 0,
 	     flag, p, end, items);
 }
 
@@ -208,5 +208,6 @@ OnigEncodingType OnigEncodingKOI8_R = {
   koi8_r_is_code_ctype,
   onigenc_not_support_get_ctype_code_range,
   onigenc_single_byte_left_adjust_char_head,
-  onigenc_always_true_is_allowed_reverse_match
+  onigenc_always_true_is_allowed_reverse_match,
+  ONIGENC_FLAG_NONE,
 };

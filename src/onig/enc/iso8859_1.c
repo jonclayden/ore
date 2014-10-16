@@ -106,7 +106,7 @@ apply_all_case_fold(OnigCaseFoldType flag,
 		    OnigApplyAllCaseFoldFunc f, void* arg)
 {
   return onigenc_apply_all_case_fold_with_map(
-            sizeof(CaseFoldMap)/sizeof(OnigPairCaseFoldCodes), CaseFoldMap, 1,
+            numberof(CaseFoldMap), CaseFoldMap, 1,
             flag, f, arg);
 }
 
@@ -268,5 +268,6 @@ OnigEncodingType OnigEncodingISO_8859_1 = {
   is_code_ctype,
   onigenc_not_support_get_ctype_code_range,
   onigenc_single_byte_left_adjust_char_head,
-  onigenc_always_true_is_allowed_reverse_match
+  onigenc_always_true_is_allowed_reverse_match,
+  ONIGENC_FLAG_NONE,
 };

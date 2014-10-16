@@ -1,8 +1,9 @@
 /**********************************************************************
-  regenc.c -  Oniguruma (regular expression library)
+  regenc.c -  Onigmo (Oniguruma-mod) (regular expression library)
 **********************************************************************/
 /*-
  * Copyright (c) 2002-2007  K.Kosako  <sndgk393 AT ybb DOT ne DOT jp>
+ * Copyright (c) 2011       K.Takata  <kentkt AT csc DOT jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,7 +113,7 @@ onigenc_strlen(OnigEncoding enc, const UChar* p, const UChar* end)
 {
   int n = 0;
   UChar* q = (UChar* )p;
-  
+
   while (q < end) {
     q += ONIGENC_MBC_ENC_LEN(enc, q);
     n++;
@@ -125,7 +126,7 @@ onigenc_strlen_null(OnigEncoding enc, const UChar* s)
 {
   int n = 0;
   UChar* p = (UChar* )s;
-  
+
   while (1) {
     if (*p == '\0') {
       UChar* q;
@@ -397,9 +398,7 @@ onigenc_ascii_apply_all_case_fold(OnigCaseFoldType flag ARG_UNUSED,
   OnigCodePoint code;
   int i, r;
 
-  for (i = 0;
-       i < (int )(sizeof(OnigAsciiLowerMap)/sizeof(OnigPairCaseFoldCodes));
-       i++) {
+  for (i = 0; i < numberof(OnigAsciiLowerMap); i++) {
     code = OnigAsciiLowerMap[i].to;
     r = (*f)(OnigAsciiLowerMap[i].from, &code, 1, arg);
     if (r != 0) return r;
@@ -437,7 +436,7 @@ static int
 ss_apply_all_case_fold(OnigCaseFoldType flag ARG_UNUSED,
 		       OnigApplyAllCaseFoldFunc f, void* arg)
 {
-  static OnigCodePoint ss[] = { 0x73, 0x73 };
+  OnigCodePoint ss[] = { 0x73, 0x73 };
 
   return (*f)((OnigCodePoint )0xdf, ss, 2, arg);
 }
@@ -582,8 +581,8 @@ onigenc_ascii_mbc_case_fold(OnigCaseFoldType flag ARG_UNUSED, const UChar** p,
 
 #if 0
 extern int
-onigenc_ascii_is_mbc_ambiguous(OnigCaseFoldType flag,
-			       const UChar** pp, const UChar* end)
+onigenc_ascii_is_mbc_ambiguous(OnigCaseFoldType flag ARG_UNUSED,
+			       const UChar** pp, const UChar* end ARG_UNUSED)
 {
   const UChar* p = *pp;
 
@@ -638,6 +637,15 @@ onigenc_always_false_is_allowed_reverse_match(const UChar* s   ARG_UNUSED,
   return FALSE;
 }
 
+extern int
+onigenc_ascii_is_code_ctype(OnigCodePoint code, unsigned int ctype)
+{
+  if (code < 128)
+    return ONIGENC_IS_ASCII_CODE_CTYPE(code, ctype);
+  else
+    return FALSE;
+}
+
 extern OnigCodePoint
 onigenc_mbn_mbc_to_code(OnigEncoding enc, const UChar* p, const UChar* end)
 {
@@ -684,7 +692,7 @@ onigenc_mbn_mbc_case_fold(OnigEncoding enc, OnigCaseFoldType flag ARG_UNUSED,
 #if 0
 extern int
 onigenc_mbn_is_mbc_ambiguous(OnigEncoding enc, OnigCaseFoldType flag,
-                             const UChar** pp, const UChar* end)
+                             const UChar** pp, const UChar* end ARG_UNUSED)
 {
   const UChar* p = *pp;
 
@@ -728,7 +736,7 @@ onigenc_mb2_code_to_mbc(OnigEncoding enc, OnigCodePoint code, UChar *buf)
   if (enclen(enc, buf) != (p - buf))
     return ONIGERR_INVALID_CODE_POINT_VALUE;
 #endif
-  return p - buf;
+  return (int )(p - buf);
 }
 
 extern int
@@ -751,37 +759,36 @@ onigenc_mb4_code_to_mbc(OnigEncoding enc, OnigCodePoint code, UChar *buf)
   if (enclen(enc, buf) != (p - buf))
     return ONIGERR_INVALID_CODE_POINT_VALUE;
 #endif
-  return p - buf;
+  return (int )(p - buf);
 }
 
 extern int
 onigenc_minimum_property_name_to_ctype(OnigEncoding enc, UChar* p, UChar* end)
 {
-  static PosixBracketEntryType PBS[] = {
-    { (UChar* )"Alnum",  ONIGENC_CTYPE_ALNUM,  5 },
-    { (UChar* )"Alpha",  ONIGENC_CTYPE_ALPHA,  5 },
-    { (UChar* )"Blank",  ONIGENC_CTYPE_BLANK,  5 },
-    { (UChar* )"Cntrl",  ONIGENC_CTYPE_CNTRL,  5 },
-    { (UChar* )"Digit",  ONIGENC_CTYPE_DIGIT,  5 },
-    { (UChar* )"Graph",  ONIGENC_CTYPE_GRAPH,  5 },
-    { (UChar* )"Lower",  ONIGENC_CTYPE_LOWER,  5 },
-    { (UChar* )"Print",  ONIGENC_CTYPE_PRINT,  5 },
-    { (UChar* )"Punct",  ONIGENC_CTYPE_PUNCT,  5 },
-    { (UChar* )"Space",  ONIGENC_CTYPE_SPACE,  5 },
-    { (UChar* )"Upper",  ONIGENC_CTYPE_UPPER,  5 },
-    { (UChar* )"XDigit", ONIGENC_CTYPE_XDIGIT, 6 },
-    { (UChar* )"ASCII",  ONIGENC_CTYPE_ASCII,  5 },
-    { (UChar* )"Word",   ONIGENC_CTYPE_WORD,   4 },
-    { (UChar* )NULL, -1, 0 }
+  static const PosixBracketEntryType PBS[] = {
+    POSIX_BRACKET_ENTRY_INIT("Alnum",  ONIGENC_CTYPE_ALNUM),
+    POSIX_BRACKET_ENTRY_INIT("Alpha",  ONIGENC_CTYPE_ALPHA),
+    POSIX_BRACKET_ENTRY_INIT("Blank",  ONIGENC_CTYPE_BLANK),
+    POSIX_BRACKET_ENTRY_INIT("Cntrl",  ONIGENC_CTYPE_CNTRL),
+    POSIX_BRACKET_ENTRY_INIT("Digit",  ONIGENC_CTYPE_DIGIT),
+    POSIX_BRACKET_ENTRY_INIT("Graph",  ONIGENC_CTYPE_GRAPH),
+    POSIX_BRACKET_ENTRY_INIT("Lower",  ONIGENC_CTYPE_LOWER),
+    POSIX_BRACKET_ENTRY_INIT("Print",  ONIGENC_CTYPE_PRINT),
+    POSIX_BRACKET_ENTRY_INIT("Punct",  ONIGENC_CTYPE_PUNCT),
+    POSIX_BRACKET_ENTRY_INIT("Space",  ONIGENC_CTYPE_SPACE),
+    POSIX_BRACKET_ENTRY_INIT("Upper",  ONIGENC_CTYPE_UPPER),
+    POSIX_BRACKET_ENTRY_INIT("XDigit", ONIGENC_CTYPE_XDIGIT),
+    POSIX_BRACKET_ENTRY_INIT("ASCII",  ONIGENC_CTYPE_ASCII),
+    POSIX_BRACKET_ENTRY_INIT("Word",   ONIGENC_CTYPE_WORD),
   };
 
-  PosixBracketEntryType *pb;
+  const PosixBracketEntryType *pb;
   int len;
 
   len = onigenc_strlen(enc, p, end);
-  for (pb = PBS; IS_NOT_NULL(pb->name); pb++) {
+  for (pb = PBS; pb < PBS + numberof(PBS); pb++) {
     if (len == pb->len &&
-        onigenc_with_ascii_strncmp(enc, p, end, pb->name, pb->len) == 0)
+        onigenc_with_ascii_strnicmp(enc, p, end, pb->name, pb->len) == 0)
       return pb->ctype;
   }
 
@@ -837,11 +844,32 @@ onigenc_with_ascii_strncmp(OnigEncoding enc, const UChar* p, const UChar* end,
   return 0;
 }
 
+extern int
+onigenc_with_ascii_strnicmp(OnigEncoding enc, const UChar* p, const UChar* end,
+                            const UChar* sascii /* ascii */, int n)
+{
+  int x, c;
+
+  while (n-- > 0) {
+    if (p >= end) return (int )(*sascii);
+
+    c = (int )ONIGENC_MBC_TO_CODE(enc, p, end);
+    if (ONIGENC_IS_ASCII_CODE(c))
+      c = ONIGENC_ASCII_CODE_TO_LOWER_CASE(c);
+    x = ONIGENC_ASCII_CODE_TO_LOWER_CASE(*sascii) - c;
+    if (x) return x;
+
+    sascii++;
+    p += enclen(enc, p);
+  }
+  return 0;
+}
+
 /* Property management */
 static int
 resize_property_list(int new_size, const OnigCodePoint*** plist, int* psize)
 {
-  int size;
+  size_t size;
   const OnigCodePoint **list = *plist;
 
   size = sizeof(OnigCodePoint*) * new_size;
