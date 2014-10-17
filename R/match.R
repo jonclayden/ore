@@ -128,7 +128,7 @@ groups.orematch <- function (object, ...)
     if (missing(j))
         return (x$matches[i])
     else
-        return (x$groups$matches[j,i])
+        return (x$groups$matches[i,j])
 }
 
 ore.lastmatch <- function ()
