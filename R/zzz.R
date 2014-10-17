@@ -1,3 +1,4 @@
+#' @useDynLib ore
 .onLoad <- function (libname, pkgname)
 {
     .Call("ore_init", PACKAGE="ore")
