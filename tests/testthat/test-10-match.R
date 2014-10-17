@@ -1,6 +1,34 @@
-context("Regular expression matching and related operations")
+context("Matching and related operations")
 
 test_that("Oniguruma regular expression matching works", {
     regex <- ore("\\b\\w{4}\\b")
+    regexUtf8 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
+    text <- enc2utf8("I'll have a piña colada")
     
+    expect_that(ore::matches(ore.search(regex,text)), equals("have"))
+    expect_that(ore.search(regex,text,all=TRUE)$offsets, equals(6L))
+    expect_that(ore.search(regex,text,start=10L), is_null())
+    expect_that(ore.search(regexUtf8,text,all=TRUE)$offsets, equals(c(6L,13L)))
+    expect_that(ore.search(regexUtf8,text,start=10L)$offsets, equals(13L))
+    
+    expect_that(ore.search(ore("Have"),text), is_null())
+    expect_that(ore::matches(ore.search(ore("Have",options="i"),text)), equals("have"))
+})
+
+test_that("group extraction and indexing works", {
+    match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
+    
+    expect_that(dim(groups(match)), equals(c(5L,2L)))
+    expect_that(match[2], equals("is"))
+    expect_that(match[2,2], equals("s"))
+})
+
+test_that("literal, backreferenced and functional substitution work", {
+    expect_that(ore.subst("\\d+","no","2 dogs"), equals("no dogs"))
+    expect_that(ore.subst("(\\d+)","\\1\\1","2 dogs"), equals("22 dogs"))
+    expect_that(ore.subst("\\d+",function(i) as.numeric(i)^2,"2 dogs"), equals("4 dogs"))
+})
+
+test_that("splitting a string by a regular expression works", {
+    expect_that(ore.split("[\\s\\-()]+","(801) 234-5678"), equals(list(c("","801","234","5678"))))
 })
