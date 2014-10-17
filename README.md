@@ -86,11 +86,11 @@ Notice that the result of the search is an object of class `orematch`. This cont
 The `start` parameter to `ore.search()` can be used to indicate where in the text the search should begin. All matches (after the starting point) will be returned with `all=TRUE`:
 
 ```R
-(ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", start=10))
+ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", start=10)
 #   match:                3
 # context: I have 2 dogs,   cats and 4 hamsters
 
-(ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", all=TRUE))
+ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", all=TRUE)
 #   match:        2       3          4
 # context: I have   dogs,   cats and   hamsters
 #  number:        1       2          3
@@ -99,7 +99,7 @@ The `start` parameter to `ore.search()` can be used to indicate where in the tex
 The text to be searched for matches can be a vector, in which case the return value will be a list of `orematch` objects:
 
 ```R
-(ore.search(re, c("2 dogs","3 cats","4 hamsters")))
+ore.search(re, c("2 dogs","3 cats","4 hamsters"))
 # [[1]]
 #   match: 2
 # context:   dogs
@@ -124,11 +124,11 @@ re1 <- ore("\\b\\w{4}\\b")
 re2 <- ore("\\b\\w{4}\\b", encoding="utf8")
 text <- enc2utf8("I'll have a piña colada")
 
-(ore.search(re1, text, all=TRUE))
+ore.search(re1, text, all=TRUE)
 #   match:      have
 # context: I'll      a piña colada
 
-(ore.search(re2, text, all=TRUE))
+ore.search(re2, text, all=TRUE)
 #   match:      have   piña
 # context: I'll      a      colada
 #  number:      1===   2===
@@ -139,7 +139,7 @@ Note that, without a declared encoding, only ASCII word characters are matched t
 If `ore.search()` is called with a string rather than an `ore` object for the regular expression, then the encoding of the text will also be associated with the regex. This this should generally produce the most sensible result.
 
 ```R
-(ore.search("\\b\\w{4}\\b", text, all=TRUE))
+ore.search("\\b\\w{4}\\b", text, all=TRUE)
 #   match:      have   piña
 # context: I'll      a      colada
 #  number:      1===   2===

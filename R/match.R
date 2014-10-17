@@ -56,7 +56,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
     }
     
     .Workspace$lastMatch <- match
-    return (invisible(match))
+    return (match)
 }
 
 is.orematch <- function (x)
