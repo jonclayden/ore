@@ -13,6 +13,11 @@ test_that("Oniguruma regular expression matching works", {
     
     expect_that(ore.search(ore("Have"),text), is_null())
     expect_that(ore::matches(ore.search(ore("Have",options="i"),text)), equals("have"))
+    
+    expect_that(ore::matches(ore.search(ore(".+"),"one\ntwo")), equals("one"))
+    expect_that(ore::matches(ore.search(ore(".+",options="m"),"one\ntwo")), equals("one\ntwo"))
+    
+    expect_that(ore.ismatch("[aeiou]",c("sky","lake")), equals(c(FALSE,TRUE)))
 })
 
 test_that("group extraction and indexing works", {
@@ -23,12 +28,12 @@ test_that("group extraction and indexing works", {
     expect_that(match[2,2], equals("s"))
 })
 
-test_that("literal, backreferenced and functional substitution work", {
+test_that("literal, back-referenced and functional substitution work", {
     expect_that(ore.subst("\\d+","no","2 dogs"), equals("no dogs"))
     expect_that(ore.subst("(\\d+)","\\1\\1","2 dogs"), equals("22 dogs"))
     expect_that(ore.subst("\\d+",function(i) as.numeric(i)^2,"2 dogs"), equals("4 dogs"))
 })
 
 test_that("splitting a string by a regular expression works", {
-    expect_that(ore.split("[\\s\\-()]+","(801) 234-5678"), equals(list(c("","801","234","5678"))))
+    expect_that(ore.split("[\\s\\-()]+","(801) 234-5678"), equals(c("","801","234","5678")))
 })

@@ -1,7 +1,7 @@
 context("Compatibility with rex")
 
 test_that("ore search works with rex output", {
-    library(rex)
+    suppressPackageStartupMessages(library(rex))
     regex <- rex(start,
         ## match the protocol -- may exist or may not
         maybe(capture(
