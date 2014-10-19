@@ -39,7 +39,7 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
 {
     SEXP name_vector = (SEXP) arg;
     for (int i=0; i<n_groups; i++)
-        SET_STRING_ELT(name_vector, group_numbers[i]-1, mkChar(name));
+        SET_STRING_ELT(name_vector, group_numbers[i]-1, mkChar((const char *) name));
     
     return 0;
 }
@@ -97,7 +97,7 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     if (return_value != ONIG_NORMAL)
     {
         char message[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(message, return_value, &einfo);
+        onig_error_code_to_str((UChar *) message, return_value, &einfo);
         error("Oniguruma compile: %s\n", message);
     }
     
@@ -168,9 +168,9 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
             for (int i=0; i<region->num_regs; i++)
             {
                 length = region->end[i] - region->beg[i];
-                INTEGER(offsets)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, text, text+region->beg[i]) + 1;
+                INTEGER(offsets)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]) + 1;
                 INTEGER(byte_offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
-                INTEGER(lengths)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, text+region->beg[i], text+region->end[i]);
+                INTEGER(lengths)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
                 INTEGER(byte_lengths)[match_number * region->num_regs + i] = length;
                 
                 if (length == 0)
@@ -190,7 +190,7 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         else
         {
             char message[ONIG_MAX_ERROR_MESSAGE_LEN];
-            onig_error_code_to_str(message, return_value);
+            onig_error_code_to_str((UChar *) message, return_value);
             error("Oniguruma search: %s\n", message);
         }
         
