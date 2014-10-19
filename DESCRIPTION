@@ -7,6 +7,7 @@ Maintainer: Jon Clayden <code@clayden.org>
 Depends:
     R (>= 2.12.1)
 Suggests:
+    crayon,
     rex,
     testthat
 Description: This package provides an alternative to R's built-in functionality

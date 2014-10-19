@@ -59,7 +59,8 @@ For \code{ore.search}, an \code{"orematch"} object, or a list of
 \description{
 Search a character vector for one or more matches to an Oniguruma-compatible
 regular expression. The result is of class \code{"orematch"}, for which
-printing and indexing methods are available.
+printing and indexing methods are available. The \code{\link{print}} method
+uses the \code{crayon} package, if it is available.
 }
 \note{
 Only named *or* unnamed groups will currently be captured, not both. If

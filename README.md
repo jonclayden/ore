@@ -81,7 +81,7 @@ match
 # context: I have   dogs, 3 cats and 4 hamsters
 ```
 
-Notice that the result of the search is an object of class `orematch`. This contains elements giving the offsets, lengths and content of matches, as well as those of any parenthesised groups. When printed, the object shows the original text with the matched substring extracted onto the line above. This can be useful to check that the regular expression is capturing the expected text.
+Notice that the result of the search is an object of class `orematch`. This contains elements giving the offsets, lengths and content of matches, as well as those of any parenthesised groups. When printed, the object shows the original text with the matched substring extracted onto the line above (or coloured, if the `crayon` package is installed and a colour terminal is being used). This can be useful to check that the regular expression is capturing the text expected.
 
 The `start` parameter to `ore.search()` can be used to indicate where in the text the search should begin. All matches (after the starting point) will be returned with `all=TRUE`:
 

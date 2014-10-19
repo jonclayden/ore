@@ -4,7 +4,8 @@
 #' 
 #' Search a character vector for one or more matches to an Oniguruma-compatible
 #' regular expression. The result is of class \code{"orematch"}, for which
-#' printing and indexing methods are available.
+#' printing and indexing methods are available. The \code{\link{print}} method
+#' uses the \code{crayon} package, if it is available.
 #' 
 #' @param regex A single character string or object of class \code{"ore"}. In
 #'   the former case, this will first be passed through \code{\link{ore}}.
@@ -138,16 +139,29 @@ print.orematch <- function (x, ...)
         cat(paste(text, "\n", sep=""))
     else
     {
+        # Is the "crayon" package available, and does the terminal support colour?
+        usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
+        
         context <- "context: "
         matches <- "  match: "
         numbers <- " number: "
+        
+        if (usingColour)
+        {
+            colouredText <- .Call("ore_substitute", x$text, x$nMatches, x$byteOffsets, x$byteLengths, crayon::cyan(x$matches), PACKAGE="ore")
+            matches <- paste0(matches, colouredText)
+        }
         
         ends <- c(1, x$offsets+x$lengths)
         for (i in 1:x$nMatches)
         {
             leadingSpace <- paste(rep(" ",x$offsets[i]-ends[i]), collapse="")
-            context <- paste0(context, substr(x$text,ends[i],x$offsets[i]-1), paste(rep(" ",x$lengths[i]),collapse=""))
-            matches <- paste0(matches, leadingSpace, x$matches[i])
+            
+            if (!usingColour)
+            {
+                context <- paste0(context, substr(x$text,ends[i],x$offsets[i]-1), paste(rep(" ",x$lengths[i]),collapse=""))
+                matches <- paste0(matches, leadingSpace, x$matches[i])
+            }
             
             # NB: this could break for matches with numbers > 9 whose length is 1
             if (x$nMatches > 1)
@@ -155,9 +169,11 @@ print.orematch <- function (x, ...)
         }
         context <- paste0(context, substr(x$text,ends[length(ends)],nchar(x$text)))
         
-        cat(paste(matches, "\n", context, "\n", sep=""))
+        cat(paste0(matches, "\n"))
+        if (!usingColour)
+            cat(paste0(context, "\n"))
         if (x$nMatches > 1)
-            cat(paste(numbers, "\n", sep=""))
+            cat(paste0(numbers, "\n"))
     }
 }
 
