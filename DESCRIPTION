@@ -1,6 +1,6 @@
 Package: ore
-Version: 0.1.0
-Date: 2014-05-27
+Version: 1.0.0
+Date: 2014-10-20
 Title: An R interface to the Oniguruma regular expression library
 Author: Jon Clayden
 Maintainer: Jon Clayden <code@clayden.org>
