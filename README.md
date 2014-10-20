@@ -185,7 +185,6 @@ Strings can be split into parts using the `ore.split()` function.
 
 ```R
 ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
-# [[1]]
 # [1] "I have "    " dogs, "    " cats and " " hamsters"
 ```
 

@@ -10,5 +10,5 @@ test_that("Oniguruma regular expression compilation and interpretation works", {
     expect_that(attr(groupedRegex,"nGroups"), equals(2L))
     expect_that(attr(regexWithOption,"options"), equals("i"))
     expect_that(attr(regexWithEncoding,"encoding"), equals("UTF-8"))
-    expect_that(ore("(\\w+"), throws_error("unmatched parenthesis"))
+    expect_that(ore("(\\w+"), throws_error())
 })
