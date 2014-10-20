@@ -10,24 +10,29 @@
 // Not strictly part of the API, but needed for implementing the "start" argument
 extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 
+// Maximum number of matches
 #define MAX_MATCHES     128
 
+// The short list of encodings fully supported by R
 #define ENCODING_ASCII  0
 #define ENCODING_UTF8   1
 #define ENCODING_LATIN1 2
 
+// R wrapper function for onig_init(); called when the packge is loaded
 SEXP ore_init ()
 {
     onig_init();
     return R_NilValue;
 }
 
+// R wrapper function for onig_end(); called when the packge is unloaded
 SEXP ore_done ()
 {
     onig_end();
     return R_NilValue;
 }
 
+// Finaliser to clear up garbage-collected "ore" objects
 void ore_regex_finaliser (SEXP regex_ptr)
 {
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
@@ -35,6 +40,7 @@ void ore_regex_finaliser (SEXP regex_ptr)
     R_ClearExternalPtr(regex_ptr);
 }
 
+// Insert a group name into an R vector; used as a callback by ore_compile()
 int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
 {
     SEXP name_vector = (SEXP) arg;
@@ -44,6 +50,7 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
     return 0;
 }
 
+// Interface to onig_new(), used to create compiled regex objects
 SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
 {
     int return_value, n_groups;
@@ -51,9 +58,11 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     regex_t *regex;
     SEXP list, names, regex_ptr;
     
+    // Obtain pointers to content
     const char *pattern = CHAR(STRING_ELT(pattern_, 0));
     const char *options = CHAR(STRING_ELT(options_, 0));
     
+    // Convert encoding constant to onig data type
     OnigEncoding onig_encoding;
     const int encoding = asInteger(encoding_);
     switch (encoding)
@@ -71,6 +80,7 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
         break;
     }
     
+    // Parse options and convert to onig option flags
     OnigOptionType onig_options = ONIG_OPTION_NONE;
     char *option_pointer = (char *) options;
     while (*option_pointer)
@@ -93,6 +103,7 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     OnigSyntaxType *syntax = ONIG_SYNTAX_RUBY;
     ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
     
+    // Create the regex struct, and check for errors
     return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, syntax, &einfo);
     if (return_value != ONIG_NORMAL)
     {
@@ -101,13 +112,16 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
         error("Oniguruma compile: %s\n", message);
     }
     
+    // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);
     PROTECT(list = NEW_LIST(n_groups>0 ? 2 : 1));
     
+    // Create R external pointer to compiled regex
     PROTECT(regex_ptr = R_MakeExternalPtr(regex, R_NilValue, R_NilValue));
     R_RegisterCFinalizerEx(regex_ptr, &ore_regex_finaliser, FALSE);
     SET_ELEMENT(list, 0, regex_ptr);
     
+    // Obtain group names, if available
     if (n_groups > 0)
     {
         PROTECT(names = NEW_CHARACTER(n_groups));
@@ -122,11 +136,13 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
     return list;
 }
 
+// Search a single string for matches to a regex
 SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
 {
     int return_value, length;
     SEXP n_matches, offsets, byte_offsets, lengths, byte_lengths, matches, list;
     
+    // Convert R objects to C types
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     const char *text = CHAR(STRING_ELT(text_, 0));
     const Rboolean all = asLogical(all_);
@@ -138,6 +154,7 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     int match_number = 0;
     Rboolean vars_created = FALSE;
     
+    // If we're not starting at the beginning, step forward the required number of characters
     UChar *end_ptr = (UChar *) text + strlen(text);
     UChar *start_ptr;
     if (start == 0)
@@ -145,14 +162,18 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
     else
         start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
     
+    // The loop is broken when there are no more matches, or max matches have been obtained
     while (TRUE)
     {
+        // Call the API to do the search
         return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
-    
+        
+        // If there are no more matches, stop
         if (return_value == ONIG_MISMATCH)
             break;
         else if (return_value >= 0)
         {
+            // Set up output data structures the first time
             if (!vars_created)
             {
                 PROTECT(list = NEW_LIST(6));
@@ -165,14 +186,17 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
                 vars_created = TRUE;
             }
             
+            // Regions are the whole match and then subgroups
             for (int i=0; i<region->num_regs; i++)
             {
+                // Work out the offset and length of the region, in bytes and chars
                 length = region->end[i] - region->beg[i];
                 INTEGER(offsets)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]) + 1;
                 INTEGER(byte_offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
                 INTEGER(lengths)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
                 INTEGER(byte_lengths)[match_number * region->num_regs + i] = length;
                 
+                // Set missing groups (which must be optional) to NA; otherwise store match text
                 if (length == 0)
                     SET_STRING_ELT(matches, match_number * region->num_regs + i, NA_STRING);
                 else
@@ -184,22 +208,27 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
                 }
             }
             
+            // Advance the starting point beyond the current match
             start_ptr = (UChar *) text + region->end[0];
             match_number++;
         }
         else
         {
+            // Report the error message if there was one
             char message[ONIG_MAX_ERROR_MESSAGE_LEN];
             onig_error_code_to_str((UChar *) message, return_value);
             error("Oniguruma search: %s\n", message);
         }
         
+        // Tidy up
         onig_region_free(region, 0);
         
+        // If "all" is not true, the loop is only ever completed once
         if (!all || match_number == max_matches)
             break;
     }
     
+    // If there were any successful matches, insert the data into a list
     if (!isNull(list))
     {
         *INTEGER(n_matches) = match_number;
@@ -212,11 +241,13 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         UNPROTECT(7);
     }
     
+    // Tidy up completely
     onig_region_free(region, 1);
     
     return list;
 }
 
+// Split the string provided at the (byte) offsets given
 SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
 {
     SEXP result;
@@ -226,6 +257,7 @@ SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
     const int *offsets = INTEGER(offsets_);
     const int *lengths = INTEGER(lengths_);
     
+    // Create a vector long enough to hold the pieces
     PROTECT(result = NEW_CHARACTER(n_matches + 1));
     
     int start = 0;
@@ -233,8 +265,11 @@ SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
     size_t current_length;
     for (int i=0; i<n_matches; i++)
     {
+        // Work out the length of the piece and allocate memory for it
         current_length = offsets[i] - 1 - start;
         fragment = R_alloc(current_length+1, 1);
+        
+        // Copy text in, and insert the string into the return value
         if (current_length > 0)
             strncpy(fragment, text+start, current_length);
         *(fragment + current_length) = '\0';
@@ -242,6 +277,7 @@ SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
         start += current_length + lengths[i];
     }
     
+    // Likewise for the last piece
     current_length = strlen(text) - start;
     fragment = R_alloc(current_length+1, 1);
     if (current_length > 0)
@@ -253,6 +289,7 @@ SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_)
     return result;
 }
 
+// Replace substrings at the specified (byte) offsets with the literal replacements given
 SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
 {
     SEXP result;
@@ -262,6 +299,7 @@ SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, 
     const int *offsets = INTEGER(offsets_);
     const int *lengths = INTEGER(lengths_);
     
+    // Work out the length of each replacement string, and of the final text
     int *rep_lengths = (int *) R_alloc(n_matches, sizeof(int));
     size_t orig_len = strlen(text);
     size_t string_len = orig_len;
@@ -271,6 +309,7 @@ SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, 
         string_len += rep_lengths[i] - lengths[i];
     }
     
+    // Work through the string, drawing from the original and the replacements in turn
     int start = 0;
     char *replacement = R_alloc(string_len+1, 1);
     char *repl_ptr = replacement;
@@ -283,10 +322,12 @@ SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, 
         start = offsets[i] - 1 + lengths[i];
     }
     
+    // Add any text after the last match
     if (start < orig_len)
         strncpy(repl_ptr, text+start, orig_len-start);
     *(replacement + string_len) = '\0';
     
+    // Create the return value
     PROTECT(result = NEW_CHARACTER(1));
     SET_STRING_ELT(result, 0, mkChar(replacement));
     UNPROTECT(1);
