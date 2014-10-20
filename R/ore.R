@@ -16,7 +16,7 @@
 #' Oniguruma regular expressions. These are length-1 character vectors with
 #' additional attributes, including a pointer to the compiled version.
 #' 
-#' @param pattern A single string representing the pattern describing a valid
+#' @param pattern A single string containing a valid
 #'   regular expression. Note that backslashes should be doubled, to avoid
 #'   them being interpreted as character escapes by R.
 #' @param options A string composed of characters indicating variations on the
