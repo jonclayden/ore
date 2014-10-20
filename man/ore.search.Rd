@@ -37,6 +37,8 @@ objects will always be returned.}
 \item{i}{For indexing into an \code{"orematch"} object, the match number.}
 
 \item{j}{For indexing into an \code{"orematch"} object, the group number.}
+
+\item{...}{Ignored.}
 }
 \value{
 For \code{ore.search}, an \code{"orematch"} object, or a list of

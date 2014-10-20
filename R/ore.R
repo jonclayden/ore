@@ -7,7 +7,7 @@
     else if (length(notUnknown) == 1)
         return (notUnknown)
     else
-        error("Mixed-encoding character vectors are currently not supported")
+        stop("Mixed-encoding character vectors are currently not supported")
 }
 
 #' Oniguruma regular expressions
@@ -43,16 +43,16 @@
 #' 
 #' # This matches words of exactly four characters
 #' ore("\\b\\w{4}\\b")
-#' @seealso https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE
-#' for full details of supported syntax. The \code{\link{regex}} page is also
-#' useful as a quick reference, since PCRE (used by base R) and Oniguruma
-#' (used by \code{ore}) have similar features.
+#' @seealso For full details of supported syntax, please see
+#' \url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
+#' \code{\link{regex}} page is also useful as a quick reference, since PCRE
+#' (used by base R) and Oniguruma (used by \code{ore}) have similar features.
 #' @export
 ore <- function (pattern, options = "", encoding = "auto")
 {
     pattern <- as.character(pattern)
     if (length(pattern) < 1)
-        error("Pattern should be of length 1")
+        stop("Pattern should be of length 1")
     if (length(pattern) > 1)
         warning("Pattern vector has more than one element")
     

@@ -8,7 +8,7 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 - Matches can be efficiently obtained over only part of the strings.
 - Fewer core functions, with more consistent names.
 
-This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](http://www.geocities.jp/kosako3/oniguruma/doc/RE.txt) for details of supported regular expression syntax.
+This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE) for details of supported regular expression syntax.
 
 ## Contents
 

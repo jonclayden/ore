@@ -53,9 +53,9 @@ ore("-?\\\\d+")
 ore("\\\\b\\\\w{4}\\\\b")
 }
 \seealso{
-https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE
-for full details of supported syntax. The \code{\link{regex}} page is also
-useful as a quick reference, since PCRE (used by base R) and Oniguruma
-(used by \code{ore}) have similar features.
+For full details of supported syntax, please see
+\url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
+\code{\link{regex}} page is also useful as a quick reference, since PCRE
+(used by base R) and Oniguruma (used by \code{ore}) have similar features.
 }
 

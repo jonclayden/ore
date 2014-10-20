@@ -1,3 +1,4 @@
 #!/bin/sh
 
 rm -f config.* src/onig/config.h
+rm -f src/*.o src/onig/*.o src/onig/enc/*.o src/onig/enc/jis/*.o src/onig/enc/unicode/*.o

@@ -21,6 +21,7 @@
 #' @param x An R object.
 #' @param i For indexing into an \code{"orematch"} object, the match number.
 #' @param j For indexing into an \code{"orematch"} object, the group number.
+#' @param ... Ignored.
 #' @return For \code{ore.search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
 #'     \item{text}{A copy of the \code{text} element for the current match.}
@@ -63,7 +64,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
         regex <- ore(regex, encoding=.getEncoding(text))
     
     if (length(text) < 1)
-        error("The text vector is empty")
+        stop("The text vector is empty")
     else if (length(text) > 1)
     {
         start <- rep(start, length.out=length(text))
