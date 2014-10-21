@@ -1,0 +1,16 @@
+Significant changes to the "ore" package are laid out below for each release.
+
+===============================================================================
+
+VERSION 1.0.1
+
+- Tests should no longer fail in locales which do not use a UTF-8 encoding.
+- Documentation tweaks.
+
+===============================================================================
+
+VERSION 1.0.0
+
+- First public release.
+
+===============================================================================
