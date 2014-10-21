@@ -3,7 +3,7 @@ context("Matching and related operations")
 test_that("Oniguruma regular expression matching works", {
     regex <- ore("\\b\\w{4}\\b")
     regexUtf8 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
-    text <- enc2utf8("I'll have a piña colada")
+    text <- readLines("drink.txt", encoding="UTF-8")
     
     expect_that(ore::matches(ore.search(regex,text)), equals("have"))
     expect_that(ore.search(regex,text,all=TRUE)$offsets, equals(6L))
