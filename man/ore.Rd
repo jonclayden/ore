@@ -12,9 +12,9 @@ is.ore(x)
 \method{print}{ore}(x, ...)
 }
 \arguments{
-\item{pattern}{A single string representing the pattern describing a valid
-regular expression. Note that backslashes should be doubled, to avoid
-them being interpreted as character escapes by R.}
+\item{pattern}{A single string containing a valid regular expression. Note
+that backslashes should be doubled, to avoid them being interpreted as
+character escapes by R.}
 
 \item{options}{A string composed of characters indicating variations on the
 usual interpretation of the regex. These may currently include \code{"i"}
