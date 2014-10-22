@@ -2,6 +2,13 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.0.2
+
+- A bug in the ore.subst() function that could produce low-level errors or
+  segmentation faults has been fixed.
+
+===============================================================================
+
 VERSION 1.0.1
 
 - Tests should no longer fail in locales which do not use a UTF-8 encoding.
