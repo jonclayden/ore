@@ -405,9 +405,9 @@ ore.subst <- function (regex, replacement, text, all = FALSE, ...)
             {
                 currentReplacements <- rep(replacement, length.out=currentMatch$nMatches)
                 if (!is.null(groupNumberMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[as.integer(groupNumberMatch$groups$matches),,drop=FALSE], 2, function(x) do.subst(groupNumberMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[,as.integer(groupNumberMatch$groups$matches),drop=FALSE], 1, function(x) do.subst(groupNumberMatch,x,replacement))
                 if (!is.null(groupNameMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[groupNameMatch$groups$matches,,drop=FALSE], 2, function(x) do.subst(groupNameMatch,x,replacement))
+                    currentReplacements <- apply(currentMatch$groups$matches[,groupNameMatch$groups$matches,drop=FALSE], 1, function(x) do.subst(groupNameMatch,x,replacement))
             }
             
             result[i] <- do.subst(currentMatch, currentReplacements, text[i])
