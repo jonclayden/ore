@@ -137,22 +137,16 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
 }
 
 // Search a single string for matches to a regex
-SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
+rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, const size_t start)
 {
     int return_value, length;
-    SEXP n_matches, offsets, byte_offsets, lengths, byte_lengths, matches, list;
+    rawmatch_t *result = NULL;
     
-    // Convert R objects to C types
-    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
-    const char *text = CHAR(STRING_ELT(text_, 0));
-    const Rboolean all = asLogical(all_);
+    // Create region object to capture match data
     OnigRegion *region = onig_region_new();
     
-    list = R_NilValue;
-    size_t start = (size_t) asInteger(start_) - 1;
     size_t max_matches = all ? MAX_MATCHES : 1;
     int match_number = 0;
-    Rboolean vars_created = FALSE;
     
     // If we're not starting at the beginning, step forward the required number of characters
     UChar *end_ptr = (UChar *) text + strlen(text);
@@ -174,16 +168,16 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
         else if (return_value >= 0)
         {
             // Set up output data structures the first time
-            if (!vars_created)
+            if (result == NULL)
             {
-                PROTECT(list = NEW_LIST(6));
-                PROTECT(n_matches = NEW_INTEGER(1));
-                PROTECT(offsets = NEW_INTEGER(max_matches * region->num_regs));
-                PROTECT(byte_offsets = NEW_INTEGER(max_matches * region->num_regs));
-                PROTECT(lengths = NEW_INTEGER(max_matches * region->num_regs));
-                PROTECT(byte_lengths = NEW_INTEGER(max_matches * region->num_regs));
-                PROTECT(matches = NEW_CHARACTER(max_matches * region->num_regs));
-                vars_created = TRUE;
+                result = (rawmatch_t *) R_alloc(1, sizeof(rawmatch_t));
+                result->n_regions = region->num_regs;
+                const size_t n = max_matches * region->num_regs;
+                result->offsets = (int *) R_alloc(n, sizeof(int));
+                result->byte_offsets = (int *) R_alloc(n, sizeof(int));
+                result->lengths = (int *) R_alloc(n, sizeof(int));
+                result->byte_lengths = (int *) R_alloc(n, sizeof(int));
+                result->matches = (char **) R_alloc(n, sizeof(char *));
             }
             
             // Regions are the whole match and then subgroups
@@ -191,20 +185,20 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
             {
                 // Work out the offset and length of the region, in bytes and chars
                 length = region->end[i] - region->beg[i];
-                INTEGER(offsets)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]) + 1;
-                INTEGER(byte_offsets)[match_number * region->num_regs + i] = region->beg[i] + 1;
-                INTEGER(lengths)[match_number * region->num_regs + i] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
-                INTEGER(byte_lengths)[match_number * region->num_regs + i] = length;
+                const size_t loc = match_number * region->num_regs + i;
+                result->offsets[loc] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]) + 1;
+                result->byte_offsets[loc] = region->beg[i] + 1;
+                result->lengths[loc] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
+                result->byte_lengths[loc] = length;
                 
-                // Set missing groups (which must be optional) to NA; otherwise store match text
+                // Set missing groups (which must be optional) to NULL; otherwise store match text
                 if (length == 0)
-                    SET_STRING_ELT(matches, match_number * region->num_regs + i, NA_STRING);
+                    result->matches[loc] = NULL;
                 else
                 {
-                    char *match_ptr = R_alloc(length+1, 1);
-                    strncpy(match_ptr, text+region->beg[i], length);
-                    *(match_ptr + length) = '\0';
-                    SET_STRING_ELT(matches, match_number * region->num_regs + i, mkChar(match_ptr));
+                    result->matches[loc] = R_alloc(length+1, 1);
+                    strncpy(result->matches[loc], text+region->beg[i], length);
+                    *(result->matches[loc] + length) = '\0';
                 }
             }
             
@@ -228,23 +222,184 @@ SEXP ore_search (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_)
             break;
     }
     
-    // If there were any successful matches, insert the data into a list
-    if (!isNull(list))
-    {
-        *INTEGER(n_matches) = match_number;
-        SET_ELEMENT(list, 0, n_matches);
-        SET_ELEMENT(list, 1, offsets);
-        SET_ELEMENT(list, 2, byte_offsets);
-        SET_ELEMENT(list, 3, lengths);
-        SET_ELEMENT(list, 4, byte_lengths);
-        SET_ELEMENT(list, 5, matches);
-        UNPROTECT(7);
-    }
+    // Store the number of matches
+    if (result != NULL)
+        result->n_matches = match_number;
     
     // Tidy up completely
     onig_region_free(region, 1);
     
-    return list;
+    return result;
+}
+
+void ore_int_vector (SEXP vec, const int *data, const size_t len)
+{
+    int *ptr = INTEGER(vec);
+    for (size_t i=0; i<len; i++)
+        ptr[i] = data[i];
+}
+
+void ore_char_vector (SEXP vec, const char **data, const size_t len)
+{
+    for (size_t i=0; i<len; i++)
+        SET_STRING_ELT(vec, i, mkChar(data[i]));
+}
+
+void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names)
+{
+    int *ptr = INTEGER(mat);
+    for (int i=0; i<n_matches; i++)
+    {
+        for (int j=1; j<n_regions; j++)
+            ptr[(j-1)*n_matches + i] = data[i*n_regions + j];
+    }
+    
+    if (!isNull(col_names))
+    {
+        SEXP my_col_names, dim_names;
+        PROTECT(my_col_names = duplicate(col_names));
+        PROTECT(dim_names = NEW_LIST(2));
+        SET_VECTOR_ELT(dim_names, 0, R_NilValue);
+        SET_VECTOR_ELT(dim_names, 1, my_col_names);
+        setAttrib(mat, R_DimNamesSymbol, dim_names);
+        UNPROTECT(2);
+    }
+}
+
+void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names)
+{
+    for (int i=0; i<n_matches; i++)
+    {
+        for (int j=1; j<n_regions; j++)
+            SET_STRING_ELT(mat, (j-1)*n_matches + i, mkChar(data[i*n_regions + j]));
+    }
+    
+    if (!isNull(col_names))
+    {
+        SEXP my_col_names, dim_names;
+        PROTECT(my_col_names = duplicate(col_names));
+        PROTECT(dim_names = NEW_LIST(2));
+        SET_VECTOR_ELT(dim_names, 0, R_NilValue);
+        SET_VECTOR_ELT(dim_names, 1, my_col_names);
+        setAttrib(mat, R_DimNamesSymbol, dim_names);
+        UNPROTECT(2);
+    }
+}
+
+SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP group_names)
+{
+    // Convert R objects to C types
+    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    const Rboolean all = asLogical(all_) == TRUE;
+    const Rboolean simplify = asLogical(simplify_) == TRUE;
+    int *start = INTEGER(start_);
+    
+    // Obtain the lengths of the text and start vectors (the latter will be recycled if necessary)
+    const int text_len = length(text_);
+    const int start_len = length(start_);
+    
+    if (text_len < 1)
+        error("The text vector is empty");
+    if (start_len < 1)
+        error("The vector of starting positions is empty");
+    
+    SEXP results;
+    PROTECT(results = NEW_LIST(text_len));
+    
+    for (int i=0; i<text_len; i++)
+    {
+        rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_, i)), all, (size_t) start[i % start_len]);
+        
+        if (raw_match == NULL)
+            SET_ELEMENT(results, i, R_NilValue);
+        else
+        {
+            SEXP result, result_names, text, n_matches, offsets, byte_offsets, lengths, byte_lengths, matches;
+            
+            PROTECT(result = NEW_LIST(raw_match->n_regions < 2 ? 7 : 8));
+            PROTECT(result_names = NEW_CHARACTER(raw_match->n_regions < 2 ? 7 : 8));
+            
+            SET_STRING_ELT(result_names, 0, mkChar("text"));
+            SET_STRING_ELT(result_names, 1, mkChar("nMatches"));
+            SET_STRING_ELT(result_names, 2, mkChar("offsets"));
+            SET_STRING_ELT(result_names, 3, mkChar("byteOffsets"));
+            SET_STRING_ELT(result_names, 4, mkChar("lengths"));
+            SET_STRING_ELT(result_names, 5, mkChar("byteLengths"));
+            SET_STRING_ELT(result_names, 6, mkChar("matches"));
+            
+            PROTECT(text = ScalarString(STRING_ELT(text_,i)));
+            PROTECT(n_matches = ScalarInteger(raw_match->n_matches));
+            PROTECT(offsets = NEW_INTEGER(raw_match->n_matches));
+            ore_int_vector(offsets, raw_match->offsets, raw_match->n_matches);
+            PROTECT(byte_offsets = NEW_INTEGER(raw_match->n_matches));
+            ore_int_vector(byte_offsets, raw_match->byte_offsets, raw_match->n_matches);
+            PROTECT(lengths = NEW_INTEGER(raw_match->n_matches));
+            ore_int_vector(lengths, raw_match->lengths, raw_match->n_matches);
+            PROTECT(byte_lengths = NEW_INTEGER(raw_match->n_matches));
+            ore_int_vector(byte_lengths, raw_match->byte_lengths, raw_match->n_matches);
+            PROTECT(matches = NEW_CHARACTER(raw_match->n_matches));
+            ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_matches);
+            
+            SET_ELEMENT(result, 0, text);
+            SET_ELEMENT(result, 1, n_matches);
+            SET_ELEMENT(result, 2, offsets);
+            SET_ELEMENT(result, 3, byte_offsets);
+            SET_ELEMENT(result, 4, lengths);
+            SET_ELEMENT(result, 5, byte_lengths);
+            SET_ELEMENT(result, 6, matches);
+            
+            // Unprotect everything back to "text"
+            UNPROTECT(7);
+            
+            if (raw_match->n_regions > 1)
+            {
+                SEXP groups, groups_element_names;
+                
+                PROTECT(groups = NEW_LIST(5));
+                PROTECT(groups_element_names = NEW_CHARACTER(5));
+                
+                SET_STRING_ELT(groups_element_names, 0, mkChar("offsets"));
+                SET_STRING_ELT(groups_element_names, 1, mkChar("byteOffsets"));
+                SET_STRING_ELT(groups_element_names, 2, mkChar("lengths"));
+                SET_STRING_ELT(groups_element_names, 3, mkChar("byteLengths"));
+                SET_STRING_ELT(groups_element_names, 4, mkChar("matches"));
+                
+                PROTECT(offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
+                ore_int_matrix (offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, group_names);
+                PROTECT(byte_offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
+                ore_int_matrix (byte_offsets, raw_match->byte_offsets, raw_match->n_regions, raw_match->n_matches, group_names);
+                PROTECT(lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
+                ore_int_matrix (lengths, raw_match->lengths, raw_match->n_regions, raw_match->n_matches, group_names);
+                PROTECT(byte_lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
+                ore_int_matrix (byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names);
+                PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
+                ore_char_matrix (matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names);
+                
+                SET_ELEMENT(groups, 0, offsets);
+                SET_ELEMENT(groups, 1, byte_offsets);
+                SET_ELEMENT(groups, 2, lengths);
+                SET_ELEMENT(groups, 3, byte_lengths);
+                SET_ELEMENT(groups, 4, matches);
+                
+                setAttrib(groups, R_NamesSymbol, groups_element_names);
+                SET_ELEMENT(result, 7, groups);
+                SET_STRING_ELT(result_names, 7, mkChar("groups"));
+                
+                UNPROTECT(7);
+            }
+            
+            setAttrib(result, R_NamesSymbol, result_names);
+            SET_ELEMENT(results, i, result);
+            UNPROTECT(2);
+        }
+    }
+    
+    UNPROTECT(1);
+    
+    if (simplify && text_len == 1)
+        return VECTOR_ELT(results, 0);
+    else
+        return results;
 }
 
 // Split the string provided at the (byte) offsets given
