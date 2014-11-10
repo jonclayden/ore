@@ -65,53 +65,7 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
     if (!is.ore(regex))
         regex <- ore(regex, encoding=.getEncoding(text))
     
-    if (length(text) < 1)
-        stop("The text vector is empty")
-    else if (length(text) > 1)
-    {
-        start <- rep(start, length.out=length(text))
-        match <- lapply(seq_along(text), function(i) ore.search(regex, text=text[i], all=all, start=start[i]))
-    }
-    else
-    {
-        result <- .Call("ore_search", attr(regex,".compiled"), text, as.logical(all), as.integer(start), PACKAGE="ore")
-        
-        if (is.null(result))
-            match <- NULL
-        else
-        {
-            nMatches <- result[[1]]
-            indices <- seq_len(nMatches * (attr(regex,"nGroups") + 1))
-            offsets <- t(matrix(result[[2]][indices], ncol=nMatches))
-            byteOffsets <- t(matrix(result[[3]][indices], ncol=nMatches))
-            lengths <- t(matrix(result[[4]][indices], ncol=nMatches))
-            byteLengths <- t(matrix(result[[5]][indices], ncol=nMatches))
-            matchdata <- t(matrix(result[[6]][indices], ncol=nMatches))
-            
-            match <- structure(list(text=text, nMatches=nMatches, offsets=offsets[,1], byteOffsets=byteOffsets[,1], lengths=lengths[,1], byteLengths=byteLengths[,1], matches=matchdata[,1]), class="orematch")
-            
-            sourceEncoding <- .getEncoding(text)
-            Encoding(match$matches) <- sourceEncoding
-            
-            if (attr(regex, "nGroups") > 0)
-            {
-                match$groups <- list(offsets=offsets[,-1,drop=FALSE], byteOffsets=byteOffsets[,-1,drop=FALSE], lengths=lengths[,-1,drop=FALSE], byteLengths=byteLengths[,-1,drop=FALSE], matches=matchdata[,-1,drop=FALSE])
-                if (!is.null(attr(regex, "groupNames")))
-                {
-                    groupNames <- attr(regex, "groupNames")
-                    colnames(match$groups$offsets) <- groupNames
-                    colnames(match$groups$byteOffsets) <- groupNames
-                    colnames(match$groups$lengths) <- groupNames
-                    colnames(match$groups$byteLengths) <- groupNames
-                    colnames(match$groups$matches) <- groupNames
-                }
-                Encoding(match$groups$matches) <- sourceEncoding
-            }
-        }
-        
-        if (!simplify)
-            match <- list(match)
-    }
+    match <- .Call("ore_search_all", attr(regex,".compiled"), text, as.logical(all), as.integer(start), as.logical(simplify), attr(regex,"groupNames"), PACKAGE="ore")
     
     .Workspace$lastMatch <- match
     return (match)
