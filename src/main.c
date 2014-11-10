@@ -389,6 +389,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             }
             
             setAttrib(result, R_NamesSymbol, result_names);
+            setAttrib(result, R_ClassSymbol, mkString("orematch"));
             SET_ELEMENT(results, i, result);
             UNPROTECT(2);
         }
