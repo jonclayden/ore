@@ -1,8 +1,7 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
-typedef struct
-{
+typedef struct {
     int n_regions;
     int n_matches;
     int *offsets;
@@ -24,11 +23,11 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_);
 
 rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, const size_t start);
 
-void ore_int_vector (SEXP vec, const int *data, const size_t len);
+void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n_matches, const int increment);
 
-void ore_char_vector (SEXP vec, const char **data, const size_t len);
+void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches);
 
-void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names);
+void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names, const int increment);
 
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names);
 

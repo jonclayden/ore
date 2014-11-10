@@ -186,8 +186,8 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
                 // Work out the offset and length of the region, in bytes and chars
                 length = region->end[i] - region->beg[i];
                 const size_t loc = match_number * region->num_regs + i;
-                result->offsets[loc] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]) + 1;
-                result->byte_offsets[loc] = region->beg[i] + 1;
+                result->offsets[loc] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]);
+                result->byte_offsets[loc] = region->beg[i];
                 result->lengths[loc] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
                 result->byte_lengths[loc] = length;
                 
@@ -232,26 +232,26 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
     return result;
 }
 
-void ore_int_vector (SEXP vec, const int *data, const size_t len)
+void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n_matches, const int increment)
 {
     int *ptr = INTEGER(vec);
-    for (size_t i=0; i<len; i++)
-        ptr[i] = data[i];
+    for (int i=0; i<n_matches; i++)
+        ptr[i] = data[i*n_regions] + increment;
 }
 
-void ore_char_vector (SEXP vec, const char **data, const size_t len)
+void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches)
 {
-    for (size_t i=0; i<len; i++)
-        SET_STRING_ELT(vec, i, mkChar(data[i]));
+    for (int i=0; i<n_matches; i++)
+        SET_STRING_ELT(vec, i, mkChar(data[i*n_regions]));
 }
 
-void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names)
+void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names, const int increment)
 {
     int *ptr = INTEGER(mat);
     for (int i=0; i<n_matches; i++)
     {
         for (int j=1; j<n_regions; j++)
-            ptr[(j-1)*n_matches + i] = data[i*n_regions + j];
+            ptr[(j-1)*n_matches + i] = data[i*n_regions + j] + increment;
     }
     
     if (!isNull(col_names))
@@ -271,7 +271,13 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
     for (int i=0; i<n_matches; i++)
     {
         for (int j=1; j<n_regions; j++)
-            SET_STRING_ELT(mat, (j-1)*n_matches + i, mkChar(data[i*n_regions + j]));
+        {
+            const char *element = data[i*n_regions + j];
+            if (element == NULL)
+                SET_STRING_ELT(mat, (j-1)*n_matches + i, NA_STRING);
+            else
+                SET_STRING_ELT(mat, (j-1)*n_matches + i, mkChar(element));
+        }
     }
     
     if (!isNull(col_names))
@@ -308,7 +314,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     
     for (int i=0; i<text_len; i++)
     {
-        rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_, i)), all, (size_t) start[i % start_len]);
+        rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_, i)), all, (size_t) start[i % start_len] - 1);
         
         if (raw_match == NULL)
             SET_ELEMENT(results, i, R_NilValue);
@@ -330,15 +336,15 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             PROTECT(text = ScalarString(STRING_ELT(text_,i)));
             PROTECT(n_matches = ScalarInteger(raw_match->n_matches));
             PROTECT(offsets = NEW_INTEGER(raw_match->n_matches));
-            ore_int_vector(offsets, raw_match->offsets, raw_match->n_matches);
+            ore_int_vector(offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, 1);
             PROTECT(byte_offsets = NEW_INTEGER(raw_match->n_matches));
-            ore_int_vector(byte_offsets, raw_match->byte_offsets, raw_match->n_matches);
+            ore_int_vector(byte_offsets, raw_match->byte_offsets, raw_match->n_regions, raw_match->n_matches, 1);
             PROTECT(lengths = NEW_INTEGER(raw_match->n_matches));
-            ore_int_vector(lengths, raw_match->lengths, raw_match->n_matches);
+            ore_int_vector(lengths, raw_match->lengths, raw_match->n_regions, raw_match->n_matches, 0);
             PROTECT(byte_lengths = NEW_INTEGER(raw_match->n_matches));
-            ore_int_vector(byte_lengths, raw_match->byte_lengths, raw_match->n_matches);
+            ore_int_vector(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, 0);
             PROTECT(matches = NEW_CHARACTER(raw_match->n_matches));
-            ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_matches);
+            ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches);
             
             SET_ELEMENT(result, 0, text);
             SET_ELEMENT(result, 1, n_matches);
@@ -365,15 +371,15 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
                 SET_STRING_ELT(groups_element_names, 4, mkChar("matches"));
                 
                 PROTECT(offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_int_matrix (offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, group_names);
+                ore_int_matrix(offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, group_names, 1);
                 PROTECT(byte_offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_int_matrix (byte_offsets, raw_match->byte_offsets, raw_match->n_regions, raw_match->n_matches, group_names);
+                ore_int_matrix(byte_offsets, raw_match->byte_offsets, raw_match->n_regions, raw_match->n_matches, group_names, 1);
                 PROTECT(lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_int_matrix (lengths, raw_match->lengths, raw_match->n_regions, raw_match->n_matches, group_names);
+                ore_int_matrix(lengths, raw_match->lengths, raw_match->n_regions, raw_match->n_matches, group_names, 0);
                 PROTECT(byte_lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_int_matrix (byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names);
+                ore_int_matrix(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names, 0);
                 PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_char_matrix (matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names);
+                ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names);
                 
                 SET_ELEMENT(groups, 0, offsets);
                 SET_ELEMENT(groups, 1, byte_offsets);
