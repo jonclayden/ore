@@ -232,6 +232,7 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
     return result;
 }
 
+// Copy integer data from a rawmatch_t to an R vector
 void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n_matches, const int increment)
 {
     int *ptr = INTEGER(vec);
@@ -239,12 +240,14 @@ void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n
         ptr[i] = data[i*n_regions] + increment;
 }
 
+// Copy string data from a rawmatch_t to an R vector
 void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding)
 {
     for (int i=0; i<n_matches; i++)
         SET_STRING_ELT(vec, i, mkCharCE(data[i*n_regions],encoding));
 }
 
+// Copy integer data for groups into an R matrix
 void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names, const int increment)
 {
     int *ptr = INTEGER(mat);
@@ -254,6 +257,7 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
             ptr[(j-1)*n_matches + i] = data[i*n_regions + j] + increment;
     }
     
+    // Set column names if supplied
     if (!isNull(col_names))
     {
         SEXP my_col_names, dim_names;
@@ -266,12 +270,14 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
     }
 }
 
+// Copy string data from groups into an R matrix
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, const cetype_t encoding)
 {
     for (int i=0; i<n_matches; i++)
     {
         for (int j=1; j<n_regions; j++)
         {
+            // Missing groups are assigned NA
             const char *element = data[i*n_regions + j];
             if (element == NULL)
                 SET_STRING_ELT(mat, (j-1)*n_matches + i, NA_STRING);
@@ -280,6 +286,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
         }
     }
     
+    // Set column names if supplied
     if (!isNull(col_names))
     {
         SEXP my_col_names, dim_names;
@@ -292,6 +299,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
     }
 }
 
+// Vectorised wrapper around ore_search(), which handles the R API stuff
 SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP group_names)
 {
     // Convert R objects to C types
@@ -304,6 +312,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     const int text_len = length(text_);
     const int start_len = length(start_);
     
+    // Check for sensible input
     if (text_len < 1)
         error("The text vector is empty");
     if (start_len < 1)
@@ -312,10 +321,13 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     SEXP results;
     PROTECT(results = NEW_LIST(text_len));
     
+    // Step through each string to be searched
     for (int i=0; i<text_len; i++)
     {
+        // Do the match
         rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), all, (size_t) start[i % start_len] - 1);
         
+        // Assign NULL if there's no match, otherwise build up an "orematch" object
         if (raw_match == NULL)
             SET_ELEMENT(results, i, R_NilValue);
         else
@@ -323,9 +335,11 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             SEXP result, result_names, text, n_matches, offsets, byte_offsets, lengths, byte_lengths, matches;
             const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
             
+            // Allocate memory for data structures
             PROTECT(result = NEW_LIST(raw_match->n_regions < 2 ? 7 : 8));
             PROTECT(result_names = NEW_CHARACTER(raw_match->n_regions < 2 ? 7 : 8));
             
+            // List element names
             SET_STRING_ELT(result_names, 0, mkChar("text"));
             SET_STRING_ELT(result_names, 1, mkChar("nMatches"));
             SET_STRING_ELT(result_names, 2, mkChar("offsets"));
@@ -334,6 +348,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             SET_STRING_ELT(result_names, 5, mkChar("byteLengths"));
             SET_STRING_ELT(result_names, 6, mkChar("matches"));
             
+            // Convert elements of the raw match data to R vectors
             PROTECT(text = ScalarString(STRING_ELT(text_,i)));
             PROTECT(n_matches = ScalarInteger(raw_match->n_matches));
             PROTECT(offsets = NEW_INTEGER(raw_match->n_matches));
@@ -347,6 +362,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             PROTECT(matches = NEW_CHARACTER(raw_match->n_matches));
             ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
             
+            // Put everything in place
             SET_ELEMENT(result, 0, text);
             SET_ELEMENT(result, 1, n_matches);
             SET_ELEMENT(result, 2, offsets);
@@ -358,6 +374,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
             // Unprotect everything back to "text"
             UNPROTECT(7);
             
+            // If there are groups present, extract them
             if (raw_match->n_regions > 1)
             {
                 SEXP groups, groups_element_names;
@@ -371,6 +388,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
                 SET_STRING_ELT(groups_element_names, 3, mkChar("byteLengths"));
                 SET_STRING_ELT(groups_element_names, 4, mkChar("matches"));
                 
+                // Convert elements of the raw match data to R matrices (one row per match)
                 PROTECT(offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
                 ore_int_matrix(offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, group_names, 1);
                 PROTECT(byte_offsets = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
@@ -382,12 +400,14 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
                 PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
                 ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding);
                 
+                // Put everything in place
                 SET_ELEMENT(groups, 0, offsets);
                 SET_ELEMENT(groups, 1, byte_offsets);
                 SET_ELEMENT(groups, 2, lengths);
                 SET_ELEMENT(groups, 3, byte_lengths);
                 SET_ELEMENT(groups, 4, matches);
                 
+                // Set names and insert result into main list
                 setAttrib(groups, R_NamesSymbol, groups_element_names);
                 SET_ELEMENT(result, 7, groups);
                 SET_STRING_ELT(result_names, 7, mkChar("groups"));
@@ -395,6 +415,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
                 UNPROTECT(7);
             }
             
+            // Set names and class, and insert into full list
             setAttrib(result, R_NamesSymbol, result_names);
             setAttrib(result, R_ClassSymbol, mkString("orematch"));
             SET_ELEMENT(results, i, result);
@@ -404,6 +425,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     
     UNPROTECT(1);
     
+    // Return just the first (and only) element of the full list, if requested
     if (simplify && text_len == 1)
         return VECTOR_ELT(results, 0);
     else
