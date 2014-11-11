@@ -2,6 +2,17 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.0.3
+
+- Almost all of the work of ore.search() is now done in C code rather than R,
+  for performance. In testing, ore is now appreciably faster than base R for
+  simple searches, when the regex is precompiled. Optimisation of other
+  functions will follow in later releases.
+- The package no longer requires any specified minimum version of R (although
+  it has not been tested on old releases).
+
+===============================================================================
+
 VERSION 1.0.2
 
 - A bug in the ore.subst() function that could produce low-level errors or
