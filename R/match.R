@@ -139,7 +139,7 @@ print.orematch <- function (x, ...)
 #' These functions extract entire matches, or just subgroup matches, from
 #' objects of class \code{"orematch"}. They can also be applied to lists of
 #' these objects, as returned by \code{\link{ore.search}} when more than one
-#' string is searched.
+#' string is searched. For other objects they return \code{NA}.
 #' 
 #' @param object An R object. Methods are provided for generic lists and
 #'   \code{"orematch"} objects.
@@ -169,6 +169,13 @@ matches.orematch <- function (object, ...)
 
 #' @rdname matches
 #' @export
+matches.default <- function (object, ...)
+{
+    return (NA_character_)
+}
+
+#' @rdname matches
+#' @export
 groups <- function (object, ...)
 {
     UseMethod("groups")
@@ -186,6 +193,13 @@ groups.list <- function (object, ...)
 groups.orematch <- function (object, ...)
 {
     return (object$groups$matches)
+}
+
+#' @rdname matches
+#' @export
+groups.default <- function (object, ...)
+{
+    return (NA_character_)
 }
 
 #' Retrieve the last match
