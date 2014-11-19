@@ -50,29 +50,7 @@
 #' @export
 ore <- function (pattern, options = "", encoding = "auto")
 {
-    pattern <- as.character(pattern)
-    if (length(pattern) < 1)
-        stop("Pattern should be of length 1")
-    if (length(pattern) > 1)
-        warning("Pattern vector has more than one element")
-    
-    if (encoding == "auto")
-        encoding <- .getEncoding(pattern)
-    encodingCode <- switch(tolower(encoding), "utf-8"=1L, "utf8"=1L, "latin1"=2L, 0L)
-    encodingName <- switch(tolower(encoding), "utf-8"="UTF-8", "utf8"="UTF-8", "latin1"="latin1", "bytes"="bytes", "unknown")
-    
-    result <- .Call("ore_compile", pattern, as.character(options), encodingCode, PACKAGE="ore")
-    
-    regex <- structure(pattern, .compiled=result[[1]], options=options, encoding=encodingName, class="ore")
-    if (length(result) == 2)
-    {
-        attr(regex, "nGroups") <- length(result[[2]])
-        if (any(result[[2]] != ""))
-            attr(regex, "groupNames") <- result[[2]]
-    }
-    else
-        attr(regex, "nGroups") <- 0L
-    
+    regex <- .Call("ore_build", as.character(pattern), as.character(options), as.character(encoding), PACKAGE="ore")
     return (regex)
 }
 

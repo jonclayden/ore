@@ -19,7 +19,9 @@ void ore_regex_finaliser (SEXP regex_ptr);
 
 int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg);
 
-SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_);
+regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding);
+
+SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_);
 
 rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, const size_t start);
 

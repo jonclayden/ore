@@ -10,13 +10,11 @@
 // Not strictly part of the API, but needed for implementing the "start" argument
 extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 
+// Also not part of the API, but useful for case-insensitive string comparison
+extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const UChar *end, const UChar *sascii, int n);
+
 // Maximum number of matches
 #define MAX_MATCHES     128
-
-// The short list of encodings fully supported by R
-#define ENCODING_ASCII  0
-#define ENCODING_UTF8   1
-#define ENCODING_LATIN1 2
 
 // R wrapper function for onig_init(); called when the packge is loaded
 SEXP ore_init ()
@@ -40,7 +38,7 @@ void ore_regex_finaliser (SEXP regex_ptr)
     R_ClearExternalPtr(regex_ptr);
 }
 
-// Insert a group name into an R vector; used as a callback by ore_compile()
+// Insert a group name into an R vector; used as a callback by ore_build()
 int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
 {
     SEXP name_vector = (SEXP) arg;
@@ -51,27 +49,21 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
 }
 
 // Interface to onig_new(), used to create compiled regex objects
-SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
+regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding)
 {
-    int return_value, n_groups;
+    int return_value;
     OnigErrorInfo einfo;
     regex_t *regex;
-    SEXP list, names, regex_ptr;
     
-    // Obtain pointers to content
-    const char *pattern = CHAR(STRING_ELT(pattern_, 0));
-    const char *options = CHAR(STRING_ELT(options_, 0));
-    
-    // Convert encoding constant to onig data type
+    // Convert R encoding to onig data type
     OnigEncoding onig_encoding;
-    const int encoding = asInteger(encoding_);
     switch (encoding)
     {
-        case ENCODING_UTF8:
+        case CE_UTF8:
         onig_encoding = ONIG_ENCODING_UTF8;
         break;
         
-        case ENCODING_LATIN1:
+        case CE_LATIN1:
         onig_encoding = ONIG_ENCODING_ISO_8859_1;
         break;
         
@@ -112,28 +104,99 @@ SEXP ore_compile (SEXP pattern_, SEXP options_, SEXP encoding_)
         error("Oniguruma compile: %s\n", message);
     }
     
+    return regex;
+}
+
+SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
+{
+    regex_t *regex;
+    int n_groups, return_value;
+    SEXP result, regex_ptr;
+    
+    if (length(pattern_) < 1)
+        error("Pattern vector is empty");
+    if (length(pattern_) > 1)
+        warning("Pattern vector has more than one element");
+    
+    // Obtain pointers to content
+    const char *pattern = CHAR(STRING_ELT(pattern_, 0));
+    const char *options = CHAR(STRING_ELT(options_, 0));
+    const UChar *encoding_name = (const UChar *) CHAR(STRING_ELT(encoding_name_, 0));
+    
+    cetype_t encoding;
+    if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 4, (const UChar *) "auto", 4) == 0)
+        encoding = getCharCE(STRING_ELT(pattern_, 0));
+    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 4, (const UChar *) "utf8", 4) == 0)
+        encoding = CE_UTF8;
+    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 5, (const UChar *) "utf-8", 5) == 0)
+        encoding = CE_UTF8;
+    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 6, (const UChar *) "latin1", 6) == 0)
+        encoding = CE_LATIN1;
+    else
+        encoding = CE_NATIVE;
+        
+    regex = ore_compile(pattern, options, encoding);
+    
     // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);
-    PROTECT(list = NEW_LIST(n_groups>0 ? 2 : 1));
+    
+    PROTECT(result = ScalarString(STRING_ELT(pattern_, 0)));
     
     // Create R external pointer to compiled regex
     PROTECT(regex_ptr = R_MakeExternalPtr(regex, R_NilValue, R_NilValue));
     R_RegisterCFinalizerEx(regex_ptr, &ore_regex_finaliser, FALSE);
-    SET_ELEMENT(list, 0, regex_ptr);
+    setAttrib(result, install(".compiled"), regex_ptr);
+    
+    setAttrib(result, install("options"), ScalarString(STRING_ELT(options_, 0)));
+    
+    switch (encoding)
+    {
+        case CE_UTF8:
+        setAttrib(result, install("encoding"), mkString("UTF-8"));
+        break;
+        
+        case CE_LATIN1:
+        setAttrib(result, install("encoding"), mkString("latin1"));
+        break;
+        
+        default:
+        setAttrib(result, install("encoding"), mkString("unknown"));
+        break;
+    }
+    
+    setAttrib(result, install("nGroups"), ScalarInteger(n_groups));
     
     // Obtain group names, if available
     if (n_groups > 0)
     {
+        SEXP names;
+        Rboolean named = FALSE;
+        
         PROTECT(names = NEW_CHARACTER(n_groups));
         for (int i=0; i<n_groups; i++)
-            SET_STRING_ELT(names, i, mkChar(""));
+            SET_STRING_ELT(names, i, NA_STRING);
+        
         return_value = onig_foreach_name(regex, &ore_store_name, names);
-        SET_ELEMENT(list, 1, names);
+        
+        for (int i=0; i<n_groups; i++)
+        {
+            if (STRING_ELT(names, i) != NA_STRING)
+            {
+                named = TRUE;
+                break;
+            }
+        }
+        
+        if (named)
+            setAttrib(result, install("groupNames"), names);
+        
         UNPROTECT(1);
     }
     
+    setAttrib(result, R_ClassSymbol, mkString("ore"));
+    
     UNPROTECT(2);
-    return list;
+    return result;
 }
 
 // Search a single string for matches to a regex
