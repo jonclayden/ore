@@ -36,14 +36,14 @@ struct st_table_entry {
      */
 
 static int numcmp(long, long);
-static int numhash(long);
+static unsigned numhash(long);
 static struct st_hash_type type_numhash = {
     numcmp,
     numhash,
 };
 
 /* extern int strcmp(const char *, const char *); */
-static int strhash(const char *);
+static unsigned strhash(const char *);
 static struct st_hash_type type_strhash = {
     strcmp,
     strhash,
@@ -56,7 +56,7 @@ static void rehash(st_table *);
 
 #define EQUAL(table,x,y) ((x)==(y) || (*table->type->compare)((x),(y)) == 0)
 
-#define do_hash(key,table) (unsigned int)(*(table)->type->hash)((key))
+#define do_hash(key,table) (*(table)->type->hash)((key))
 #define do_hash_bin(key,table) (do_hash(key, table)%(table)->num_bins)
 
 /*
@@ -524,7 +524,7 @@ st_foreach(table, func, arg)
     return 0;
 }
 
-static int
+static unsigned
 strhash(string)
     register const char *string;
 {
@@ -541,7 +541,7 @@ strhash(string)
     }
     return h;
 #elif HASH_PERL
-    register int val = 0;
+    register unsigned int val = 0;
 
     while ((c = *string++) != '\0') {
 	val += c;
@@ -553,7 +553,7 @@ strhash(string)
 
     return val + (val << 15);
 #else
-    register int val = 0;
+    register unsigned int val = 0;
 
     while ((c = *string++) != '\0') {
 	val = val*997 + c;
@@ -570,9 +570,9 @@ numcmp(x, y)
     return x != y;
 }
 
-static int
+static unsigned
 numhash(n)
     long n;
 {
-    return n;
+    return (unsigned int) n;
 }
