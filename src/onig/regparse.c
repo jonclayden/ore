@@ -344,11 +344,11 @@ str_end_cmp(st_str_end_key* x, st_str_end_key* y)
   return 0;
 }
 
-static int
+static unsigned
 str_end_hash(st_str_end_key* x)
 {
   UChar *p;
-  int val = 0;
+  unsigned val = 0;
 
   p = x->s;
   while (p < x->end) {
@@ -5424,9 +5424,10 @@ static int type_cclass_cmp(type_cclass_key* x, type_cclass_key* y)
   return 0;
 }
 
-static int type_cclass_hash(type_cclass_key* key)
+static unsigned type_cclass_hash(type_cclass_key* key)
 {
-  int i, val;
+  int i;
+  unsigned val;
   UChar *p;
 
   val = 0;

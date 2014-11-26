@@ -14,7 +14,7 @@ typedef int st_index_t;
 
 struct st_hash_type {
     int (*compare)();
-    int (*hash)();
+    unsigned int (*hash)();
 };
 
 struct st_table {
