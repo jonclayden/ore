@@ -156,6 +156,9 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
     else
         start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
     
+    // The offset (in chars) corresponding to start_ptr
+    int start_offset = (int) start;
+    
     // The loop is broken when there are no more matches, or max matches have been obtained
     while (TRUE)
     {
@@ -186,10 +189,21 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
                 // Work out the offset and length of the region, in bytes and chars
                 length = region->end[i] - region->beg[i];
                 const size_t loc = match_number * region->num_regs + i;
-                result->offsets[loc] = onigenc_strlen(regex->enc, (UChar *) text, (UChar *) text+region->beg[i]);
+                
                 result->byte_offsets[loc] = region->beg[i];
-                result->lengths[loc] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
                 result->byte_lengths[loc] = length;
+                
+                // If we're using a single-byte encoding the offsets and byte offsets will be the same
+                if (regex->enc->max_enc_len == 1)
+                {
+                    result->offsets[loc] = result->byte_offsets[loc];
+                    result->lengths[loc] = result->byte_lengths[loc];
+                }
+                else
+                {
+                    result->offsets[loc] = start_offset + onigenc_strlen(regex->enc, start_ptr, (UChar *) text+region->beg[i]);
+                    result->lengths[loc] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
+                }
                 
                 // Set missing groups (which must be optional) to NULL; otherwise store match text
                 if (length == 0)
@@ -204,6 +218,8 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
             
             // Advance the starting point beyond the current match
             start_ptr = (UChar *) text + region->end[0];
+            const size_t loc = match_number * region->num_regs;
+            start_offset = result->offsets[loc] + result->lengths[loc];
             match_number++;
         }
         else
