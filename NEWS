@@ -2,6 +2,13 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.0.5
+
+- Calculation of match offsets within the C code have been made much more
+  efficient.
+
+===============================================================================
+
 VERSION 1.0.4
 
 - Default methods have been added for matches() and groups(), which return NA.
