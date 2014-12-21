@@ -42,8 +42,6 @@
 #' Only named *or* unnamed groups will currently be captured, not both. If
 #' there are named groups in the pattern, then unnamed groups will be ignored.
 #' 
-#' There is currently a hard-coded limit of 128 matches captured per string.
-#' 
 #' @examples
 #' # Pick out pairs of consecutive word characters
 #' match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)

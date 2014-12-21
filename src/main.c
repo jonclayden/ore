@@ -13,8 +13,8 @@ extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end,
 // Also not part of the API, but useful for case-insensitive string comparison
 extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const UChar *end, const UChar *sascii, int n);
 
-// Maximum number of matches
-#define MAX_MATCHES     128
+// Block size for match data; memory is allocated in chunks this big
+#define MATCH_BLOCK_SIZE    128
 
 // R wrapper function for onig_init(); called when the packge is loaded
 SEXP ore_init ()
@@ -199,6 +199,64 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     return result;
 }
 
+// Allocate memory for a rawmatch_t object with capacity one block, and its contents
+rawmatch_t * ore_rawmatch_alloc (const int n_regions)
+{
+    // Allocate memory for the struct itself, and set its initial capacity
+    rawmatch_t *match = (rawmatch_t *) R_alloc(1, sizeof(rawmatch_t));
+    match->capacity = MATCH_BLOCK_SIZE;
+    match->n_regions = n_regions;
+    
+    // Allocate memory for matrix variables
+    const size_t len = (size_t) match->capacity * match->n_regions;
+    match->offsets = (int *) R_alloc(len, sizeof(int));
+    match->byte_offsets = (int *) R_alloc(len, sizeof(int));
+    match->lengths = (int *) R_alloc(len, sizeof(int));
+    match->byte_lengths = (int *) R_alloc(len, sizeof(int));
+    match->matches = (char **) R_alloc(len, sizeof(char *));
+    
+    return match;
+}
+
+// Extend a vector to hold more values
+// NB: This function is less efficient than standard C realloc(), because it always results in a copy, but using R_alloc simplifies things. The R API function S_realloc() is closely related, but seems to exist only "for compatibility with older versions of S", and zeroes out the extra memory, which is unnecessary here.
+char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len, const int element_size)
+{
+    if (new_len <= old_len)
+        return (char *) ptr;
+    else
+    {
+        char *new_ptr;
+        const size_t old_byte_len = old_len * element_size;
+        
+        new_ptr = R_alloc(new_len, element_size);
+        memcpy(new_ptr, (const char *) ptr, old_byte_len);
+        return new_ptr;
+    }
+}
+
+// Extend an existing rawmatch_t object, increasing its capacity by MATCH_BLOCK_SIZE and reallocating memory accordingly
+void ore_rawmatch_extend (rawmatch_t *match)
+{
+    const size_t old_len = (size_t) match->capacity * match->n_regions;
+    match->capacity += MATCH_BLOCK_SIZE;
+    const size_t new_len = (size_t) match->capacity * match->n_regions;
+    
+    match->offsets = (int *) ore_realloc(match->offsets, new_len, old_len, sizeof(int));
+    match->byte_offsets = (int *) ore_realloc(match->byte_offsets, new_len, old_len, sizeof(int));
+    match->lengths = (int *) ore_realloc(match->lengths, new_len, old_len, sizeof(int));
+    match->byte_lengths = (int *) ore_realloc(match->byte_lengths, new_len, old_len, sizeof(int));
+    match->matches = (char **) ore_realloc(match->matches, new_len, old_len, sizeof(char *));
+}
+
+// Insert a string into a rawmatch_t object, allocating space for it first
+void ore_rawmatch_store_string (rawmatch_t *match, const size_t loc, const char *string, const int length)
+{
+    match->matches[loc] = R_alloc(length+1, 1);
+    strncpy(match->matches[loc], string, length);
+    *(match->matches[loc] + length) = '\0';
+}
+
 // Search a single string for matches to a regex
 rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, const size_t start)
 {
@@ -208,7 +266,7 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
     // Create region object to capture match data
     OnigRegion *region = onig_region_new();
     
-    size_t max_matches = all ? MAX_MATCHES : 1;
+    // The number of matches found so far
     int match_number = 0;
     
     // If we're not starting at the beginning, step forward the required number of characters
@@ -235,16 +293,9 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
         {
             // Set up output data structures the first time
             if (result == NULL)
-            {
-                result = (rawmatch_t *) R_alloc(1, sizeof(rawmatch_t));
-                result->n_regions = region->num_regs;
-                const size_t n = max_matches * region->num_regs;
-                result->offsets = (int *) R_alloc(n, sizeof(int));
-                result->byte_offsets = (int *) R_alloc(n, sizeof(int));
-                result->lengths = (int *) R_alloc(n, sizeof(int));
-                result->byte_lengths = (int *) R_alloc(n, sizeof(int));
-                result->matches = (char **) R_alloc(n, sizeof(char *));
-            }
+                result = ore_rawmatch_alloc(region->num_regs);
+            else if (match_number >= result->capacity)
+                ore_rawmatch_extend(result);
             
             // Regions are the whole match and then subgroups
             for (int i=0; i<region->num_regs; i++)
@@ -272,11 +323,7 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
                 if (length == 0)
                     result->matches[loc] = NULL;
                 else
-                {
-                    result->matches[loc] = R_alloc(length+1, 1);
-                    strncpy(result->matches[loc], text+region->beg[i], length);
-                    *(result->matches[loc] + length) = '\0';
-                }
+                    ore_rawmatch_store_string(result, loc, text+region->beg[i], length);
             }
             
             // Advance the starting point beyond the current match
@@ -297,7 +344,7 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
         onig_region_free(region, 0);
         
         // If "all" is not true, the loop is only ever completed once
-        if (!all || match_number == max_matches)
+        if (!all)
             break;
     }
     
