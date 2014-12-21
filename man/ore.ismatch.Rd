@@ -36,8 +36,8 @@ Oniguruma regular expression. The actual match can be retrieved using
 \details{
 The \code{\%~\%} infix shorthand corresponds to \code{ore.ismatch(...,
 all=FALSE)}, while \code{\%~~\%} corresponds to \code{ore.ismatch(...,
-all=TRUE)}. Either way, the first argument can an \code{"ore"} object, in
-which case the second is the text to search, or a character vector, in
+all=TRUE)}. Either way, the first argument can be an \code{"ore"} object,
+in which case the second is the text to search, or a character vector, in
 which case the second argument is assumed to contain the regex.
 }
 \examples{
