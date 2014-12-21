@@ -358,9 +358,10 @@ ore.subst <- function (regex, replacement, text, all = FALSE, ...)
         replacement <- match.fun(replacement)
     
     result <- character(length(text))
+    matches <- ore.search(regex, text, all=all, simplify=FALSE)
     for (i in seq_along(text))
     {
-        currentMatch <- ore.search(regex, text[i], all=all)
+        currentMatch <- matches[[i]]
         if (is.null(currentMatch))
             result[i] <- text[i]
         else
