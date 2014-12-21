@@ -299,7 +299,7 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
     sourceEncoding <- .getEncoding(text)
     match <- ore.search(regex, text, all=TRUE, start=start, simplify=FALSE)
     result <- lapply(seq_along(text), function(i) {
-        if (match[[i]]$nMatches == 0)
+        if (is.null(match[[i]]) || match[[i]]$nMatches == 0)
             return (text[i])
         else
         {
