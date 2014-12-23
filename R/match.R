@@ -294,23 +294,12 @@ ore.ismatch <- function (regex, text, all = FALSE)
 #' @export
 ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 {
-    sourceEncoding <- .getEncoding(text)
-    match <- ore.search(regex, text, all=TRUE, start=start, simplify=FALSE)
-    result <- lapply(seq_along(text), function(i) {
-        if (is.null(match[[i]]) || match[[i]]$nMatches == 0)
-            return (text[i])
-        else
-        {
-            parts <- .Call("ore_split", text[i], match[[i]]$nMatches, match[[i]]$byteOffsets, match[[i]]$byteLengths, PACKAGE="ore")
-            Encoding(parts) <- sourceEncoding
-            return (parts)
-        }
-    })
+    if (!is.character(text))
+        text <- as.character(text)
+    if (!is.ore(regex))
+        regex <- ore(regex, encoding=.getEncoding(text))
     
-    if (simplify && length(result) == 1)
-        return (result[[1]])
-    else
-        return (result)
+    return (.Call("ore_split", attr(regex,".compiled"), text, as.integer(start), as.logical(simplify), PACKAGE="ore"))
 }
 
 #' Replace matched substrings with new text

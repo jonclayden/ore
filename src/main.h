@@ -44,7 +44,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 
 SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP group_names);
 
-SEXP ore_split (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_);
+SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_);
 
 SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_);
 
