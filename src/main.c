@@ -450,6 +450,14 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     // Step through each string to be searched
     for (int i=0; i<text_len; i++)
     {
+        const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
+        if ((encoding == CE_UTF8 && regex->enc != ONIG_ENCODING_UTF8) || (encoding == CE_LATIN1 && regex->enc != ONIG_ENCODING_ISO_8859_1))
+        {
+            warning("Encoding of text element %d does not match the regex", i+1);
+            SET_ELEMENT(results, i, R_NilValue);
+            continue;
+        }
+        
         // Do the match
         rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), all, (size_t) start[i % start_len] - 1);
         
@@ -459,7 +467,6 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
         else
         {
             SEXP result, result_names, text, n_matches, offsets, byte_offsets, lengths, byte_lengths, matches;
-            const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
             
             // Allocate memory for data structures
             PROTECT(result = NEW_LIST(raw_match->n_regions < 2 ? 7 : 8));
