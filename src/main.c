@@ -836,12 +836,7 @@ SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all
                 SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
                 ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
                 
-                SEXP call;
-                if (isNull(function_args))
-                    call = PROTECT(lang2(replacement_, matches));
-                else
-                    call = PROTECT(lang3(replacement_, matches, function_args));
-                
+                SEXP call = PROTECT(listAppend(lang2(replacement_, matches), function_args));
                 SEXP result = PROTECT(coerceVector(eval(call, environment), STRSXP));
                 if (length(result) != length(matches))
                     error("The replacement function did not generate results of the same length as the input");
