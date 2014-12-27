@@ -327,50 +327,12 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' @export
 ore.subst <- function (regex, replacement, text, all = FALSE, ...)
 {
-    do.subst <- function (match, replacement, text)
-    {
-        result <- .Call("ore_substitute", text, match$nMatches, match$byteOffsets, match$byteLengths, as.character(replacement), PACKAGE="ore")
-        return (result)
-    }
-    
-    if (is.character(replacement))
-    {
-        if (!exists("groupNumberRegex", .Workspace))
-        {
-            .Workspace$groupNumberRegex <- ore("\\\\(\\d+)")
-            .Workspace$groupNameRegex <- ore("\\\\\\k\\<(\\w+)\\>")
-        }
-        groupNumberMatch <- ore.search(.Workspace$groupNumberRegex, replacement, all=TRUE)
-        groupNameMatch <- ore.search(.Workspace$groupNameRegex, replacement, all=TRUE)
-    }
-    else
+    if (!is.character(text))
+        text <- as.character(text)
+    if (!is.ore(regex))
+        regex <- ore(regex, encoding=.getEncoding(text))
+    if (!is.character(replacement))
         replacement <- match.fun(replacement)
-    
-    result <- character(length(text))
-    matches <- ore.search(regex, text, all=all, simplify=FALSE)
-    for (i in seq_along(text))
-    {
-        currentMatch <- matches[[i]]
-        if (is.null(currentMatch))
-            result[i] <- text[i]
-        else
-        {
-            if (is.function(replacement))
-                currentReplacements <- replacement(currentMatch$matches, ...)
-            else
-            {
-                currentReplacements <- rep(replacement, length.out=currentMatch$nMatches)
-                if (!is.null(groupNumberMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[,as.integer(groupNumberMatch$groups$matches),drop=FALSE], 1, function(x) do.subst(groupNumberMatch,x,replacement))
-                if (!is.null(groupNameMatch))
-                    currentReplacements <- apply(currentMatch$groups$matches[,groupNameMatch$groups$matches,drop=FALSE], 1, function(x) do.subst(groupNameMatch,x,replacement))
-            }
-            
-            result[i] <- do.subst(currentMatch, currentReplacements, text[i])
-        }
-    }
-    
-    names(result) <- NULL
-    Encoding(result) <- .getEncoding(text)
-    return (result)
+        
+    return (.Call("ore_substitute_all", attr(regex,".compiled"), replacement, text, as.logical(all), attr(regex,"groupNames"), new.env(), pairlist(...), PACKAGE="ore"))
 }

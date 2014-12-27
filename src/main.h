@@ -2,15 +2,22 @@
 #define _MAIN_H_
 
 typedef struct {
-    int capacity;
-    int n_regions;
-    int n_matches;
-    int *offsets;
-    int *byte_offsets;
-    int *lengths;
-    int *byte_lengths;
-    char **matches;
+    int     capacity;
+    int     n_regions;
+    int     n_matches;
+    int   * offsets;
+    int   * byte_offsets;
+    int   * lengths;
+    int   * byte_lengths;
+    char ** matches;
 } rawmatch_t;
+
+typedef struct {
+    int     n;
+    int   * offsets;
+    int   * lengths;
+    int   * group_numbers;
+} backref_info_t;
 
 SEXP ore_init ();
 
@@ -46,6 +53,10 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
 
 SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_);
 
-SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_);
+char * ore_substitute (const char *text, const int n_matches, const int *offsets, const int *lengths, const char **replacements);
+
+backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names);
+
+SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all_, SEXP group_names, SEXP environment, SEXP function_args);
 
 #endif

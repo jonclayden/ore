@@ -16,17 +16,46 @@ extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const 
 // Block size for match data; memory is allocated in chunks this big
 #define MATCH_BLOCK_SIZE    128
 
+static regex_t *group_number_regex;
+static regex_t *group_name_regex;
+
 // R wrapper function for onig_init(); called when the packge is loaded
 SEXP ore_init ()
 {
     onig_init();
+    
+    int return_value;
+    OnigErrorInfo einfo;
+    
+    const char group_number_pattern[10] = "\\\\([1-9])";
+    return_value = onig_new(&group_number_regex, (UChar *) group_number_pattern, (UChar *) group_number_pattern+strlen(group_number_pattern), ONIG_OPTION_NONE, ONIG_ENCODING_ASCII, ONIG_SYNTAX_RUBY, &einfo);
+    if (return_value != ONIG_NORMAL)
+    {
+        char message[ONIG_MAX_ERROR_MESSAGE_LEN];
+        onig_error_code_to_str((UChar *) message, return_value, &einfo);
+        error("Oniguruma compile: %s\n", message);
+    }
+    
+    const char group_name_pattern[13] = "\\\\k\\<(\\w+)\\>";
+    return_value = onig_new(&group_name_regex, (UChar *) group_name_pattern, (UChar *) group_name_pattern+strlen(group_name_pattern), ONIG_OPTION_NONE, ONIG_ENCODING_ASCII, ONIG_SYNTAX_RUBY, &einfo);
+    if (return_value != ONIG_NORMAL)
+    {
+        char message[ONIG_MAX_ERROR_MESSAGE_LEN];
+        onig_error_code_to_str((UChar *) message, return_value, &einfo);
+        error("Oniguruma compile: %s\n", message);
+    }
+    
     return R_NilValue;
 }
 
 // R wrapper function for onig_end(); called when the packge is unloaded
 SEXP ore_done ()
 {
+    onig_free(group_number_regex);
+    onig_free(group_name_regex);
+    
     onig_end();
+    
     return R_NilValue;
 }
 
@@ -222,7 +251,9 @@ rawmatch_t * ore_rawmatch_alloc (const int n_regions)
 // NB: This function is less efficient than standard C realloc(), because it always results in a copy, but using R_alloc simplifies things. The R API function S_realloc() is closely related, but seems to exist only "for compatibility with older versions of S", and zeroes out the extra memory, which is unnecessary here.
 char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len, const int element_size)
 {
-    if (new_len <= old_len)
+    if (ptr == NULL)
+        return (char *) R_alloc(new_len, element_size);
+    else if (new_len <= old_len)
         return (char *) ptr;
     else
     {
@@ -565,7 +596,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
         return results;
 }
 
-// Split the string provided at the (byte) offsets given
+// Split the strings provided at matches to the regex
 SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_)
 {
     if (isNull(regex_ptr))
@@ -656,47 +687,195 @@ SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_)
 }
 
 // Replace substrings at the specified (byte) offsets with the literal replacements given
-SEXP ore_substitute (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
+char * ore_substitute (const char *text, const int n_matches, const int *offsets, const int *lengths, const char **replacements)
 {
-    SEXP result;
-    
-    const char *text = CHAR(STRING_ELT(text_, 0));
-    const int n_matches = asInteger(n_matches_);
-    const int *offsets = INTEGER(offsets_);
-    const int *lengths = INTEGER(lengths_);
-    
     // Work out the length of each replacement string, and of the final text
     int *rep_lengths = (int *) R_alloc(n_matches, sizeof(int));
     size_t orig_len = strlen(text);
     size_t string_len = orig_len;
     for (int i=0; i<n_matches; i++)
     {
-        rep_lengths[i] = strlen(CHAR(STRING_ELT(replacements_, i)));
+        rep_lengths[i] = strlen(replacements[i]);
         string_len += rep_lengths[i] - lengths[i];
     }
     
     // Work through the string, drawing from the original and the replacements in turn
     int start = 0;
-    char *replacement = R_alloc(string_len+1, 1);
-    char *repl_ptr = replacement;
+    char *result = R_alloc(string_len+1, 1);
+    char *result_ptr = result;
     for (int i=0; i<n_matches; i++)
     {
-        strncpy(repl_ptr, text+start, offsets[i]-1-start);
-        repl_ptr += offsets[i] - 1 - start;
-        strncpy(repl_ptr, CHAR(STRING_ELT(replacements_,i)), rep_lengths[i]);
-        repl_ptr += rep_lengths[i];
-        start = offsets[i] - 1 + lengths[i];
+        strncpy(result_ptr, text+start, offsets[i]-start);
+        result_ptr += offsets[i] - start;
+        strncpy(result_ptr, replacements[i], rep_lengths[i]);
+        result_ptr += rep_lengths[i];
+        start = offsets[i] + lengths[i];
     }
     
     // Add any text after the last match
     if (start < orig_len)
-        strncpy(repl_ptr, text+start, orig_len-start);
-    *(replacement + string_len) = '\0';
-    
-    // Create the return value
-    PROTECT(result = NEW_CHARACTER(1));
-    SET_STRING_ELT(result, 0, mkChar(replacement));
-    UNPROTECT(1);
+        strncpy(result_ptr, text+start, orig_len-start);
+    *(result + string_len) = '\0';
     
     return result;
+}
+
+backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
+{
+    rawmatch_t *group_number_match = ore_search(group_number_regex, replacement, TRUE, 0);
+    rawmatch_t *group_name_match = ore_search(group_name_regex, replacement, TRUE, 0);
+    
+    if (group_number_match == NULL && group_name_match == NULL)
+        return NULL;
+    else
+    {
+        backref_info_t *info = (backref_info_t *) R_alloc(1, sizeof(backref_info_t));
+        const int n_number_matches = (group_number_match == NULL ? 0 : group_number_match->n_matches);
+        const int n_name_matches = (group_name_match == NULL ? 0 : group_name_match->n_matches);
+        
+        info->n = n_number_matches + n_name_matches;
+        info->offsets = (int *) R_alloc(info->n, sizeof(int));
+        info->lengths = (int *) R_alloc(info->n, sizeof(int));
+        info->group_numbers = (int *) R_alloc(info->n, sizeof(int));
+        
+        int i = 0, j = 0;
+        int next_number_match = (group_number_match == NULL ? INT_MAX : group_number_match->byte_offsets[0]);
+        int next_name_match = (group_name_match == NULL ? INT_MAX : group_name_match->byte_offsets[0]);
+        for (int l=0; l<info->n; l++)
+        {
+            if (next_number_match < next_name_match)
+            {
+                const size_t loc = i * group_number_match->n_regions;
+                info->offsets[l] = group_number_match->byte_offsets[loc];
+                info->lengths[l] = group_number_match->byte_lengths[loc];
+                info->group_numbers[l] = (int) strtol(group_number_match->matches[loc+1], NULL, 10);
+                
+                i++;
+                next_number_match = (group_number_match->n_matches <= i ? INT_MAX : group_number_match->byte_offsets[i]);
+            }
+            else
+            {
+                const size_t loc = j * group_name_match->n_regions;
+                info->offsets[l] = group_name_match->byte_offsets[loc];
+                info->lengths[l] = group_name_match->byte_lengths[loc];
+                
+                Rboolean found = FALSE;
+                for (int k=0; k<length(group_names); k++)
+                {
+                    if (strcmp(CHAR(STRING_ELT(group_names,k)), group_name_match->matches[loc+1]) == 0)
+                    {
+                        info->group_numbers[l] = k + 1;
+                        found = TRUE;
+                    }
+                }
+                
+                if (!found)
+                    error("Back-reference does not match a named group");
+                
+                j++;
+                next_name_match = (group_name_match->n_matches <= j ? INT_MAX : group_name_match->byte_offsets[j]);
+            }
+        }
+        
+        return info;
+    }
+}
+
+SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all_, SEXP group_names, SEXP environment, SEXP function_args)
+{
+    if (isNull(regex_ptr))
+        error("The specified regex object is not valid");
+    
+    // Convert R objects to C types
+    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    const Rboolean all = asLogical(all_) == TRUE;
+    
+    // Obtain the lengths of the text vector, and check it's sensible
+    const int text_len = length(text_);
+    if (text_len < 1)
+        error("The text vector is empty");
+    
+    backref_info_t *backref_info = NULL;
+    if (isString(replacement_))
+    {
+        if (length(replacement_) < 1)
+            error("No replacement has been given");
+        else if (length(replacement_) > 1)
+            warning("All replacement strings after the first will be ignored");
+        
+        backref_info = ore_find_backrefs(CHAR(STRING_ELT(replacement_,0)), group_names);
+    }
+    
+    SEXP results = PROTECT(NEW_CHARACTER(text_len));
+    
+    // Step through each string to be searched
+    for (int i=0; i<text_len; i++)
+    {
+        const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
+        if ((encoding == CE_UTF8 && regex->enc != ONIG_ENCODING_UTF8) || (encoding == CE_LATIN1 && regex->enc != ONIG_ENCODING_ISO_8859_1))
+        {
+            warning("Encoding of text element %d does not match the regex", i+1);
+            SET_ELEMENT(results, i, ScalarString(STRING_ELT(text_,i)));
+            continue;
+        }
+        
+        const char *text = CHAR(STRING_ELT(text_, i));
+        
+        // Do the match
+        rawmatch_t *raw_match = ore_search(regex, text, all, 0);
+        
+        // If there's no match the return value is the original string
+        if (raw_match == NULL)
+            SET_STRING_ELT(results, i, STRING_ELT(text_,i));
+        else
+        {
+            const char **replacements = (const char **) R_alloc(raw_match->n_matches, sizeof(char *));
+            
+            if (isFunction(replacement_))
+            {
+                SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
+                
+                SEXP call;
+                if (isNull(function_args))
+                    call = PROTECT(lang2(replacement_, matches));
+                else
+                    call = PROTECT(lang3(replacement_, matches, function_args));
+                
+                SEXP result = PROTECT(coerceVector(eval(call, environment), STRSXP));
+                if (length(result) != length(matches))
+                    error("The replacement function did not generate results of the same length as the input");
+                
+                for (int j=0; j<raw_match->n_matches; j++)
+                    replacements[j] = (const char *) CHAR(STRING_ELT(result,j));
+                
+                UNPROTECT(3);
+            }
+            else
+            {
+                const char *replacement_template = CHAR(STRING_ELT(replacement_, 0));
+                if (backref_info != NULL)
+                {
+                    for (int j=0; j<raw_match->n_matches; j++)
+                    {
+                        const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
+                        for (int k=0; k<backref_info->n; k++)
+                            backref_replacements[k] = raw_match->matches[j*raw_match->n_regions + backref_info->group_numbers[k]];
+                        replacements[j] = ore_substitute(replacement_template, backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
+                    }
+                }
+                else
+                {
+                    for (int j=0; j<raw_match->n_matches; j++)
+                        replacements[j] = replacement_template;
+                }
+            }
+            
+            char *result = ore_substitute(text, raw_match->n_matches, raw_match->byte_offsets, raw_match->byte_lengths, replacements);
+            SET_STRING_ELT(results, i, mkCharCE(result,encoding));
+        }
+    }
+    
+    UNPROTECT(1);
+    return results;
 }
