@@ -866,7 +866,15 @@ SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all
                 }
             }
             
-            char *result = ore_substitute(text, raw_match->n_matches, raw_match->byte_offsets, raw_match->byte_lengths, replacements);
+            int *offsets = (int *) R_alloc(raw_match->n_matches, sizeof(int));
+            int *lengths = (int *) R_alloc(raw_match->n_matches, sizeof(int));
+            for (int j=0; j<raw_match->n_matches; j++)
+            {
+                offsets[j] = raw_match->byte_offsets[j*raw_match->n_regions];
+                lengths[j] = raw_match->byte_lengths[j*raw_match->n_regions];
+            }
+            
+            char *result = ore_substitute(text, raw_match->n_matches, offsets, lengths, replacements);
             SET_STRING_ELT(results, i, mkCharCE(result,encoding));
         }
     }
