@@ -482,7 +482,7 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
     for (int i=0; i<text_len; i++)
     {
         const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
-        if ((encoding == CE_UTF8 && regex->enc != ONIG_ENCODING_UTF8) || (encoding == CE_LATIN1 && regex->enc != ONIG_ENCODING_ISO_8859_1))
+        if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, R_NilValue);
@@ -624,7 +624,7 @@ SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_)
     for (int i=0; i<text_len; i++)
     {
         const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
-        if ((encoding == CE_UTF8 && regex->enc != ONIG_ENCODING_UTF8) || (encoding == CE_LATIN1 && regex->enc != ONIG_ENCODING_ISO_8859_1))
+        if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(STRING_ELT(text_,i)));
@@ -812,7 +812,7 @@ SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all
     for (int i=0; i<text_len; i++)
     {
         const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
-        if ((encoding == CE_UTF8 && regex->enc != ONIG_ENCODING_UTF8) || (encoding == CE_LATIN1 && regex->enc != ONIG_ENCODING_ISO_8859_1))
+        if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(STRING_ELT(text_,i)));
