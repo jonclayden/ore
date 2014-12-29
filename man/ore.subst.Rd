@@ -3,7 +3,7 @@
 \alias{ore.subst}
 \title{Replace matched substrings with new text}
 \usage{
-ore.subst(regex, replacement, text, all = FALSE, ...)
+ore.subst(regex, replacement, text, ..., all = FALSE)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -14,11 +14,11 @@ to the matches.}
 
 \item{text}{A vector of strings to match against.}
 
+\item{...}{Further arguments to \code{replacement}, if it is a function.}
+
 \item{all}{If \code{TRUE}, then all matches within each element of
 \code{text} will be found. Otherwise, the search will stop at the first
 match.}
-
-\item{...}{Further arguments to \code{replacement}, if it is a function.}
 }
 \value{
 A version of \code{text} with the substitutions made.

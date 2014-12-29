@@ -321,7 +321,7 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' ore.subst("\\d+", function(i) as.numeric(i)^2, "2 dogs")
 #' @seealso \code{\link{ore.search}}
 #' @export
-ore.subst <- function (regex, replacement, text, all = FALSE, ...)
+ore.subst <- function (regex, replacement, text, ..., all = FALSE)
 {
     if (!is.character(text))
         text <- as.character(text)
