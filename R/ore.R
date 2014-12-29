@@ -1,15 +1,3 @@
-.getEncoding <- function (x)
-{
-    encoding <- Encoding(x)
-    notUnknown <- unique(encoding[encoding != "unknown"])
-    if (length(notUnknown) == 0)
-        return ("unknown")
-    else if (length(notUnknown) == 1)
-        return (notUnknown)
-    else
-        stop("Mixed-encoding character vectors are currently not supported")
-}
-
 #' Oniguruma regular expressions
 #' 
 #' Create, test for, and print objects of class \code{"ore"}, which represent

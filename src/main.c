@@ -138,6 +138,35 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
     return regex;
 }
 
+// Retrieve a rawmatch_t object from the specified R object, which may be of class "ore" or just text
+regex_t * ore_retrieve (SEXP regex_, SEXP text_)
+{
+    // Check the class of the regex object; if it's text this will be NULL
+    SEXP class = getAttrib(regex_, R_ClassSymbol);
+    if (isNull(class) || strcmp(CHAR(STRING_ELT(class,0)), "ore") != 0)
+    {
+        if (!isString(regex_))
+            error("The specified regex must be of character mode");
+        
+        // Take the encoding from the search text in this case
+        cetype_t encoding = CE_NATIVE;
+        for (int i=0; i<length(text_); i++)
+        {
+            const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
+            if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
+            {
+                encoding = current_encoding;
+                break;
+            }
+        }
+        
+        // Compile the regex and return
+        return ore_compile(CHAR(STRING_ELT(regex_,0)), "", encoding);
+    }
+    else
+        return (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
+}
+
 // R wrapper for ore_compile(): builds the regex and creates an R "ore" object
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
 {
@@ -460,10 +489,11 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 }
 
 // Vectorised wrapper around ore_search(), which handles the R API stuff
-SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP group_names)
+SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_)
 {
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    regex_t *regex = ore_retrieve(regex_, text_);
+    SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
@@ -600,13 +630,13 @@ SEXP ore_search_all (SEXP regex_ptr, SEXP text_, SEXP all_, SEXP start_, SEXP si
 }
 
 // Split the strings provided at matches to the regex
-SEXP ore_split (SEXP regex_ptr, SEXP text_, SEXP start_, SEXP simplify_)
+SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
 {
-    if (isNull(regex_ptr))
+    if (isNull(regex_))
         error("The specified regex object is not valid");
     
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_);
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
     
@@ -796,13 +826,14 @@ backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
 }
 
 // Vectorised substitution with a single replacement string, or R function
-SEXP ore_substitute_all (SEXP regex_ptr, SEXP replacement_, SEXP text_, SEXP all_, SEXP group_names, SEXP environment, SEXP function_args)
+SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args)
 {
-    if (isNull(regex_ptr))
+    if (isNull(regex_))
         error("The specified regex object is not valid");
     
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
+    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_);
+    SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     
     // Obtain the lengths of the text vector, and check it's sensible

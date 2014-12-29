@@ -60,10 +60,8 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
-    if (!is.ore(regex))
-        regex <- ore(regex, encoding=.getEncoding(text))
     
-    match <- .Call("ore_search_all", attr(regex,".compiled"), text, as.logical(all), as.integer(start), as.logical(simplify), attr(regex,"groupNames"), PACKAGE="ore")
+    match <- .Call("ore_search_all", regex, text, as.logical(all), as.integer(start), as.logical(simplify), PACKAGE="ore")
     
     .Workspace$lastMatch <- match
     return (match)
@@ -296,10 +294,8 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
-    if (!is.ore(regex))
-        regex <- ore(regex, encoding=.getEncoding(text))
     
-    return (.Call("ore_split", attr(regex,".compiled"), text, as.integer(start), as.logical(simplify), PACKAGE="ore"))
+    return (.Call("ore_split", regex, text, as.integer(start), as.logical(simplify), PACKAGE="ore"))
 }
 
 #' Replace matched substrings with new text
@@ -329,10 +325,8 @@ ore.subst <- function (regex, replacement, text, all = FALSE, ...)
 {
     if (!is.character(text))
         text <- as.character(text)
-    if (!is.ore(regex))
-        regex <- ore(regex, encoding=.getEncoding(text))
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
         
-    return (.Call("ore_substitute_all", attr(regex,".compiled"), replacement, text, as.logical(all), attr(regex,"groupNames"), new.env(), pairlist(...), PACKAGE="ore"))
+    return (.Call("ore_substitute_all", regex, replacement, text, as.logical(all), new.env(), pairlist(...), PACKAGE="ore"))
 }
