@@ -27,6 +27,7 @@ SEXP ore_init ()
     int return_value;
     OnigErrorInfo einfo;
     
+    // Create the group number regex, for substitutions
     const char group_number_pattern[10] = "\\\\([1-9])";
     return_value = onig_new(&group_number_regex, (UChar *) group_number_pattern, (UChar *) group_number_pattern+strlen(group_number_pattern), ONIG_OPTION_NONE, ONIG_ENCODING_ASCII, ONIG_SYNTAX_RUBY, &einfo);
     if (return_value != ONIG_NORMAL)
@@ -36,6 +37,7 @@ SEXP ore_init ()
         error("Oniguruma compile: %s\n", message);
     }
     
+    // Create the group name regex, for substitutions
     const char group_name_pattern[13] = "\\\\k\\<(\\w+)\\>";
     return_value = onig_new(&group_name_regex, (UChar *) group_name_pattern, (UChar *) group_name_pattern+strlen(group_name_pattern), ONIG_OPTION_NONE, ONIG_ENCODING_ASCII, ONIG_SYNTAX_RUBY, &einfo);
     if (return_value != ONIG_NORMAL)
@@ -136,6 +138,7 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
     return regex;
 }
 
+// R wrapper for ore_compile(): builds the regex and creates an R "ore" object
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
 {
     regex_t *regex;
