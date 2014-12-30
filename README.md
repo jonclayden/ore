@@ -28,8 +28,7 @@ If you prefer the more verbose but also more friendly approach to creating regul
 
 The package can be installed directly from GitHub using the `devtools` package.
 
-
-```r
+```R
 # install.packages("devtools")
 devtools::install_github("jonclayden/ore")
 ```
@@ -53,99 +52,69 @@ It is also planned to make it available via CRAN shortly, for installation via t
 
 Let's consider a very simple example: a regular expression for matching a single integer, either positive or negative. We create this regex as follows:
 
-
-```r
+```R
 library(ore)
+
 re <- ore("-?\\d+")
 ```
 
 This syntax matches an optional minus sign, followed by one or more digits. Here we immediately introduce one of the differences between the regular expression capabilities of base R and the `ore` package: in the latter, regular expressions have class `ore`, rather than just being standard strings. We can find the class of the regex object, and print it:
 
-
-```r
+```R
 class(re)
-```
+# [1] "ore"
 
-```
-## [1] "ore"
-```
-
-```r
 re
-```
-
-```
-## Oniguruma regular expression: /-?\d+/
-##  - 0 groups
-##  - unknown encoding
+# Oniguruma regular expression: /-?\d+/
+#  - 0 groups
+#  - unknown encoding
 ```
 
 The `ore()` function compiles the regex string, retaining the compiled version for later use. The number of groups in the string is obtained definitively, because the string is parsed by the full Oniguruma parser.
 
 Once we have compiled the regex, we can search another string for matches:
 
-
-```r
+```R
 match <- ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters")
+
 class(match)
-```
+# [1] "orematch"
 
-```
-## [1] "orematch"
-```
-
-```r
 match
-```
-
-```
-##   match:        2
-## context: I have   dogs, 3 cats and 4 hamsters
+#   match:        2
+# context: I have   dogs, 3 cats and 4 hamsters
 ```
 
 Notice that the result of the search is an object of class `orematch`. This contains elements giving the offsets, lengths and content of matches, as well as those of any parenthesised groups. When printed, the object shows the original text with the matched substring extracted onto the line above (or coloured, if the `crayon` package is installed and a colour terminal is being used). This can be useful to check that the regular expression is capturing the text expected.
 
 The `start` parameter to `ore.search()` can be used to indicate where in the text the search should begin. All matches (after the starting point) will be returned with `all=TRUE`:
 
-
-```r
+```R
 ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", start=10)
-```
+#   match:                3
+# context: I have 2 dogs,   cats and 4 hamsters
 
-```
-##   match:                3
-## context: I have 2 dogs,   cats and 4 hamsters
-```
-
-```r
 ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters", all=TRUE)
-```
-
-```
-##   match:        2       3          4
-## context: I have   dogs,   cats and   hamsters
-##  number:        1       2          3
+#   match:        2       3          4
+# context: I have   dogs,   cats and   hamsters
+#  number:        1       2          3
 ```
 
 The text to be searched for matches can be a vector, in which case the return value will be a list of `orematch` objects:
 
-
-```r
+```R
 ore.search(re, c("2 dogs","3 cats","4 hamsters"))
-```
-
-```
-## [[1]]
-##   match: 2
-## context:   dogs
-## 
-## [[2]]
-##   match: 3
-## context:   cats
-## 
-## [[3]]
-##   match: 4
-## context:   hamsters
+# [[1]]
+#   match: 2
+# context:   dogs
+# 
+# [[2]]
+#   match: 3
+# context:   cats
+# 
+# [[3]]
+#   match: 4
+# context:   hamsters
 ```
 
 If there is no match the return value will be `NULL`, or a list with `NULL` for elements with no match.
@@ -154,147 +123,100 @@ If there is no match the return value will be `NULL`, or a list with `NULL` for 
 
 Both R and Oniguruma support alternative character encodings for strings, and this can affect matches. Consider the regular expression `\b\w{4}\b`, which matches words of exactly four letters. It behaves differently depending on the encoding that it is declared with:
 
-
-```r
+```R
 re1 <- ore("\\b\\w{4}\\b")
 re2 <- ore("\\b\\w{4}\\b", encoding="utf8")
 text <- enc2utf8("I'll have a piña colada")
 
 ore.search(re1, text, all=TRUE)
-```
+#   match:      have
+# context: I'll      a piña colada
 
-```
-##   match:      have
-## context: I'll      a piña colada
-```
-
-```r
 ore.search(re2, text, all=TRUE)
-```
-
-```
-##   match:      have   piña
-## context: I'll      a      colada
-##  number:      1===   2===
+#   match:      have   piña
+# context: I'll      a      colada
+#  number:      1===   2===
 ```
 
 Note that, without a declared encoding, only ASCII word characters are matched to the `\w` character class. Since "ñ" is not directly representable in ASCII, the word "piña" is not considered a match.
 
 If `ore.search()` is called with a string rather than an `ore` object for the regular expression, then the encoding of the text will also be associated with the regex. This this should generally produce the most sensible result.
 
-
-```r
+```R
 ore.search("\\b\\w{4}\\b", text, all=TRUE)
-```
-
-```
-##   match:      have   piña
-## context: I'll      a      colada
-##  number:      1===   2===
+#   match:      have   piña
+# context: I'll      a      colada
+#  number:      1===   2===
 ```
 
 Notice that base R's regular expression functions will not find the second match:
 
-
-```r
+```R
 gregexpr("\\b\\w{4}\\b", text, perl=TRUE)
-```
-
-```
-## [[1]]
-## [1] 6
-## attr(,"match.length")
-## [1] 4
+# [[1]]
+# [1] 6
+# attr(,"match.length")
+# [1] 4
 ```
 
 ## Substitutions
 
 The `ore.subst()` function can be used to substitute regex matches with new text. Matched subgroups may be referred to using numerical or named back-references.
 
-
-```r
+```R
 re <- ore("\\b(\\w)(\\w)(\\w)(\\w)\\b", encoding="utf8")
 text <- enc2utf8("I'll have a piña colada")
 ore.subst(re, "\\3\\1\\2\\4", text, all=TRUE)
-```
+# [1] "I'll vhae a ñpia colada"
 
-```
-## [1] "I'll vhae a ñpia colada"
-```
-
-```r
 re <- ore("\\b(?<first>\\w)(?<second>\\w)(?<third>\\w)(?<fourth>\\w)\\b", encoding="utf8")
 ore.subst(re, "\\k<third>\\k<first>\\k<second>\\k<fourth>", text, all=TRUE)
-```
-
-```
-## [1] "I'll vhae a ñpia colada"
+# [1] "I'll vhae a ñpia colada"
 ```
 
 A function may also be provided, which will be used to generate replacement strings. For example, we could find all integers in a string and replace them with their squares:
 
-
-```r
+```R
 re <- ore("-?\\d+")
 text <- "I have 2 dogs, 3 cats and 4 hamsters"
 ore.subst(re, function(i) as.integer(i)^2, text, all=TRUE)
-```
-
-```
-## [1] "I have 4 dogs, 9 cats and 16 hamsters"
+# [1] "I have 4 dogs, 9 cats and 16 hamsters"
 ```
 
 ## Splitting
 
 Strings can be split into parts using the `ore.split()` function.
 
-
-```r
+```R
 ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
-```
-
-```
-## [1] "I have "    " dogs, "    " cats and " " hamsters"
+# [1] "I have "    " dogs, "    " cats and " " hamsters"
 ```
 
 ## Additional convenience functions
 
 The `ore.ismatch` function will return a logical vector indicating whether or not a match is present in each element of a character vector. The infix notation `%~%` is a shorthand way to achieve the same thing. Either way, the full match data can be obtained without repeating the search, using the `ore.lastmatch()` function.
 
-
-```r
+```R
 if ("I have 2 dogs, 3 cats and 4 hamsters" %~% "-?\\d+")
   print(ore.lastmatch())
-```
-
-```
-## [[1]]
-##   match:        2
-## context: I have   dogs, 3 cats and 4 hamsters
+# [[1]]
+#   match:        2
+# context: I have   dogs, 3 cats and 4 hamsters
 ```
 
 The `%~~%` operator works likewise, except that all matches will be found (i.e. it sets `all=TRUE` when calling `ore.search()`).
 
 Text matching the entire regex, or parenthesised groups, can be extracted using the `matches()` and `groups()` convenience functions.
 
-
-```r
+```R
 # An example from ?regexpr
 re <- "^(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)"
 text <- "http://stat.umn.edu:80/xyz"
 match <- ore.search(re, text)
 matches(match)
-```
+# "http://stat.umn.edu:80/xyz"
 
-```
-## [1] "http://stat.umn.edu:80/xyz"
-```
-
-```r
 groups(match)
-```
-
-```
-##      [,1]      [,2]   [,3]           [,4]  [,5] [,6]  
-## [1,] "http://" "http" "stat.umn.edu" ":80" "80" "/xyz"
+#      [,1]      [,2]   [,3]           [,4]  [,5] [,6]  
+# [1,] "http://" "http" "stat.umn.edu" ":80" "80" "/xyz"
 ```
