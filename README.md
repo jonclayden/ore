@@ -4,6 +4,7 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 
 - Regular expressions are themselves first-class objects (of class `ore`), stored with attributes containing information such as the number of parenthesised groups present within them. This means that it is not necessary to compile a particular regex more than once.
 - Search results focus around the matched substrings rather than the locations of matches. This saves extra work with `substr` to extract the matches themselves.
+- Substantially [better performance](https://github.com/jonclayden/regex-performance), especially when matching against long strings.
 - Substitutions can be functions as well as strings.
 - Matches can be efficiently obtained over only part of the strings.
 - Fewer core functions, with more consistent names.
@@ -33,16 +34,16 @@ The package can be installed directly from GitHub using the `devtools` package.
 devtools::install_github("jonclayden/ore")
 ```
 
-It is also planned to make it available via CRAN shortly, for installation via the standard `install.packages` function.
+It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), although the version published there can be a little older than the latest release tagged here.
 
 ## Function mapping
 
 | Effect                        | `ore` syntax                                   | Base R syntax                           |
 | ----------------------------- | ---------------------------------------------- | --------------------------------------- |
-| Create a regex object         | `regex <- ore(regex_string)`                   | (no equivalent)                         |
+| Create a regex object         | `regex <- ore(regex_string)`                   | *(no equivalent)*                       |
 | Is there a match?             | `ore.ismatch(regex, text)` or `text %~% regex` | `grepl(regex, text, perl=TRUE)`         |
 | Find the first match          | `ore.search(regex, text)`                      | `regexpr(regex, text, perl=TRUE)`       |
-| Find match after character 10 | `ore.search(regex, text, start=10)`            | (no equivalent)                         |
+| Find match after character 10 | `ore.search(regex, text, start=10)`            | *(no equivalent)*                       |
 | Find all matches              | `ore.search(regex, text, all=TRUE)`            | `gregexpr(regex, text, perl=TRUE)`      |
 | Replace first match           | `ore.subst(regex, replace, text)`              | `sub(regex, replace, text, perl=TRUE)`  |
 | Replace all matches           | `ore.subst(regex, replace, text, all=TRUE)`    | `gsub(regex, replace, text, perl=TRUE)` |
