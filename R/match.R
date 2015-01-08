@@ -101,7 +101,7 @@ print.orematch <- function (x, ...)
         
         if (usingColour)
         {
-            colouredText <- .Call("ore_substitute", x$text, x$nMatches, x$byteOffsets, x$byteLengths, crayon::cyan(x$matches), PACKAGE="ore")
+            colouredText <- .Call("ore_substitute_substrings", x$text, x$nMatches, x$byteOffsets, x$byteLengths, crayon::cyan(x$matches), PACKAGE="ore")
             matches <- paste0(matches, colouredText)
         }
         

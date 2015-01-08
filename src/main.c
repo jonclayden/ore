@@ -753,6 +753,35 @@ char * ore_substitute (const char *text, const int n_matches, const int *offsets
     return result;
 }
 
+// Thin R wrapper for ore_substitute(); substitutes literal replacements into a single string
+SEXP ore_substitute_substrings (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_)
+{
+    SEXP result;
+    
+    // Convert R objects to C types
+    const char *text = CHAR(STRING_ELT(text_, 0));
+    const cetype_t encoding = getCharCE(STRING_ELT(text_, 0));
+    const int n_matches = asInteger(n_matches_);
+    int *offsets = INTEGER(offsets_);
+    const int *lengths = INTEGER(lengths_);
+    
+    for (int i=0; i<length(offsets_); i++)
+        offsets[i]--;
+    
+    // Extract the replacements as C strings, from the R character vector provided
+    const char **replacements = (const char **) R_alloc(n_matches, sizeof(char *));
+    for (int j=0; j<n_matches; j++)
+        replacements[j] = (const char *) CHAR(STRING_ELT(replacements_,j));
+    
+    // Do the substitution, and return the result
+    char *result_string = ore_substitute(text, n_matches, offsets, lengths, replacements);
+    PROTECT(result = NEW_CHARACTER(1));
+    SET_STRING_ELT(result, 0, mkCharCE(result_string,encoding));
+    UNPROTECT(1);
+    
+    return result;
+}
+
 // Find named or numbered back-references in a replacement string
 backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
 {

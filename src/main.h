@@ -57,6 +57,8 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_);
 
 char * ore_substitute (const char *text, const int n_matches, const int *offsets, const int *lengths, const char **replacements);
 
+SEXP ore_substitute_substrings (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_);
+
 backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names);
 
 SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args);
