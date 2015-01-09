@@ -193,6 +193,13 @@ groups.orematch <- function (object, ...)
 
 #' @rdname matches
 #' @export
+groups.orearg <- function (object, ...)
+{
+    return (attr(object, "groups"))
+}
+
+#' @rdname matches
+#' @export
 groups.default <- function (object, ...)
 {
     return (NA_character_)
@@ -303,6 +310,14 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' This function substitutes new text into strings in regions that match a
 #' regular expression. The substitutions may be simple text, may include
 #' references to matched subgroups, or may be created by an R function.
+#' 
+#' If \code{replacement} is a function, then it will be passed as its first
+#' argument an object of class \code{"orearg"}. This is a character vector
+#' containing as its elements the matched substrings, and with an attribute
+#' containing the matches for parenthesised subgroups, if there are any. A
+#' \code{\link{groups}} method is available for this class, so the groups
+#' attribute can be easily obtained that way. The substitution function will be
+#' called once per element of \code{text}.
 #' 
 #' @inheritParams ore.search
 #' @param replacement A single character string, or a function to be applied

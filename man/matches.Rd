@@ -3,6 +3,7 @@
 \alias{groups}
 \alias{groups.default}
 \alias{groups.list}
+\alias{groups.orearg}
 \alias{groups.orematch}
 \alias{matches}
 \alias{matches.default}
@@ -23,6 +24,8 @@ groups(object, ...)
 \method{groups}{list}(object, ...)
 
 \method{groups}{orematch}(object, ...)
+
+\method{groups}{orearg}(object, ...)
 
 \method{groups}{default}(object, ...)
 }

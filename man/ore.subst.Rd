@@ -28,6 +28,15 @@ This function substitutes new text into strings in regions that match a
 regular expression. The substitutions may be simple text, may include
 references to matched subgroups, or may be created by an R function.
 }
+\details{
+If \code{replacement} is a function, then it will be passed as its first
+argument an object of class \code{"orearg"}. This is a character vector
+containing as its elements the matched substrings, and with an attribute
+containing the matches for parenthesised subgroups, if there are any. A
+\code{\link{groups}} method is available for this class, so the groups
+attribute can be easily obtained that way. The substitution function will be
+called once per element of \code{text}.
+}
 \examples{
 # Simple text substitution (produces "no dogs")
 ore.subst("\\\\d+", "no", "2 dogs")

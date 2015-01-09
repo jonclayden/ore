@@ -915,6 +915,17 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
                 ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
                 
+                // If there are groups, extract them and put them in an attribute
+                if (raw_match->n_regions > 1)
+                {
+                    SEXP group_matches = PROTECT(allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
+                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding);
+                    setAttrib(matches, install("groups"), group_matches);
+                    UNPROTECT(1);
+                }
+                
+                setAttrib(matches, R_ClassSymbol, mkString("orearg"));
+                
                 // This is arcane R API territory: we create a LANGSXP (an evaluable pairlist), and append the "..." pairlist, then evaluate the result and coerce to a character vector. For now the result must be the same length as the vector of matches
                 SEXP call = PROTECT(listAppend(lang2(replacement_, matches), function_args));
                 SEXP result = PROTECT(coerceVector(eval(call, environment), STRSXP));
