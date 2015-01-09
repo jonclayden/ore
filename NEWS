@@ -2,6 +2,13 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.0.7
+
+- Printing "orematch" objects no longer leads to errors. This was due to a
+  mismatch in function names between the C code and the calling R code.
+
+===============================================================================
+
 VERSION 1.0.6
 
 - All of the core functions have now switched to primarily C implementations,

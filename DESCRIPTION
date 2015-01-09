@@ -1,6 +1,6 @@
 Package: ore
-Version: 1.0.6
-Date: 2015-01-01
+Version: 1.0.7
+Date: 2015-01-08
 Title: An R Interface to the Oniguruma Regular Expression Library
 Author: Jon Clayden, based on Onigmo by K. Kosako and K. Takata
 Maintainer: Jon Clayden <code@clayden.org>
