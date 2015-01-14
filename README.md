@@ -3,11 +3,13 @@
 Welcome to the `ore` package for R. This package provides an alternative to R's standard functions for manipulating strings with regular expressions, based on the Oniguruma regular expression library (rather than PCRE, as in `base`). Although the regex features of the two libraries are quite similar, the R interface provided by `ore` has some notable advantages:
 
 - Regular expressions are themselves first-class objects (of class `ore`), stored with attributes containing information such as the number of parenthesised groups present within them. This means that it is not necessary to compile a particular regex more than once.
-- Search results focus around the matched substrings rather than the locations of matches. This saves extra work with `substr` to extract the matches themselves.
-- Substantially [better performance](https://github.com/jonclayden/regex-performance), especially when matching against long strings.
-- Substitutions can be functions as well as strings.
+- Search results focus around the matched substrings (including parenthesised groups), rather than the locations of matches. This saves extra work with `substr` to extract the matches themselves.
+- Performance is [substantially better](https://github.com/jonclayden/regex-performance), especially when matching against long strings.
+- Substitutions [can be functions](https://github.com/jonclayden/ore/wiki/Substitution-Functions), as well as literal or back-referenced strings.
 - Matches can be efficiently obtained over only part of the strings.
-- Fewer core functions, with more consistent names.
+- There are fewer core functions, and they have more consistent names.
+
+Oniguruma (or rather, the Onigmo fork of it) is the regular expression library used by the [Ruby programming language](http://ruby-lang.org/), and `ore` is somewhat inspired by Ruby's regular expression features; although it is implemented in what aims to be a natural way for R users, including full vectorisation.
 
 This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE) for details of supported regular expression syntax.
 
@@ -34,7 +36,7 @@ The package can be installed directly from GitHub using the `devtools` package.
 devtools::install_github("jonclayden/ore")
 ```
 
-It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), although the version published there can be a little older than the latest release tagged here.
+It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), although the version published there can be a little older than the latest release tagged here, due to CRAN's restrictions on the regularity of updates.
 
 ## Function mapping
 
