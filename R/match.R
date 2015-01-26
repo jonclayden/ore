@@ -1,5 +1,3 @@
-.Workspace <- new.env()
-
 #' Search for matches to a regular expression
 #' 
 #' Search a character vector for one or more matches to an Oniguruma-compatible
