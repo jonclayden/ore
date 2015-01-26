@@ -1,4 +1,4 @@
-OBJECTS_ENC = onig/enc/ascii.o onig/enc/big5.o onig/enc/cp932.o onig/enc/cp1251.o onig/enc/euc_jp.o onig/enc/euc_kr.o onig/enc/euc_tw.o onig/enc/gb18030.o onig/enc/iso8859_1.o onig/enc/iso8859_10.o onig/enc/iso8859_11.o onig/enc/iso8859_13.o onig/enc/iso8859_14.o onig/enc/iso8859_15.o onig/enc/iso8859_16.o onig/enc/iso8859_2.o onig/enc/iso8859_3.o onig/enc/iso8859_4.o onig/enc/iso8859_5.o onig/enc/iso8859_6.o onig/enc/iso8859_7.o onig/enc/iso8859_8.o onig/enc/iso8859_9.o onig/enc/koi8.o onig/enc/koi8_r.o onig/enc/sjis.o onig/enc/unicode.o onig/enc/utf16_be.o onig/enc/utf16_le.o onig/enc/utf32_be.o onig/enc/utf32_le.o onig/enc/utf8.o
+OBJECTS_ENC = onig/enc/ascii.o onig/enc/iso8859_1.o onig/enc/unicode.o onig/enc/utf8.o
 
 OBJECTS_ONIG = onig/regcomp.o onig/regenc.o onig/regerror.o onig/regexec.o onig/regext.o onig/reggnu.o onig/regparse.o onig/regposerr.o onig/regposix.o onig/regsyntax.o onig/regtrav.o onig/regversion.o onig/st.o
 
