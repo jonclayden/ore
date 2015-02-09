@@ -1,5 +1,7 @@
-#ifndef _MAIN_H_
-#define _MAIN_H_
+#ifndef _MATCH_H_
+#define _MATCH_H_
+
+#include "oniguruma.h"
 
 typedef struct {
     int     capacity;
@@ -11,27 +13,6 @@ typedef struct {
     int   * byte_lengths;
     char ** matches;
 } rawmatch_t;
-
-typedef struct {
-    int     n;
-    int   * offsets;
-    int   * lengths;
-    int   * group_numbers;
-} backref_info_t;
-
-SEXP ore_init ();
-
-SEXP ore_done ();
-
-void ore_regex_finaliser (SEXP regex_ptr);
-
-int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg);
-
-regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding);
-
-regex_t * ore_retrieve (SEXP regex_, SEXP text_);
-
-SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_);
 
 rawmatch_t * ore_rawmatch_alloc (const int n_regions);
 
@@ -52,15 +33,5 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, const cetype_t encoding);
 
 SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_);
-
-SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_);
-
-char * ore_substitute (const char *text, const int n_matches, const int *offsets, const int *lengths, const char **replacements);
-
-SEXP ore_substitute_substrings (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP lengths_, SEXP replacements_);
-
-backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names);
-
-SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args);
 
 #endif
