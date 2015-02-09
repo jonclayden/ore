@@ -24,16 +24,23 @@ SEXP ore_get_list_element (SEXP list, const char *name)
     return element;
 }
 
-SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_)
+SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, SEXP use_colour_)
 {
     const int context = asInteger(context_);
     const int width = asInteger(width_);
     const int max_lines = asInteger(max_lines_);
-    const int n_matches = asInteger(ore_get_list_element(match, "nMatches"));
+    const Rboolean use_colour = (asLogical(use_colour) == TRUE);
     
-    if (n_matches)
-    for (int i=0; i<n_matches; i++)
+    const int n_matches = asInteger(ore_get_list_element(match, "nMatches"));
+    const int *offsets = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
+    const int *byte_offsets = (const int *) INTEGER(ore_get_list_element(match, "byteOffsets"));
+    const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
+    const int *byte_lengths = (const int *) INTEGER(ore_get_list_element(match, "byteLengths"));
+    
+    int start = 0;
+    for (int l=0; l<max_lines; l++)
     {
+        int left = width - 9;
         
     }
 }
