@@ -27,6 +27,24 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
     return 0;
 }
 
+OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
+{
+    switch (encoding)
+    {
+        case CE_UTF8:
+        return ONIG_ENCODING_UTF8;
+        break;
+        
+        case CE_LATIN1:
+        return ONIG_ENCODING_ISO_8859_1;
+        break;
+        
+        default:
+        return ONIG_ENCODING_ASCII;
+        break;
+    }
+}
+
 // Interface to onig_new(), used to create compiled regex objects
 regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding)
 {
@@ -35,21 +53,7 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
     regex_t *regex;
     
     // Convert R encoding to onig data type
-    OnigEncoding onig_encoding;
-    switch (encoding)
-    {
-        case CE_UTF8:
-        onig_encoding = ONIG_ENCODING_UTF8;
-        break;
-        
-        case CE_LATIN1:
-        onig_encoding = ONIG_ENCODING_ISO_8859_1;
-        break;
-        
-        default:
-        onig_encoding = ONIG_ENCODING_ASCII;
-        break;
-    }
+    OnigEncoding onig_encoding = ore_r_to_onig_enc(encoding);
     
     // Parse options and convert to onig option flags
     OnigOptionType onig_options = ONIG_OPTION_NONE;
