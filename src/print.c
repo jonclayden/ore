@@ -76,34 +76,36 @@ void ore_print_line (printstate_t *state)
     state->loc = 0;
 }
 
-void ore_do_push_char (printstate_t *state, const char character, Rboolean match)
+void ore_do_push_byte (printstate_t *state, const char byte, Rboolean match, Rboolean zero_width)
 {
     if (match || state->use_colour)
     {
-        *(state->match++) = character;
-        if (!state->use_colour)
+        *(state->match++) = byte;
+        if (!state->use_colour && !zero_width)
             *(state->context++) = ' ';
     }
     else
     {
-        *(state->context++) = character;
-        if (!state->use_colour)
+        *(state->context++) = byte;
+        if (!state->use_colour && !zero_width)
             *(state->match++) = ' ';
     }
 }
 
-void ore_push_char (printstate_t *state, const char character, Rboolean match)
+void ore_push_byte (printstate_t *state, const char byte, int width, Rboolean match)
 {
-    int width;
-    switch (character)
+    if (width < 0)
     {
-        case '\t':
-        case '\n':
-        width = 2;
-        break;
+        switch (byte)
+        {
+            case '\t':
+            case '\n':
+            width = 2;
+            break;
         
-        default:
-        width = 1;
+            default:
+            width = 1;
+        }
     }
     
     if (state->loc + width >= state->width)
@@ -122,23 +124,36 @@ void ore_push_char (printstate_t *state, const char character, Rboolean match)
         state->in_match = FALSE;
     }
     
-    switch (character)
+    switch (byte)
     {
         case '\t':
-        ore_do_push_char(state, '\\', match);
-        ore_do_push_char(state, 't', match);
+        ore_do_push_byte(state, '\\', match, FALSE);
+        ore_do_push_byte(state, 't', match, FALSE);
         break;
         
         case '\n':
-        ore_do_push_char(state, '\\', match);
-        ore_do_push_char(state, 'n', match);
+        ore_do_push_byte(state, '\\', match, FALSE);
+        ore_do_push_byte(state, 'n', match, FALSE);
         break;
         
         default:
-        ore_do_push_char(state, character, match);
+        ore_do_push_byte(state, byte, match, width==0);
     }
     
     state->loc += width;
+}
+
+UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding, Rboolean match)
+{
+    for (int i=0; i<n; i++)
+    {
+        int char_len = encoding->mbc_enc_len(ptr);
+        ore_push_byte(state, *(ptr++), -1, match);
+        for (int k=1; k<char_len; k++)
+            ore_push_byte(state, *(ptr++), 0, match);
+    }
+    
+    return ptr;
 }
 
 SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, SEXP use_colour_)
@@ -149,53 +164,81 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const Rboolean use_colour = (asLogical(use_colour_) == TRUE);
     
     const int n_matches = asInteger(ore_get_list_element(match, "nMatches"));
+    
     SEXP text_ = ore_get_list_element(match, "text");
     const UChar *text = (const UChar *) CHAR(STRING_ELT(text_, 0));
     OnigEncoding encoding = ore_r_to_onig_enc(getCharCE(STRING_ELT(text_, 0)));
-    const int *offsets = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
-    const int *byte_offsets = (const int *) INTEGER(ore_get_list_element(match, "byteOffsets"));
+    size_t text_len = onigenc_strlen_null(encoding, text);
+    
+    const int *offsets_ = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
+    const int *byte_offsets_ = (const int *) INTEGER(ore_get_list_element(match, "byteOffsets"));
+    int *offsets = (int *) R_alloc(n_matches, sizeof(int));
+    int *byte_offsets = (int *) R_alloc(n_matches, sizeof(int));
+    for (int i=0; i<n_matches; i++)
+    {
+        offsets[i] = offsets_[i] - 1;
+        byte_offsets[i] = byte_offsets_[i] - 1;
+    }
+    
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     const int *byte_lengths = (const int *) INTEGER(ore_get_list_element(match, "byteLengths"));
     
     printstate_t *state = ore_alloc_printstate(context, width, use_colour, encoding->max_enc_len);
     
     size_t start = 0;
-    size_t start_byte = 0;
-    int width_remaining = width - 9;
+    Rboolean reached_end = FALSE;
     for (int i=0; i<n_matches; i++)
     {
-        if (offsets[i] - 1 - start > context)
+        int precontext_len = 0, postcontext_len = 0;
+        UChar *ptr;
+        
+        if (offsets[i] - start > context)
         {
-            start = offsets[i] - 1 - context;
-            UChar *ptr = onigenc_step_back(encoding, text, text+byte_offsets[i]-1, context);
-            ptrdiff_t byte_len = text + byte_offsets[i] - 1 - ptr;
+            precontext_len = context;
+            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], precontext_len);
             for (int j=0; j<3; j++)
-                ore_push_char(state, '.', FALSE);
-            for (int j=0; j<byte_len; j++)
-                ore_push_char(state, ptr[j], FALSE);
+                ore_push_byte(state, '.', 1, FALSE);
         }
-        else if (offsets[i] - 1 > start)
+        else if (offsets[i] > start)
         {
-            UChar *ptr = onigenc_step_back(encoding, text, text+byte_offsets[i]-1, offsets[i]-1-start);
-            ptrdiff_t byte_len = text + byte_offsets[i] - 1 - ptr;
-            for (int j=0; j<byte_len; j++)
-                ore_push_char(state, ptr[j], FALSE);
+            precontext_len = offsets[i] - start;
+            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], precontext_len);
+        }
+        else
+            ptr = (UChar *) text + byte_offsets[i];
+        
+        ptr = ore_push_chars(state, ptr, precontext_len, encoding, FALSE);
+        ptr = ore_push_chars(state, ptr, lengths[i], encoding, TRUE);
+        
+        start = offsets[i] + lengths[i];
+        
+        if (i == n_matches - 1)
+        {
+            if (text_len - start <= context)
+            {
+                postcontext_len = text_len - start;
+                reached_end = TRUE;
+            }
+            else
+                postcontext_len = context;
+        }
+        else if (offsets[i+1] - start > context)
+        {
+            if (offsets[i+1] - start - context <= context)
+                postcontext_len = offsets[i+1] - start - context;
+            else
+                postcontext_len = context;
         }
         
-        for (int j=0; j<byte_lengths[i]; j++)
-            ore_push_char(state, *(text+byte_offsets[i]-1+j), TRUE);
+        ptr = ore_push_chars(state, ptr, postcontext_len, encoding, FALSE);
         
-        start = offsets[i] - 1 + lengths[i];
+        start += postcontext_len;
     }
     
-    int remaining = onigenc_strlen_null(encoding, text+byte_offsets[n_matches-1]-1+byte_lengths[n_matches-1]);
-    int to_print = (remaining < context ? remaining : context);
-    for (int j=0; j<to_print; j++)
-        ore_push_char(state, *(text+byte_offsets[n_matches-1]-1+byte_lengths[n_matches-1]+j), FALSE);
-    if (remaining > context)
+    if (!reached_end)
     {
         for (int j=0; j<3; j++)
-            ore_push_char(state, '.', FALSE);
+            ore_push_byte(state, '.', 1, FALSE);
     }
     
     ore_print_line(state);
