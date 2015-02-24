@@ -4,15 +4,20 @@
 typedef struct {
     Rboolean use_colour;
     int width;
+    int n_matches;
     
     Rboolean in_match;
     int loc;
+    int current_match;
+    char current_match_string[6];
+    char *current_match_loc;
     
     char *match;
     char *match_start;
     char *context;
     char *context_start;
     char *number;
+    char *number_start;
 } printstate_t;
 
 SEXP ore_get_list_element (SEXP list, const char *name);

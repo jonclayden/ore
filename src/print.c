@@ -8,7 +8,6 @@
 #include "match.h"
 #include "print.h"
 
-extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 extern UChar * onigenc_step_back (OnigEncoding enc, const UChar *start, const UChar *s, int n);
 
 SEXP ore_get_list_element (SEXP list, const char *name)
@@ -28,26 +27,41 @@ SEXP ore_get_list_element (SEXP list, const char *name)
     return element;
 }
 
-printstate_t * ore_alloc_printstate (const int context, const int width, const Rboolean use_colour, const int max_enc_len)
+printstate_t * ore_alloc_printstate (const int context, const int width, const Rboolean use_colour, const int n_matches, const int max_enc_len)
 {
     printstate_t *state = (printstate_t *) R_alloc(1, sizeof(printstate_t));
     
     state->use_colour = use_colour;
-    state->width = width - 9;
+    state->n_matches = n_matches;
+    
+    if (use_colour && n_matches == 1)
+        state->width = width;
+    else
+        state->width = width - 9;
     
     state->in_match = FALSE;
     state->loc = 0;
-    
-    state->match = R_alloc(max_enc_len+9, width);
-    state->match_start = state->match;
+    state->current_match = 0;
     
     if (use_colour)
+    {
+        state->match = R_alloc(max_enc_len+9, width);
         state->context = NULL;
+    }
     else
-        state->context = R_alloc(max_enc_len+9, width);
-    state->context_start = state->context;
+    {
+        state->match = R_alloc(max_enc_len, width);
+        state->context = R_alloc(max_enc_len, width);
+    }
     
-    state->number = NULL;
+    if (n_matches == 1)
+        state->number = NULL;
+    else
+        state->number = R_alloc(1, width);
+    
+    state->match_start = state->match;
+    state->context_start = state->context;
+    state->number_start = state->number;
     
     return state;
 }
@@ -57,18 +71,31 @@ void ore_print_line (printstate_t *state)
     if (state->loc == 0)
         return;
     
-    if (!state->use_colour)
-    {
-        *state->context = '\0';
-        Rprintf("context: %s\n", state->context_start);
-    }
-    else if (state->in_match)
+    if (state->use_colour && state->in_match)
     {
         strncpy(state->match, "\x1b[0m", 4);
         state->match += 4;
     }
     *state->match = '\0';
-    Rprintf("  match: %s\n\n", state->match_start);
+    
+    if (state->use_colour && state->n_matches == 1)
+        Rprintf("%s\n", state->match_start);
+    else
+        Rprintf("  match: %s\n", state->match_start);
+    
+    if (!state->use_colour)
+    {
+        *state->context = '\0';
+        Rprintf("context: %s\n", state->context_start);
+    }
+    
+    if (state->n_matches > 1)
+    {
+        *state->number = '\0';
+        Rprintf(" number: %s\n", state->number_start);
+    }
+    
+    Rprintf("\n");
     
     state->match = state->match_start;
     state->context = state->context_start;
@@ -83,12 +110,26 @@ void ore_do_push_byte (printstate_t *state, const char byte, Rboolean match, Rbo
         *(state->match++) = byte;
         if (!state->use_colour && !zero_width)
             *(state->context++) = ' ';
+        if (state->n_matches > 1 && !zero_width)
+        {
+            if (match)
+            {
+                if (*state->current_match_loc == '\0')
+                    *(state->number++) = '=';
+                else
+                    *(state->number++) = *(state->current_match_loc++);
+            }
+            else
+                *(state->number++) = ' ';
+        }
     }
     else
     {
         *(state->context++) = byte;
         if (!state->use_colour && !zero_width)
             *(state->match++) = ' ';
+        if (state->n_matches > 1 && !zero_width)
+            *(state->number++) = ' ';
     }
 }
 
@@ -111,16 +152,31 @@ void ore_push_byte (printstate_t *state, const char byte, int width, Rboolean ma
     if (state->loc + width >= state->width)
         ore_print_line(state);
     
-    if (state->use_colour && match && !state->in_match)
+    if (match && !state->in_match)
     {
-        strncpy(state->match, "\x1b[36m", 5);
-        state->match += 5;
+        if (state->use_colour)
+        {
+            strncpy(state->match, "\x1b[36m", 5);
+            state->match += 5;
+        }
+        
+        state->current_match++;
+        if (state->current_match < 100000)
+            sprintf(state->current_match_string, "%d", state->current_match);
+        else
+            state->current_match_string[0] = '\0';
+        state->current_match_loc = state->current_match_string;
+        
         state->in_match = TRUE;
     }
-    else if (state->use_colour && !match && state->in_match)
+    else if (!match && state->in_match)
     {
-        strncpy(state->match, "\x1b[0m", 4);
-        state->match += 4;
+        if (state->use_colour)
+        {
+            strncpy(state->match, "\x1b[0m", 4);
+            state->match += 4;
+        }
+        
         state->in_match = FALSE;
     }
     
@@ -183,7 +239,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     const int *byte_lengths = (const int *) INTEGER(ore_get_list_element(match, "byteLengths"));
     
-    printstate_t *state = ore_alloc_printstate(context, width, use_colour, encoding->max_enc_len);
+    printstate_t *state = ore_alloc_printstate(context, width, use_colour, n_matches, encoding->max_enc_len);
     
     size_t start = 0;
     Rboolean reached_end = FALSE;
