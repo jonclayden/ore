@@ -30,11 +30,13 @@ Rboolean ore_more_lines (printstate_t *state);
 
 void ore_print_line (printstate_t *state);
 
-void ore_do_push_byte (printstate_t *state, const char byte, Rboolean match, Rboolean zero_width);
+void ore_switch_state (printstate_t *state, Rboolean match);
 
-void ore_push_byte (printstate_t *state, const char byte, int width, Rboolean match);
+void ore_do_push_byte (printstate_t *state, const char byte, Rboolean zero_width);
 
-UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding, Rboolean match);
+void ore_push_byte (printstate_t *state, const char byte, int width);
+
+UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding);
 
 SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, SEXP use_colour_);
 
