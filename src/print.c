@@ -27,11 +27,12 @@ SEXP ore_get_list_element (SEXP list, const char *name)
     return element;
 }
 
-printstate_t * ore_alloc_printstate (const int context, const int width, const Rboolean use_colour, const int n_matches, const int max_enc_len)
+printstate_t * ore_alloc_printstate (const int context, const int width, const int max_lines, const Rboolean use_colour, const int n_matches, const int max_enc_len)
 {
     printstate_t *state = (printstate_t *) R_alloc(1, sizeof(printstate_t));
     
     state->use_colour = use_colour;
+    state->max_lines = max_lines;
     state->n_matches = n_matches;
     
     if (use_colour && n_matches == 1)
@@ -42,6 +43,7 @@ printstate_t * ore_alloc_printstate (const int context, const int width, const R
     state->in_match = FALSE;
     state->loc = 0;
     state->current_match = 0;
+    state->lines_done = 0;
     
     if (use_colour)
     {
@@ -66,9 +68,14 @@ printstate_t * ore_alloc_printstate (const int context, const int width, const R
     return state;
 }
 
+Rboolean ore_more_lines (printstate_t *state)
+{
+    return (state->lines_done < state->max_lines);
+}
+
 void ore_print_line (printstate_t *state)
 {
-    if (state->loc == 0)
+    if (state->loc == 0 || state->lines_done >= state->max_lines)
         return;
     
     if (state->use_colour && state->in_match)
@@ -99,8 +106,16 @@ void ore_print_line (printstate_t *state)
     
     state->match = state->match_start;
     state->context = state->context_start;
-    state->in_match = FALSE;
+    state->number = state->number_start;
     state->loc = 0;
+    
+    if (state->use_colour && state->in_match)
+    {
+        strncpy(state->match, "\x1b[36m", 5);
+        state->match += 5;
+    }
+    
+    state->lines_done++;
 }
 
 void ore_do_push_byte (printstate_t *state, const char byte, Rboolean match, Rboolean zero_width)
@@ -239,7 +254,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     const int *byte_lengths = (const int *) INTEGER(ore_get_list_element(match, "byteLengths"));
     
-    printstate_t *state = ore_alloc_printstate(context, width, use_colour, n_matches, encoding->max_enc_len);
+    printstate_t *state = ore_alloc_printstate(context, width, max_lines, use_colour, n_matches, encoding->max_enc_len);
     
     size_t start = 0;
     Rboolean reached_end = FALSE;
@@ -289,6 +304,12 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         ptr = ore_push_chars(state, ptr, postcontext_len, encoding, FALSE);
         
         start += postcontext_len;
+        
+        if (!ore_more_lines(state))
+        {
+            reached_end = TRUE;
+            break;
+        }
     }
     
     if (!reached_end)
