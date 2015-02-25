@@ -86,7 +86,7 @@ Rboolean ore_more_lines (printstate_t *state)
 void ore_print_line (printstate_t *state)
 {
     // Forget it if the buffer is empty, or we're already printed as many lines as are allowed
-    if (state->loc == 0 || state->lines_done >= state->max_lines)
+    if (state->loc == 0 || !ore_more_lines(state))
         return;
     
     // Switch off colour printing temporarily if we're in the middle of a match

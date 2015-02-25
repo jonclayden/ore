@@ -84,16 +84,18 @@ is.orematch <- function (x)
 
 #' @rdname ore.search
 #' @export
-print.orematch <- function (x, ...)
+print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
 {
     # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
         cat("<no match>\n")
     else
     {
-        getOptionWithDefault <- function (name, default)
+        getOptionWithDefault <- function (value, name, default)
         {
-            if (is.numeric(getOption(name)))
+            if (is.numeric(value))
+                return (as.integer(value))
+            else if (is.numeric(getOption(name)))
                 return (as.integer(getOption(name)))
             else
                 return (as.integer(default))
@@ -103,14 +105,14 @@ print.orematch <- function (x, ...)
         usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
         
         # Other printing options
-        maxLines <- getOptionWithDefault("ore.lines", 0L)
-        contextChars <- getOptionWithDefault("ore.context", 10L)
-        width <- getOptionWithDefault("width", 80L)
+        lines <- getOptionWithDefault(lines, "ore.lines", 0L)
+        context <- getOptionWithDefault(context, "ore.context", 30L)
+        width <- getOptionWithDefault(width, "width", 80L)
         
-        .Call("ore_print_match", x, contextChars, width, maxLines, usingColour, PACKAGE="ore")
-        
-        invisible(NULL)
+        .Call("ore_print_match", x, context, width, lines, usingColour, PACKAGE="ore")
     }
+    
+    invisible(NULL)
 }
 
 #' Extract matching substrings
