@@ -8,9 +8,8 @@
 #'   will be returned unmodified, named strings will be added to the
 #'   dictionary, and unquoted names will be resolved using the dictionary.
 #' @return If no arguments are provided, the whole dictionary is returned.
-#'   If any arguments are named, then the updated dictionary is returned
-#'   invisibly. Otherwise the return value is a character vector of resolved
-#'   strings.
+#'   Otherwise the return value is a (possibly named) character vector of
+#'   resolved strings.
 #' 
 #' @examples
 #' # Literal strings are returned as-is
@@ -30,6 +29,8 @@ ore.dict <- function (...)
         .Workspace$dictionary <- list()
     
     args <- eval(substitute(list(...)), .Workspace$dictionary, enclos=parent.frame())
+    names <- sapply(substitute(list(...)), as.character)[-1]
+    
     if (length(args) == 0)
         return (.Workspace$dictionary)
     else
@@ -45,9 +46,16 @@ ore.dict <- function (...)
         {
             indices <- which(names(args) != "")
             .Workspace$dictionary[names(args)[indices]] <- args[indices]
-            return (invisible(.Workspace$dictionary))
+            names[indices] <- names(args)[indices]
         }
-        else
-            return (unlist(args))
+        
+        names[args == names] <- ""
+        if (all(names == ""))
+            names <- NULL
+        
+        result <- unlist(args)
+        names(result) <- names
+        
+        return (result)
     }
 }
