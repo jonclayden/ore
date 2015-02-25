@@ -86,45 +86,30 @@ is.orematch <- function (x)
 #' @export
 print.orematch <- function (x, ...)
 {
+    # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
-        cat(paste(text, "\n", sep=""))
+        cat("<no match>\n")
     else
     {
+        getOptionWithDefault <- function (name, default)
+        {
+            if (is.numeric(getOption(name)))
+                return (as.integer(getOption(name)))
+            else
+                return (as.integer(default))
+        }
+        
         # Is the "crayon" package available, and does the terminal support colour?
         usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
         
-        context <- "context: "
-        matches <- "  match: "
-        numbers <- " number: "
+        # Other printing options
+        maxLines <- getOptionWithDefault("ore.lines", 0L)
+        contextChars <- getOptionWithDefault("ore.context", 10L)
+        width <- getOptionWithDefault("width", 80L)
         
-        if (usingColour)
-        {
-            colouredText <- .Call("ore_substitute_substrings", x$text, x$nMatches, x$byteOffsets, x$byteLengths, crayon::cyan(x$matches), PACKAGE="ore")
-            matches <- paste0(matches, colouredText)
-        }
+        .Call("ore_print_match", x, contextChars, width, maxLines, usingColour, PACKAGE="ore")
         
-        ends <- c(1, x$offsets+x$lengths)
-        for (i in 1:x$nMatches)
-        {
-            leadingSpace <- paste(rep(" ",x$offsets[i]-ends[i]), collapse="")
-            
-            if (!usingColour)
-            {
-                context <- paste0(context, substr(x$text,ends[i],x$offsets[i]-1), paste(rep(" ",x$lengths[i]),collapse=""))
-                matches <- paste0(matches, leadingSpace, x$matches[i])
-            }
-            
-            # NB: this could break for matches with numbers > 9 whose length is 1
-            if (x$nMatches > 1)
-                numbers <- paste0(numbers, leadingSpace, i, paste(rep("=",x$lengths[i]-nchar(as.character(i))),collapse=""))
-        }
-        context <- paste0(context, substr(x$text,ends[length(ends)],nchar(x$text)))
-        
-        cat(paste0(matches, "\n"))
-        if (!usingColour)
-            cat(paste0(context, "\n"))
-        if (x$nMatches > 1)
-            cat(paste0(numbers, "\n"))
+        invisible(NULL)
     }
 }
 

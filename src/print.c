@@ -53,20 +53,20 @@ printstate_t * ore_alloc_printstate (const int context, const int width, const i
     // If we're using colour we need to allocate enough space for the nine control bytes either side of each match
     if (use_colour)
     {
-        state->match = R_alloc(max_enc_len+9, width);
+        state->match = R_alloc((max_enc_len+9)*width, 1);
         state->context = NULL;
     }
     else
     {
-        state->match = R_alloc(max_enc_len, width);
-        state->context = R_alloc(max_enc_len, width);
+        state->match = R_alloc(max_enc_len*width, 1);
+        state->context = R_alloc(max_enc_len*width, 1);
     }
     
     // If there is more than one match, allocate memory for the number line
     if (n_matches == 1)
         state->number = NULL;
     else
-        state->number = R_alloc(1, width);
+        state->number = R_alloc(width, 1);
     
     // Pointers to the start of each line
     state->match_start = state->match;
@@ -79,7 +79,7 @@ printstate_t * ore_alloc_printstate (const int context, const int width, const i
 // Can more lines be printed, or should we stop?
 Rboolean ore_more_lines (printstate_t *state)
 {
-    return (state->lines_done < state->max_lines);
+    return (state->max_lines == 0 || state->lines_done < state->max_lines);
 }
 
 // This function actually prints a line of buffered text, with annotations, to the terminal
