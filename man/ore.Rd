@@ -6,16 +6,19 @@
 \alias{print.ore}
 \title{Oniguruma regular expressions}
 \usage{
-ore(pattern, options = "", encoding = "auto")
+ore(..., options = "", encoding = "auto")
 
 is.ore(x)
 
 \method{print}{ore}(x, ...)
 }
 \arguments{
-\item{pattern}{A single string containing a valid regular expression. Note
-that backslashes should be doubled, to avoid them being interpreted as
-character escapes by R.}
+\item{...}{One or more strings or dictionary labels, constituting a valid
+regular expression after being concatenated together. Elements drawn from
+the dictionary will be surrounded by parentheses, turning them into
+groups. Note that backslashes should be doubled, to avoid them being
+interpreted as character escapes by R. The \code{...} argument is ignored
+by the \code{print} method.}
 
 \item{options}{A string composed of characters indicating variations on the
 usual interpretation of the regex. These may currently include \code{"i"}
@@ -28,16 +31,18 @@ string naming one of the encoding types discussed in
 of \code{pattern} will be used.}
 
 \item{x}{An R object.}
-
-\item{...}{Ignored.}
 }
 \value{
-The \code{ore} function returns (the first element of)
-  \code{pattern}, with class \code{"ore"} and the following attributes:
+The \code{ore} function returns the final pattern, with class
+  \code{"ore"} and the following attributes:
+
     \item{.compiled}{A low-level pointer to the compiled version of the
       regular expresion.}
     \item{options}{Options, copied from the argument of the same name.}
     \item{encoding}{The specified or detected encoding.}
+    \item{nGroups}{The number of groups in the pattern.}
+    \item{groupNames}{Group names, if applicable.}
+
   The \code{is.ore} function returns a logical vector indicating whether
   its argument represents an \code{"ore"} object.
 }
@@ -58,5 +63,6 @@ For full details of supported syntax, please see
 \url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
 \code{\link{regex}} page is also useful as a quick reference, since PCRE
 (used by base R) and Oniguruma (used by \code{ore}) have similar features.
+See \code{\link{ore.dict}} for details of the pattern dictionary.
 }
 

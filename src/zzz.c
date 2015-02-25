@@ -10,7 +10,7 @@
 extern regex_t *group_number_regex;
 extern regex_t *group_name_regex;
 
-// R wrapper function for onig_init(); called when the packge is loaded
+// R wrapper function for onig_init(); called when the package is loaded
 SEXP ore_init ()
 {
     onig_init();
@@ -41,7 +41,7 @@ SEXP ore_init ()
     return R_NilValue;
 }
 
-// R wrapper function for onig_end(); called when the packge is unloaded
+// R wrapper function for onig_end(); called when the package is unloaded
 SEXP ore_done ()
 {
     onig_free(group_number_regex);

@@ -13,9 +13,8 @@ dictionary, and unquoted names will be resolved using the dictionary.}
 }
 \value{
 If no arguments are provided, the whole dictionary is returned.
-  If any arguments are named, then the updated dictionary is returned
-  invisibly. Otherwise the return value is a character vector of resolved
-  strings.
+  Otherwise the return value is a (possibly named) character vector of
+  resolved strings.
 }
 \description{
 This function allows the user to get or set entries in the pattern

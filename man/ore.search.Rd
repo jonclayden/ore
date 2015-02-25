@@ -14,7 +14,8 @@ is.orematch(x)
 
 \method{[}{orematch}(x, i, j, ...)
 
-\method{print}{orematch}(x, ...)
+\method{print}{orematch}(x, lines = NULL, context = NULL, width = NULL,
+  ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In

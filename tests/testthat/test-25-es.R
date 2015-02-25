@@ -1,0 +1,8 @@
+context("Expression substitution")
+
+test_that("expression substitution works", {
+    x <- 3
+    expect_that(es("x is #{3}"), equals("x is 3"))
+    expect_that(es("x^2 is #{x^2}"), equals("x^2 is 9"))
+    expect_that(as.numeric(es("#{pi}",round=2)), equals(3.14))
+})
