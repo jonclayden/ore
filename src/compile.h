@@ -13,6 +13,8 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
 
 regex_t * ore_retrieve (SEXP regex_, SEXP text_);
 
+char * ore_build_pattern (SEXP pattern_);
+
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_);
 
 #endif

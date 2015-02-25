@@ -27,21 +27,19 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
     return 0;
 }
 
+// Convert an R encoding value to its Oniguruma equivalent
 OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
 {
     switch (encoding)
     {
         case CE_UTF8:
         return ONIG_ENCODING_UTF8;
-        break;
         
         case CE_LATIN1:
         return ONIG_ENCODING_ISO_8859_1;
-        break;
         
         default:
         return ONIG_ENCODING_ASCII;
-        break;
     }
 }
 
@@ -119,6 +117,47 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_)
         return (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
 }
 
+// Create a pattern string by concatenating the elements of the supplied vector, parenthesising named elements
+char * ore_build_pattern (SEXP pattern_)
+{
+    const int pattern_parts = length(pattern_);
+    if (pattern_parts < 1)
+        error("Pattern vector is empty");
+    
+    // Count up the full length of the string
+    size_t pattern_len = 0;
+    for (int i=0; i<pattern_parts; i++)
+        pattern_len += strlen(CHAR(STRING_ELT(pattern_, i)));
+    
+    // Allocate memory for all parts, plus surrounding parentheses
+    char *pattern = R_alloc(2*pattern_parts + pattern_len, 1);
+    
+    // Retrieve element names
+    SEXP names = getAttrib(pattern_, R_NamesSymbol);
+    char *ptr = pattern;
+    for (int i=0; i<pattern_parts; i++)
+    {
+        const char *current_string = CHAR(STRING_ELT(pattern_, i));
+        size_t current_len = strlen(current_string);
+        Rboolean name_present = (!isNull(names) && strcmp(CHAR(STRING_ELT(names,i)), "") != 0);
+        
+        if (name_present)
+            strncpy(ptr++, "(", 1);
+        
+        // Copy in the element
+        strncpy(ptr, current_string, current_len);
+        ptr += current_len;
+        
+        if (name_present)
+            strncpy(ptr++, ")", 1);
+    }
+    
+    // Nul-terminate the string
+    *ptr = '\0';
+    
+    return pattern;
+}
+
 // R wrapper for ore_compile(): builds the regex and creates an R "ore" object
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
 {
@@ -126,13 +165,8 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     int n_groups, return_value;
     SEXP result, regex_ptr;
     
-    if (length(pattern_) < 1)
-        error("Pattern vector is empty");
-    if (length(pattern_) > 1)
-        warning("Pattern vector has more than one element");
-    
     // Obtain pointers to content
-    const char *pattern = CHAR(STRING_ELT(pattern_, 0));
+    const char *pattern = (const char *) ore_build_pattern(pattern_);
     const char *options = CHAR(STRING_ELT(options_, 0));
     const UChar *encoding_name = (const UChar *) CHAR(STRING_ELT(encoding_name_, 0));
     
@@ -153,7 +187,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);
     
-    PROTECT(result = ScalarString(STRING_ELT(pattern_, 0)));
+    PROTECT(result = mkString(pattern));
     
     // Create R external pointer to compiled regex
     PROTECT(regex_ptr = R_MakeExternalPtr(regex, R_NilValue, R_NilValue));

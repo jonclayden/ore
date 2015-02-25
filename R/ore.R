@@ -4,9 +4,12 @@
 #' Oniguruma regular expressions. These are length-1 character vectors with
 #' additional attributes, including a pointer to the compiled version.
 #' 
-#' @param pattern A single string containing a valid regular expression. Note
-#'   that backslashes should be doubled, to avoid them being interpreted as
-#'   character escapes by R.
+#' @param ... One or more strings or dictionary labels, constituting a valid
+#'   regular expression after being concatenated together. Elements drawn from
+#'   the dictionary will be surrounded by parentheses, turning them into
+#'   groups. Note that backslashes should be doubled, to avoid them being
+#'   interpreted as character escapes by R. The \code{...} argument is ignored
+#'   by the \code{print} method.
 #' @param options A string composed of characters indicating variations on the
 #'   usual interpretation of the regex. These may currently include \code{"i"}
 #'   for case-insensitive matching, and \code{"m"} for multiline matching (in
@@ -16,13 +19,14 @@
 #'   \code{\link{Encoding}}, or \code{"auto"}. In the latter case, the encoding
 #'   of \code{pattern} will be used.
 #' @param x An R object.
-#' @param ... Ignored.
-#' @return The \code{ore} function returns (the first element of)
-#'   \code{pattern}, with class \code{"ore"} and the following attributes:
+#' @return The \code{ore} function returns the final pattern, with class
+#'   \code{"ore"} and the following attributes:
 #'     \item{.compiled}{A low-level pointer to the compiled version of the
 #'       regular expresion.}
 #'     \item{options}{Options, copied from the argument of the same name.}
 #'     \item{encoding}{The specified or detected encoding.}
+#'     \item{nGroups}{The number of groups in the pattern.}
+#'     \item{groupNames}{Group names, if applicable.}
 #'   The \code{is.ore} function returns a logical vector indicating whether
 #'   its argument represents an \code{"ore"} object.
 #' @examples
@@ -35,10 +39,11 @@
 #' \url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
 #' \code{\link{regex}} page is also useful as a quick reference, since PCRE
 #' (used by base R) and Oniguruma (used by \code{ore}) have similar features.
+#' See \code{\link{ore.dict}} for details of the pattern dictionary.
 #' @export
-ore <- function (pattern, options = "", encoding = "auto")
+ore <- function (..., options = "", encoding = "auto")
 {
-    regex <- .Call("ore_build", as.character(pattern), as.character(options), as.character(encoding), PACKAGE="ore")
+    regex <- .Call("ore_build", ore.dict(...), as.character(options), as.character(encoding), PACKAGE="ore")
     return (regex)
 }
 
