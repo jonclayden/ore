@@ -6,6 +6,7 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 - Search results focus around the matched substrings (including parenthesised groups), rather than the locations of matches. This saves extra work with `substr` to extract the matches themselves.
 - Performance is [substantially better](https://github.com/jonclayden/regex-performance), especially when matching against long strings.
 - Substitutions [can be functions](https://github.com/jonclayden/ore/wiki/Substitution-Functions), as well as literal or back-referenced strings.
+- Common subexpressions can be easily stored in and retrieved from a dictionary.
 - Matches can be efficiently obtained over only part of the strings.
 - There are fewer core functions, and they have more consistent names.
 
@@ -25,6 +26,7 @@ If you prefer the more verbose but also more friendly approach to creating regul
 - [Encodings](#encodings)
 - [Substitutions](#substitutions)
 - [Splitting](#splitting)
+- [The pattern dictionary](#the-pattern-dictionary)
 - [Additional convenience functions](#additional-convenience-functions)
 
 ## Installation
@@ -53,7 +55,7 @@ It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), al
 
 ## Basic usage
 
-Let's consider a very simple example: a regular expression for matching a single integer, either positive or negative. We create this regex as follows:
+Let's consider a very simple example: a regular expression for matching a single decimal integer, either positive or negative. We create this regex as follows:
 
 ```R
 library(ore)
@@ -194,6 +196,56 @@ Strings can be split into parts using the `ore.split()` function.
 ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
 # [1] "I have "    " dogs, "    " cats and " " hamsters"
 ```
+
+## The pattern dictionary
+
+It's not unusual to reuse parts of a regular expression many times. Perhaps, once you have an expression that captures certain common elements of your text, you might want to store it for regular use. Or maybe you want to make your regexes more readable by breaking them down into manageable chunks. The `ore` package's pattern dictionary can help.
+
+To take a simple example, let's just consider a pattern for digits. We can add it to the dictionary using the `ore.dict()` function.
+
+```R
+ore.dict(digits="\\d+")
+# digits 
+# "\\d+"
+```
+
+Now, we can create a regex using this pattern by naming it in a call to `ore()`.
+
+```R
+ore(digits)
+# Oniguruma regular expression: /(\d+)/
+#  - 1 groups
+#  - unknown encoding
+```
+
+Notice the lack of quotation marks around the name, which distinguishes it from a normal pattern string. We can also reuse it multiple times, and add other regex syntax around it. Say, for example, that we want to find two sets of digits separated by word characters and/or space.
+
+```R
+re <- ore(digits, "[\\w\\s]+", digits)
+re
+# Oniguruma regular expression: /(\d+)[\w\s]+(\d+)/
+#  - 2 groups
+#  - unknown encoding
+```
+
+Notice that `ore()` constructs a full regex from the parts, wrapping each dictionary element in parentheses to make it a group. Now we can match it against our text.
+
+```R
+ore.search(re, "I have 2 dogs, 3 cats and 4 hamsters")
+#   match:                3 cats and 4         
+# context: I have 2 dogs,              hamsters
+```
+
+The package comes with a small dictionary of fairly robust regexes for matching common elements like numbers or email addresses. These can be used "out of the box". For example,
+
+```R
+ore.search(ore(number), "Numbers in various formats: -23, 0xbead5, .409 and 1.4e-5", all=TRUE)
+#   match:                             -23  0xbead5  .409     1.4e-5
+# context: Numbers in various formats:    ,        ,      and       
+#  number:                             1==  2======  3===     4=====
+```
+
+Notice that, when using the dictionary, the `ore()` function must be called explicitly.
 
 ## Additional convenience functions
 

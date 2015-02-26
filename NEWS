@@ -5,15 +5,18 @@ Significant changes to the "ore" package are laid out below for each release.
 VERSION 1.1.0
 
 - The package now provides functionality for creating and working with a
-  pattern dictionary. This allows short, common regular expressions to be
-  easily named, stored, and integrated into larger expressions later. A few
-  examples are built-in. The key new function is ore.dict().
+  pattern dictionary, and a few predefined patterns are included. This allows
+  common regular expressions to be easily named, stored, and integrated into
+  larger expressions later. The key new function is ore.dict().
 - The new es() function provides expression substitution, a convenient way to
   embed R expressions within strings, and a good example of the package's
   substitution functions in action.
 - Printing of "orematch" objects is now much clearer, particularly for long or
   multiline search texts.
 - Group matches are now passed to substitution functions, in an attribute.
+- The "ore.colour" (or "ore.color") option can now be used to determine whether
+  to print in colour, rather than using the crayon package (although the latter
+  is still the default).
 
 ===============================================================================
 

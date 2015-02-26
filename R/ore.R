@@ -60,7 +60,7 @@ print.ore <- function (x, ...)
 {
     cat(paste("Oniguruma regular expression: /", x, "/", paste(sort(unlist(strsplit(attr(x,"options"),""))),collapse=""), "\n", sep=""))
     
-    cat(paste(" - ", attr(x,"nGroups"), " groups", sep=""))
+    cat(paste(" - ", attr(x,"nGroups"), " group(s)", sep=""))
     if (!is.null(attr(x, "groupNames")))
         cat(paste(", ", sum(!is.na(attr(x,"groupNames"))), " named", sep=""))
     cat("\n")
