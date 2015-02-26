@@ -2,8 +2,7 @@
 #' 
 #' Search a character vector for one or more matches to an Oniguruma-compatible
 #' regular expression. The result is of class \code{"orematch"}, for which
-#' printing and indexing methods are available. The \code{\link{print}} method
-#' uses the \code{crayon} package, if it is available.
+#' printing and indexing methods are available.
 #' 
 #' @param regex A single character string or object of class \code{"ore"}. In
 #'   the former case, this will first be passed through \code{\link{ore}}.
@@ -28,10 +27,6 @@
 #' @param width The number of characters in each line of printed output. If
 #'   \code{NULL}, this defaults to the value of the standard \code{"width"}
 #'   option.
-#' @param colour If \code{TRUE}, ANSI colour escape codes will be used to
-#'   highlight matches in colour. If \code{NULL} (the default), the "crayon"
-#'   package will be used, if available, to determine whether or not the
-#'   R terminal supports colour.
 #' @param ... Ignored.
 #' @return For \code{ore.search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
@@ -52,6 +47,11 @@
 #' @note
 #' Only named *or* unnamed groups will currently be captured, not both. If
 #' there are named groups in the pattern, then unnamed groups will be ignored.
+#' 
+#' By default the \code{print} method uses the \code{crayon} package (if it is
+#' available) to determine whether or not the R terminal supports colour.
+#' Alternatively, colour printing may be forced or disabled by setting the
+#' \code{"ore.colour"} (or \code{"ore.color"}) option to a logical value.
 #' 
 #' @examples
 #' # Pick out pairs of consecutive word characters
@@ -97,7 +97,7 @@ is.orematch <- function (x)
 
 #' @rdname ore.search
 #' @export
-print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, colour = NULL, ...)
+print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
 {
     # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
@@ -114,9 +114,11 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, colou
                 return (as.integer(default))
         }
         
-        # If "colour" is unspecified, use the crayon package to check if the terminal supports colour
-        if (!is.null(colour))
-            usingColour <- isTRUE(colour)
+        # Check the colour option; if unset, use the crayon package to check if the terminal supports colour
+        if (!is.null(getOption("ore.colour")))
+            usingColour <- isTRUE(getOption("ore.colour"))
+        else if (!is.null(getOption("ore.color")))
+            usingColour <- isTRUE(getOption("ore.color"))
         else
             usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
         

@@ -15,7 +15,7 @@ is.orematch(x)
 \method{[}{orematch}(x, i, j, ...)
 
 \method{print}{orematch}(x, lines = NULL, context = NULL, width = NULL,
-  colour = NULL, ...)
+  ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -53,11 +53,6 @@ of each match. If \code{NULL}, this defaults to the value of the
 \item{width}{The number of characters in each line of printed output. If
 \code{NULL}, this defaults to the value of the standard \code{"width"}
 option.}
-
-\item{colour}{If \code{TRUE}, ANSI colour escape codes will be used to
-highlight matches in colour. If \code{NULL} (the default), the "crayon"
-package will be used, if available, to determine whether or not the
-R terminal supports colour.}
 }
 \value{
 For \code{ore.search}, an \code{"orematch"} object, or a list of
@@ -80,12 +75,16 @@ For \code{ore.search}, an \code{"orematch"} object, or a list of
 \description{
 Search a character vector for one or more matches to an Oniguruma-compatible
 regular expression. The result is of class \code{"orematch"}, for which
-printing and indexing methods are available. The \code{\link{print}} method
-uses the \code{crayon} package, if it is available.
+printing and indexing methods are available.
 }
 \note{
 Only named *or* unnamed groups will currently be captured, not both. If
 there are named groups in the pattern, then unnamed groups will be ignored.
+
+By default the \code{print} method uses the \code{crayon} package (if it is
+available) to determine whether or not the R terminal supports colour.
+Alternatively, colour printing may be forced or disabled by setting the
+\code{"ore.colour"} (or \code{"ore.color"}) option to a logical value.
 }
 \examples{
 # Pick out pairs of consecutive word characters

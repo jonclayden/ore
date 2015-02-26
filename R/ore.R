@@ -21,14 +21,12 @@
 #' @param x An R object.
 #' @return The \code{ore} function returns the final pattern, with class
 #'   \code{"ore"} and the following attributes:
-#'   
 #'     \item{.compiled}{A low-level pointer to the compiled version of the
 #'       regular expresion.}
 #'     \item{options}{Options, copied from the argument of the same name.}
 #'     \item{encoding}{The specified or detected encoding.}
 #'     \item{nGroups}{The number of groups in the pattern.}
 #'     \item{groupNames}{Group names, if applicable.}
-#'   
 #'   The \code{is.ore} function returns a logical vector indicating whether
 #'   its argument represents an \code{"ore"} object.
 #' @examples
