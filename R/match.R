@@ -19,6 +19,19 @@
 #' @param x An R object.
 #' @param i For indexing into an \code{"orematch"} object, the match number.
 #' @param j For indexing into an \code{"orematch"} object, the group number.
+#' @param lines The maximum number of lines to print. If \code{NULL}, this
+#'   defaults to the value of the \code{"ore.lines"} option, or 0 if that is
+#'   unset or invalid. Zero means no limit.
+#' @param context The number of characters of context to include either side
+#'   of each match. If \code{NULL}, this defaults to the value of the
+#'   \code{"ore.context"} option, or 30 if that is unset or invalid.
+#' @param width The number of characters in each line of printed output. If
+#'   \code{NULL}, this defaults to the value of the standard \code{"width"}
+#'   option.
+#' @param colour If \code{TRUE}, ANSI colour escape codes will be used to
+#'   highlight matches in colour. If \code{NULL} (the default), the "crayon"
+#'   package will be used, if available, to determine whether or not the
+#'   R terminal supports colour.
 #' @param ... Ignored.
 #' @return For \code{ore.search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
@@ -84,7 +97,7 @@ is.orematch <- function (x)
 
 #' @rdname ore.search
 #' @export
-print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
+print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, colour = NULL, ...)
 {
     # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
@@ -101,8 +114,11 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
                 return (as.integer(default))
         }
         
-        # Is the "crayon" package available, and does the terminal support colour?
-        usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
+        # If "colour" is unspecified, use the crayon package to check if the terminal supports colour
+        if (!is.null(colour))
+            usingColour <- isTRUE(colour)
+        else
+            usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
         
         # Other printing options
         lines <- getOptionWithDefault(lines, "ore.lines", 0L)

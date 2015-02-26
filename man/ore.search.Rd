@@ -15,7 +15,7 @@ is.orematch(x)
 \method{[}{orematch}(x, i, j, ...)
 
 \method{print}{orematch}(x, lines = NULL, context = NULL, width = NULL,
-  ...)
+  colour = NULL, ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -41,6 +41,23 @@ objects will always be returned.}
 \item{j}{For indexing into an \code{"orematch"} object, the group number.}
 
 \item{...}{Ignored.}
+
+\item{lines}{The maximum number of lines to print. If \code{NULL}, this
+defaults to the value of the \code{"ore.lines"} option, or 0 if that is
+unset or invalid. Zero means no limit.}
+
+\item{context}{The number of characters of context to include either side
+of each match. If \code{NULL}, this defaults to the value of the
+\code{"ore.context"} option, or 30 if that is unset or invalid.}
+
+\item{width}{The number of characters in each line of printed output. If
+\code{NULL}, this defaults to the value of the standard \code{"width"}
+option.}
+
+\item{colour}{If \code{TRUE}, ANSI colour escape codes will be used to
+highlight matches in colour. If \code{NULL} (the default), the "crayon"
+package will be used, if available, to determine whether or not the
+R terminal supports colour.}
 }
 \value{
 For \code{ore.search}, an \code{"orematch"} object, or a list of
