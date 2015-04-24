@@ -214,13 +214,18 @@ groups.default <- function (object, ...)
 #' corresponding to the last call to \code{\link{ore.search}}. This can be
 #' useful after performing a search implicitly, for example with \code{\%~\%}.
 #' 
+#' @param simplify If \code{TRUE} and the last match was against a single
+#'   string, then the \code{"orematch"} object will be returned, instead of a
+#'   list with one element.
 #' @return An \code{"orematch"} object or list. See \code{\link{ore.search}}
 #'   for details.
 #' @export
-ore.lastmatch <- function ()
+ore.lastmatch <- function (simplify = TRUE)
 {
     if (!exists("lastMatch", envir=.Workspace))
         return (NULL)
+    else if (simplify && is.list(.Workspace$lastMatch) && length(.Workspace$lastMatch) == 1)
+        return (.Workspace$lastMatch[[1]])
     else
         return (.Workspace$lastMatch)
 }
