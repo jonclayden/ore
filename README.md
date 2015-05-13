@@ -1,5 +1,7 @@
 # Oniguruma Regular Expressions (for R)
 
+**NB: If you are looking for [Oracle R Enterprise](http://www.oracle.com/technetwork/database/database-technologies/r/r-enterprise/overview/index.html), please note you're in the wrong place!**
+
 Welcome to the `ore` package for R. This package provides an alternative to R's standard functions for manipulating strings with regular expressions, based on the Oniguruma regular expression library (rather than PCRE, as in `base`). Although the regex features of the two libraries are quite similar, the R interface provided by `ore` has some notable advantages:
 
 - Regular expressions are themselves first-class objects (of class `ore`), stored with attributes containing information such as the number of parenthesised groups present within them. This means that it is not necessary to compile a particular regex more than once.
