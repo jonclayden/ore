@@ -4,12 +4,15 @@
 \alias{ore.dict}
 \title{Get or set entries in the pattern dictionary}
 \usage{
-ore.dict(...)
+ore.dict(..., enclos = parent.frame())
 }
 \arguments{
 \item{...}{One or more strings or dictionary keys. Unnamed, literal strings
 will be returned unmodified, named strings will be added to the
 dictionary, and unquoted names will be resolved using the dictionary.}
+
+\item{enclos}{Enclosure for resolving names not present in the dictionary.
+Passed to \code{\link{eval}}.}
 }
 \value{
 If no arguments are provided, the whole dictionary is returned.

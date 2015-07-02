@@ -7,6 +7,8 @@
 #' @param ... One or more strings or dictionary keys. Unnamed, literal strings
 #'   will be returned unmodified, named strings will be added to the
 #'   dictionary, and unquoted names will be resolved using the dictionary.
+#' @param enclos Enclosure for resolving names not present in the dictionary.
+#'   Passed to \code{\link{eval}}.
 #' @return If no arguments are provided, the whole dictionary is returned.
 #'   Otherwise the return value is a (possibly named) character vector of
 #'   resolved strings.
@@ -23,12 +25,12 @@
 #' 
 #' @seealso \code{\link{ore}}, which passes its arguments through this function
 #' @export
-ore.dict <- function (...)
+ore.dict <- function (..., enclos = parent.frame())
 {
     if (!exists("dictionary", .Workspace))
         .Workspace$dictionary <- list()
     
-    args <- eval(substitute(list(...)), .Workspace$dictionary, enclos=parent.frame())
+    args <- eval(substitute(list(...)), .Workspace$dictionary, enclos=enclos)
     names <- sapply(substitute(list(...)), as.character)[-1]
     
     if (length(args) == 0)
@@ -49,7 +51,7 @@ ore.dict <- function (...)
             names[indices] <- names(args)[indices]
         }
         
-        names[args == names] <- ""
+        names[args == names | is.na(match(names,names(.Workspace$dictionary)))] <- ""
         if (all(names == ""))
             names <- NULL
         

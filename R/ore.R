@@ -43,7 +43,7 @@
 #' @export
 ore <- function (..., options = "", encoding = "auto")
 {
-    regex <- .Call("ore_build", ore.dict(...), as.character(options), as.character(encoding), PACKAGE="ore")
+    regex <- .Call("ore_build", ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), PACKAGE="ore")
     return (regex)
 }
 
