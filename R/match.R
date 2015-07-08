@@ -296,7 +296,7 @@ ore.ismatch <- ore_ismatch <- function (regex, text, all = FALSE)
 #' 
 #' This function breaks up the strings provided at regions matching a regular
 #' expression, removing those regions from the result. It is analogous to the
-#' \code{\link{strsplit}} function in base R.
+#' \code{\link[base]{strsplit}} function in base R.
 #' 
 #' @inheritParams ore.search
 #' @param simplify If \code{TRUE}, a character vector containing the pieces

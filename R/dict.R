@@ -8,7 +8,7 @@
 #'   will be returned unmodified, named strings will be added to the
 #'   dictionary, and unquoted names will be resolved using the dictionary.
 #' @param enclos Enclosure for resolving names not present in the dictionary.
-#'   Passed to \code{\link{eval}}.
+#'   Passed to \code{\link[base]{eval}}.
 #' @return If no arguments are provided, the whole dictionary is returned.
 #'   Otherwise the return value is a (possibly named) character vector of
 #'   resolved strings.

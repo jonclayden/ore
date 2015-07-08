@@ -26,7 +26,7 @@ A character vector or list of substrings.
 \description{
 This function breaks up the strings provided at regions matching a regular
 expression, removing those regions from the result. It is analogous to the
-\code{\link{strsplit}} function in base R.
+\code{\link[base]{strsplit}} function in base R.
 }
 \examples{
 ore.split("-?\\\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
