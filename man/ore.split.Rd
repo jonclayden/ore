@@ -2,6 +2,7 @@
 % Please edit documentation in R/match.R
 \name{ore.split}
 \alias{ore.split}
+\alias{ore_split}
 \title{Split strings using a regex}
 \usage{
 ore.split(regex, text, start = 1L, simplify = TRUE)

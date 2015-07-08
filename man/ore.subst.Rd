@@ -2,6 +2,7 @@
 % Please edit documentation in R/match.R
 \name{ore.subst}
 \alias{ore.subst}
+\alias{ore_subst}
 \title{Replace matched substrings with new text}
 \usage{
 ore.subst(regex, replacement, text, ..., all = FALSE)

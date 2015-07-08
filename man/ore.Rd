@@ -2,6 +2,7 @@
 % Please edit documentation in R/ore.R
 \name{ore}
 \alias{is.ore}
+\alias{is_ore}
 \alias{ore}
 \alias{print.ore}
 \title{Oniguruma regular expressions}

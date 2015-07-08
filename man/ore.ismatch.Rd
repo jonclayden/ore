@@ -4,6 +4,7 @@
 \alias{\%~\%}
 \alias{\%~~\%}
 \alias{ore.ismatch}
+\alias{ore_ismatch}
 \title{Does text match a regex?}
 \usage{
 ore.ismatch(regex, text, all = FALSE)

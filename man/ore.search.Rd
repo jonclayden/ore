@@ -3,7 +3,9 @@
 \name{ore.search}
 \alias{[.orematch}
 \alias{is.orematch}
+\alias{is_orematch}
 \alias{ore.search}
+\alias{ore_search}
 \alias{orematch}
 \alias{print.orematch}
 \title{Search for matches to a regular expression}

@@ -48,8 +48,9 @@ ore <- function (..., options = "", encoding = "auto")
 }
 
 #' @rdname ore
-#' @export
-is.ore <- function (x)
+#' @aliases is_ore
+#' @export is.ore is_ore
+is.ore <- is_ore <- function (x)
 {
     return ("ore" %in% class(x))
 }

@@ -2,6 +2,7 @@
 % Please edit documentation in R/match.R
 \name{ore.lastmatch}
 \alias{ore.lastmatch}
+\alias{ore_lastmatch}
 \title{Retrieve the last match}
 \usage{
 ore.lastmatch(simplify = TRUE)

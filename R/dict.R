@@ -24,8 +24,9 @@
 #' ore.dict(protocol)
 #' 
 #' @seealso \code{\link{ore}}, which passes its arguments through this function
-#' @export
-ore.dict <- function (..., enclos = parent.frame())
+#' @aliases ore_dict
+#' @export ore.dict ore_dict
+ore.dict <- ore_dict <- function (..., enclos = parent.frame())
 {
     if (!exists("dictionary", .Workspace))
         .Workspace$dictionary <- list()

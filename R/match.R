@@ -65,9 +65,9 @@
 #' @seealso \code{\link{ore}} for creating regex objects; \code{\link{matches}}
 #' and \code{\link{groups}} for an alternative to indexing for extracting
 #' matching substrings.
-#' @aliases orematch
-#' @export
-ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
+#' @aliases orematch ore_search
+#' @export ore.search ore_search
+ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -79,8 +79,9 @@ ore.search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 }
 
 #' @rdname ore.search
-#' @export
-is.orematch <- function (x)
+#' @aliases is_orematch
+#' @export is.orematch is_orematch
+is.orematch <- is_orematch <- function (x)
 {
     return ("orematch" %in% class(x))
 }
@@ -219,8 +220,9 @@ groups.default <- function (object, ...)
 #'   list with one element.
 #' @return An \code{"orematch"} object or list. See \code{\link{ore.search}}
 #'   for details.
-#' @export
-ore.lastmatch <- function (simplify = TRUE)
+#' @aliases ore_lastmatch
+#' @export ore.lastmatch ore_lastmatch
+ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 {
     if (!exists("lastMatch", envir=.Workspace))
         return (NULL)
@@ -262,8 +264,9 @@ ore.lastmatch <- function (simplify = TRUE)
 #' # Same again: the first argument must be an "ore" object this way around
 #' ore("[aeiou]") %~% c("sky","lake")
 #' @seealso \code{\link{ore.search}}
-#' @export
-ore.ismatch <- function (regex, text, all = FALSE)
+#' @aliases ore_ismatch
+#' @export ore.ismatch ore_ismatch
+ore.ismatch <- ore_ismatch <- function (regex, text, all = FALSE)
 {
     match <- ore.search(regex, text, all=all, start=1L, simplify=FALSE)
     return (!sapply(match, is.null))
@@ -304,8 +307,9 @@ ore.ismatch <- function (regex, text, all = FALSE)
 #' @examples
 #' ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
 #' @seealso \code{\link{ore.search}}
-#' @export
-ore.split <- function (regex, text, start = 1L, simplify = TRUE)
+#' @aliases ore_split
+#' @export ore.split ore_split
+ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -343,8 +347,9 @@ ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' # Function-based substitution (produces "4 dogs")
 #' ore.subst("\\d+", function(i) as.numeric(i)^2, "2 dogs")
 #' @seealso \code{\link{ore.search}}
-#' @export
-ore.subst <- function (regex, replacement, text, ..., all = FALSE)
+#' @aliases ore_subst
+#' @export ore.subst ore_subst
+ore.subst <- ore_subst <- function (regex, replacement, text, ..., all = FALSE)
 {
     if (!is.character(text))
         text <- as.character(text)

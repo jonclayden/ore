@@ -2,6 +2,7 @@
 % Please edit documentation in R/dict.R
 \name{ore.dict}
 \alias{ore.dict}
+\alias{ore_dict}
 \title{Get or set entries in the pattern dictionary}
 \usage{
 ore.dict(..., enclos = parent.frame())
