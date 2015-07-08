@@ -7,7 +7,7 @@
 \alias{print.ore}
 \title{Oniguruma regular expressions}
 \usage{
-ore(..., options = "", encoding = "auto")
+ore(..., options = "", encoding = "auto", syntax = c("ruby", "fixed"))
 
 is.ore(x)
 
@@ -31,6 +31,11 @@ string naming one of the encoding types discussed in
 \code{\link{Encoding}}, or \code{"auto"}. In the latter case, the encoding
 of \code{pattern} will be used.}
 
+\item{syntax}{The regular expression syntax being used. The default is
+\code{"ruby"}, which reflects the syntax of the Ruby language, which is
+very similar to that of Perl. An alternative is \code{"fixed"}, for
+literal matching without special treatment of characters.}
+
 \item{x}{An R object.}
 }
 \value{
@@ -40,6 +45,7 @@ The \code{ore} function returns the final pattern, with class
       regular expresion.}
     \item{options}{Options, copied from the argument of the same name.}
     \item{encoding}{The specified or detected encoding.}
+    \item{syntax}{The specified syntax type.}
     \item{nGroups}{The number of groups in the pattern.}
     \item{groupNames}{Group names, if applicable.}
   The \code{is.ore} function returns a logical vector indicating whether

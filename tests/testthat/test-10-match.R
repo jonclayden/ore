@@ -17,6 +17,9 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore::matches(ore.search(ore(".+"),"one\ntwo")), equals("one"))
     expect_that(ore::matches(ore.search(ore(".+",options="m"),"one\ntwo")), equals("one\ntwo"))
     
+    expect_that(ore::matches(ore.search(ore("."),"1.7")), equals("1"))
+    expect_that(ore::matches(ore.search(ore(".",syntax="fixed"),"1.7")), equals("."))
+    
     expect_that(ore.ismatch("[aeiou]",c("sky","lake")), equals(c(FALSE,TRUE)))
 })
 

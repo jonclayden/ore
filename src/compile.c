@@ -44,7 +44,7 @@ OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
 }
 
 // Interface to onig_new(), used to create compiled regex objects
-regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding)
+regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding, const char *syntax_name)
 {
     int return_value;
     OnigErrorInfo einfo;
@@ -72,9 +72,19 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
         option_pointer++;
     }
     
-    // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
-    OnigSyntaxType *syntax = ONIG_SYNTAX_RUBY;
-    ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
+    OnigSyntaxType *syntax;
+    if (strncmp(syntax_name, "ruby", 4) == 0)
+    {
+        // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
+        syntax = ONIG_SYNTAX_RUBY;
+        ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
+    }
+    else if (strncmp(syntax_name, "fixed", 5) == 0)
+    {
+        syntax = ONIG_SYNTAX_ASIS;
+    }
+    else
+        error("Syntax name \"%s\" is invalid\n", syntax_name);
     
     // Create the regex struct, and check for errors
     return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, syntax, &einfo);
@@ -111,7 +121,7 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_)
         }
         
         // Compile the regex and return
-        return ore_compile(CHAR(STRING_ELT(regex_,0)), "", encoding);
+        return ore_compile(CHAR(STRING_ELT(regex_,0)), "", encoding, "ruby");
     }
     else
         return (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
@@ -159,7 +169,7 @@ char * ore_build_pattern (SEXP pattern_)
 }
 
 // R wrapper for ore_compile(): builds the regex and creates an R "ore" object
-SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
+SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_name_)
 {
     regex_t *regex;
     int n_groups, return_value;
@@ -169,6 +179,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     const char *pattern = (const char *) ore_build_pattern(pattern_);
     const char *options = CHAR(STRING_ELT(options_, 0));
     const UChar *encoding_name = (const UChar *) CHAR(STRING_ELT(encoding_name_, 0));
+    const char *syntax_name = CHAR(STRING_ELT(syntax_name_, 0));
     
     cetype_t encoding;
     if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 4, (const UChar *) "auto", 4) == 0)
@@ -182,7 +193,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     else
         encoding = CE_NATIVE;
         
-    regex = ore_compile(pattern, options, encoding);
+    regex = ore_compile(pattern, options, encoding, syntax_name);
     
     // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);
@@ -195,6 +206,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_)
     setAttrib(result, install(".compiled"), regex_ptr);
     
     setAttrib(result, install("options"), ScalarString(STRING_ELT(options_, 0)));
+    setAttrib(result, install("syntax"), ScalarString(STRING_ELT(syntax_name_, 0)));
     
     switch (encoding)
     {

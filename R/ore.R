@@ -18,6 +18,10 @@
 #'   string naming one of the encoding types discussed in
 #'   \code{\link{Encoding}}, or \code{"auto"}. In the latter case, the encoding
 #'   of \code{pattern} will be used.
+#' @param syntax The regular expression syntax being used. The default is
+#'   \code{"ruby"}, which reflects the syntax of the Ruby language, which is
+#'   very similar to that of Perl. An alternative is \code{"fixed"}, for
+#'   literal matching without special treatment of characters.
 #' @param x An R object.
 #' @return The \code{ore} function returns the final pattern, with class
 #'   \code{"ore"} and the following attributes:
@@ -25,6 +29,7 @@
 #'       regular expresion.}
 #'     \item{options}{Options, copied from the argument of the same name.}
 #'     \item{encoding}{The specified or detected encoding.}
+#'     \item{syntax}{The specified syntax type.}
 #'     \item{nGroups}{The number of groups in the pattern.}
 #'     \item{groupNames}{Group names, if applicable.}
 #'   The \code{is.ore} function returns a logical vector indicating whether
@@ -41,9 +46,9 @@
 #' (used by base R) and Oniguruma (used by \code{ore}) have similar features.
 #' See \code{\link{ore.dict}} for details of the pattern dictionary.
 #' @export
-ore <- function (..., options = "", encoding = "auto")
+ore <- function (..., options = "", encoding = "auto", syntax = c("ruby","fixed"))
 {
-    regex <- .Call("ore_build", ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), PACKAGE="ore")
+    regex <- .Call("ore_build", ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax), PACKAGE="ore")
     return (regex)
 }
 
@@ -67,4 +72,5 @@ print.ore <- function (x, ...)
     cat("\n")
     
     cat(paste(" - ", attr(x,"encoding"), " encoding\n", sep=""))
+    cat(paste(" - ", attr(x,"syntax"), " syntax\n", sep=""))
 }
