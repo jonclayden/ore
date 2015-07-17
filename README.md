@@ -56,6 +56,8 @@ It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), al
 | Replace all matches           | `ore.subst(regex, replace, text, all=TRUE)`    | `gsub(regex, replace, text, perl=TRUE)` |
 | Split at matches              | `ore.split(regex, text)`                       | `strsplit(text, regex, perl=TRUE)`      |
 
+As of `ore` version 1.2.0, it is also possible to use underscore-separated versions of the package's functions, i.e., `ore_search`, `ore_split` and so on. Some users may prefer these for consistency of style in their own code.
+
 ## Basic usage
 
 Let's consider a very simple example: a regular expression for matching a single decimal integer, either positive or negative. We create this regex as follows:
