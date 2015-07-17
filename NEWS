@@ -2,6 +2,21 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.2.0
+
+- Oniguruma's support for alternative regular expression syntaxes is now
+  exposed by the ore() function. At present only "fixed" (i.e., literal)
+  patterns are supported in addition to the default, which has always been
+  "ruby".
+- The ore.lastmatch() function gains a "simplify" argument.
+- Underscore-separated function names are now available as aliases to their
+  period-separated equivalents. For example, you can use ore_search() instead
+  of ore.search(), if you prefer.
+- The use of variables holding patterns could sometimes cause errors in ore().
+  This has been corrected.
+
+===============================================================================
+
 VERSION 1.1.0
 
 - The package now provides functionality for creating and working with a
