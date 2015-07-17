@@ -26,6 +26,7 @@ If you prefer the more verbose but also more friendly approach to creating regul
 - [Function mapping](#function-mapping)
 - [Basic usage](#basic-usage)
 - [Encodings](#encodings)
+- [Alternative syntaxes](#alternative-syntaxes)
 - [Substitutions](#substitutions)
 - [Splitting](#splitting)
 - [The pattern dictionary](#the-pattern-dictionary)
@@ -165,6 +166,24 @@ gregexpr("\\b\\w{4}\\b", text, perl=TRUE)
 # attr(,"match.length")
 # [1] 4
 ```
+
+## Alternative syntaxes
+
+By default, Oniguruma and `ore` use Ruby's regular expression syntax, which is very similar to Perl's (and hence that of base R with `perl=TRUE`). However, the library does support alternative syntaxes, and `ore` currently also allows for literal string matching, which is equivalent to `fixed=TRUE` in base R.
+
+Notice the difference in interpretation of a period in the following example:
+
+```R
+ore.search(ore("."), "1.7")
+#   match: 1  
+# context:  .7
+
+ore.search(ore(".",syntax="fixed"), "1.7")
+#   match:  . 
+# context: 1 7
+```
+
+In the first case the period has the usual regular expression interpretation of "any character", so it matches the first available character, the 1. In the second case the period has no special meaning, and it only matches a literal period in the search string.
 
 ## Substitutions
 
