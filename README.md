@@ -218,6 +218,8 @@ ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
 # [1] "I have "    " dogs, "    " cats and " " hamsters"
 ```
 
+This finds all matches to the pattern, discards them, and then returns the remaining pieces of the original string.
+
 ## The pattern dictionary
 
 It's not unusual to reuse parts of a regular expression many times. Perhaps, once you have an expression that captures certain common elements of your text, you might want to store it for regular use. Or maybe you want to make your regexes more readable by breaking them down into manageable chunks. The `ore` package's pattern dictionary can help.
