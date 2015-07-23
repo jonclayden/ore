@@ -5,7 +5,7 @@
 #' Each part of the string surrounded by \code{"#{}"} is extracted, evaluated
 #' as R code in the specified environment, and then its value is substituted
 #' back into the string. The literal string \code{"#{}"} can be obtained by
-#' escaping the hash character, viz. \code{"\\#{}"}. The block may contain
+#' escaping the hash character, viz. \code{"\\\\#{}"}. The block may contain
 #' multiple R expressions, separated by semicolons, but may not contain
 #' additional braces.
 #' 
@@ -49,7 +49,7 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     }, text, envir=envir, all=TRUE)
     
     # Replace escaped '#' characters
-    results <- gsub("\\#", "#", results, fixed=TRUE)
+    results <- ore.subst(ore("\\#",syntax="fixed"), "#", results, all=TRUE)
     
     return (results)
 }

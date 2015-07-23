@@ -30,7 +30,7 @@ Evaluate R expressions and substitute their values into one or more strings.
 Each part of the string surrounded by \code{"#{}"} is extracted, evaluated
 as R code in the specified environment, and then its value is substituted
 back into the string. The literal string \code{"#{}"} can be obtained by
-escaping the hash character, viz. \code{"\\#{}"}. The block may contain
+escaping the hash character, viz. \code{"\\\\#{}"}. The block may contain
 multiple R expressions, separated by semicolons, but may not contain
 additional braces.
 }
