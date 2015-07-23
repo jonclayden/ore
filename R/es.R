@@ -46,7 +46,7 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
         if (is.double(values))
             values <- rfun(values)
         return (values)
-    }, text, envir=envir)
+    }, text, envir=envir, all=TRUE)
     
     # Replace escaped '#' characters
     results <- gsub("\\#", "#", results, fixed=TRUE)
