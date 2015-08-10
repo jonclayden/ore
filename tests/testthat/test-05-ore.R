@@ -16,5 +16,5 @@ test_that("Oniguruma regular expression compilation and interpretation works", {
     expect_that(attr(regexWithEncoding,"encoding"), equals("UTF-8"))
     expect_that(attr(regexWithSyntax,"syntax"), equals("fixed"))
     expect_that(ore("(\\w+"), throws_error())
-    expect_that(regexGenerator(), equals(simpleRegex))
+    expect_that(regexGenerator(), equals(simpleRegex,check.attributes=FALSE))
 })
