@@ -2,6 +2,15 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.2.1
+
+- The es() function would previously only replace the first embedded
+  expression. That has been corrected.
+- Attributes are now ignored when comparing "ore" objects in tests. This led to
+  a failure on versions of R prior to 3.2.0, at least on Windows.
+
+===============================================================================
+
 VERSION 1.2.0
 
 - Oniguruma's support for alternative regular expression syntaxes is now
