@@ -52,9 +52,15 @@ ore.dict <- ore_dict <- function (..., enclos = parent.frame())
             names[indices] <- names(args)[indices]
         }
         
-        names[args == names | is.na(match(names,names(.Workspace$dictionary)))] <- ""
-        if (all(names == ""))
+        # Most likely the argument includes a function call
+        if (is.list(names) || length(names) != length(args))
             names <- NULL
+        else
+        {
+            names[unlist(args) == names | is.na(match(names,names(.Workspace$dictionary)))] <- ""
+            if (all(names == ""))
+                names <- NULL
+        }
         
         result <- unlist(args)
         names(result) <- names
