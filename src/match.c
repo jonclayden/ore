@@ -186,7 +186,12 @@ void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n
 void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding)
 {
     for (int i=0; i<n_matches; i++)
-        SET_STRING_ELT(vec, i, mkCharCE(data[i*n_regions],encoding));
+    {
+        if (data[i*n_regions] == NULL)
+            SET_STRING_ELT(vec, i, mkCharCE("",encoding));
+        else
+            SET_STRING_ELT(vec, i, mkCharCE(data[i*n_regions],encoding));
+    }
 }
 
 // Copy integer data for groups into an R matrix
