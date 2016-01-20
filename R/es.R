@@ -29,9 +29,6 @@
 #' @export
 es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
 {
-    # Vectorised version of eval()
-    veval <- function(x,e) { sapply(x, function(xi) eval(parse(text=xi),envir=e)) }
-    
     # Rounding function
     if (!is.null(round))
         rfun <- function(x) round(x, round)
@@ -40,13 +37,18 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     else
         rfun <- function(x) x
     
+    # Vectorised version of eval(), which also does rounding
+    veval <- function(x,e) {
+        sapply(x, function(xi) {
+            value <- eval(parse(text=xi),envir=e)
+            if (is.double(value))
+                value <- rfun(value)
+            return (value)
+        })
+    }
+    
     # Do the main substitution
-    results <- ore.subst("(?<!\\\\)\\#\\{([^\\}]+)\\}", function(match,envir) {
-        values <- veval(groups(match), envir)
-        if (is.double(values))
-            values <- rfun(values)
-        return (values)
-    }, text, envir=envir, all=TRUE)
+    results <- ore.subst("(?<!\\\\)\\#\\{([^\\}]+)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE)
     
     # Replace escaped '#' characters
     results <- ore.subst(ore("\\#",syntax="fixed"), "#", results, all=TRUE)
