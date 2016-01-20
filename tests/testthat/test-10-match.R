@@ -21,6 +21,7 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore::matches(ore.search(ore(".",syntax="fixed"),"1.7")), equals("."))
     
     expect_that(ore.ismatch("[aeiou]",c("sky","lake")), equals(c(FALSE,TRUE)))
+    expect_that(ore.ismatch("^\\s*$",""), is_true())
 })
 
 test_that("group extraction and indexing works", {
