@@ -2,6 +2,17 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.2.2
+
+- Zero-length matches could lead to segmentation faults. This has been
+  corrected.
+- Calls to ore.dict() which include other function calls are now handled
+  properly. (Reported by Jon Olav Vik.)
+- The es() function would previously only honour its rounding arguments if all
+  matches were numeric. This has been corrected.
+
+===============================================================================
+
 VERSION 1.2.1
 
 - The es() function would previously only replace the first embedded

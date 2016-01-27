@@ -1,13 +1,10 @@
 Package: ore
-Version: 1.2.1
-Date: 2015-08-10
+Version: 1.2.2
+Date: 2016-01-27
 Title: An R Interface to the Oniguruma Regular Expression Library
 Author: Jon Clayden, based on Onigmo by K. Kosako and K. Takata
 Maintainer: Jon Clayden <code@clayden.org>
-Suggests:
-    crayon,
-    rex,
-    testthat
+Suggests: crayon, rex, testthat
 Description: Provides an alternative to R's built-in functionality for handling
     regular expressions, based on the Oniguruma library. Offers first-class
     compiled regex objects, partial matching and function-based substitutions,
@@ -17,3 +14,4 @@ License: BSD_3_clause + file LICENCE
 Collate: workspace.R dict.R ore.R match.R es.R zzz.R
 URL: https://github.com/jonclayden/ore
 BugReports: https://github.com/jonclayden/ore/issues
+RoxygenNote: 5.0.1
