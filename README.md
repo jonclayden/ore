@@ -41,7 +41,7 @@ The package can be installed directly from GitHub using the `devtools` package.
 devtools::install_github("jonclayden/ore")
 ```
 
-It is also available [via CRAN](http://cran.r-project.org/web/packages/ore/), although the version published there can be a little older than the latest release tagged here, due to CRAN's restrictions on the regularity of updates.
+It is also available [via CRAN](http://cran.r-project.org/package=ore), although the version published there can be a little older than the latest release tagged here, due to CRAN's restrictions on the regularity of updates.
 
 ## Function mapping
 
