@@ -3,6 +3,7 @@
 #include <Rinternals.h>
 
 #include <string.h>
+#include <wchar.h>
 
 #include "compile.h"
 #include "match.h"
@@ -137,34 +138,49 @@ void ore_print_line (printstate_t *state)
 }
 
 // Add a byte to the match (or context), updating other lines appropriately
-void ore_do_push_byte (printstate_t *state, const char byte, Rboolean zero_width)
+void ore_do_push_byte (printstate_t *state, const char byte, const int width)
 {
     if (state->in_match || state->use_colour)
     {
         *(state->match++) = byte;
-        if (!state->use_colour && !zero_width)
-            *(state->context++) = ' ';
-        if (state->n_matches > 1 && !zero_width)
+        if (!state->use_colour && width > 0)
+        {
+            for (int i=0; i<width; i++)
+                *(state->context++) = ' ';
+        }
+        if (state->n_matches > 1 && width > 0)
         {
             if (state->in_match)
             {
-                // Print the next digit of the number, or '=' if we've finished them
-                if (*state->current_match_loc == '\0')
-                    *(state->number++) = '=';
-                else
-                    *(state->number++) = *(state->current_match_loc++);
+                for (int i=0; i<width; i++)
+                {
+                    // Print the next digit of the number, or '=' if we've finished them
+                    if (*state->current_match_loc == '\0')
+                        *(state->number++) = '=';
+                    else
+                        *(state->number++) = *(state->current_match_loc++);
+                }
             }
             else
-                *(state->number++) = ' ';
+            {
+                for (int i=0; i<width; i++)
+                    *(state->number++) = ' ';
+            }
         }
     }
     else
     {
         *(state->context++) = byte;
-        if (!state->use_colour && !zero_width)
-            *(state->match++) = ' ';
-        if (state->n_matches > 1 && !zero_width)
-            *(state->number++) = ' ';
+        if (!state->use_colour && width > 0)
+        {
+            for (int i=0; i<width; i++)
+                *(state->match++) = ' ';
+        }
+        if (state->n_matches > 1 && width > 0)
+        {
+            for (int i=0; i<width; i++)
+                *(state->number++) = ' ';
+        }
     }
 }
 
@@ -204,24 +220,8 @@ void ore_switch_state (printstate_t *state, Rboolean match)
 }
 
 // Push a byte to the buffers, starting a new line if there isn't space for it
-void ore_push_byte (printstate_t *state, const char byte, int width)
+void ore_push_byte (printstate_t *state, const char byte, const int width)
 {
-    // Width is unspecified: work it out
-    if (width < 0)
-    {
-        switch (byte)
-        {
-            // Tab and newline characters are expanded into their escaped versions to avoid spurious space in the result
-            case '\t':
-            case '\n':
-            width = 2;
-            break;
-            
-            default:
-            width = 1;
-        }
-    }
-    
     // Print the line and reset the buffers if there isn't space
     if (state->loc + width >= state->width)
         ore_print_line(state);
@@ -230,17 +230,17 @@ void ore_push_byte (printstate_t *state, const char byte, int width)
     switch (byte)
     {
         case '\t':
-        ore_do_push_byte(state, '\\', FALSE);
-        ore_do_push_byte(state, 't', FALSE);
+        ore_do_push_byte(state, '\\', 1);
+        ore_do_push_byte(state, 't', 1);
         break;
         
         case '\n':
-        ore_do_push_byte(state, '\\', FALSE);
-        ore_do_push_byte(state, 'n', FALSE);
+        ore_do_push_byte(state, '\\', 1);
+        ore_do_push_byte(state, 'n', 1);
         break;
         
         default:
-        ore_do_push_byte(state, byte, width==0);
+        ore_do_push_byte(state, byte, width);
     }
     
     // Keep track of the number of characters printed
@@ -253,7 +253,16 @@ UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding enc
     for (int i=0; i<n; i++)
     {
         int char_len = encoding->mbc_enc_len(ptr);
-        ore_push_byte(state, *(ptr++), -1);
+        int width;
+        wchar_t wc;
+        mbtowc(&wc, (const char *) ptr, char_len);
+        width = wcwidth(wc);
+        
+        // Tab and newline characters are expanded into their escaped versions to avoid spurious space in the result
+        if (*ptr == '\t' || *ptr == '\n')
+            width = 2;
+        
+        ore_push_byte(state, *(ptr++), width);
         for (int k=1; k<char_len; k++)
             ore_push_byte(state, *(ptr++), 0);
     }

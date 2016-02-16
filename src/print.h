@@ -32,9 +32,9 @@ void ore_print_line (printstate_t *state);
 
 void ore_switch_state (printstate_t *state, Rboolean match);
 
-void ore_do_push_byte (printstate_t *state, const char byte, Rboolean zero_width);
+void ore_do_push_byte (printstate_t *state, const char byte, const int width);
 
-void ore_push_byte (printstate_t *state, const char byte, int width);
+void ore_push_byte (printstate_t *state, const char byte, const int width);
 
 UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding);
 
