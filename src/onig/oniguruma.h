@@ -193,7 +193,7 @@ ONIG_EXTERN OnigEncodingType OnigEncodingUTF8;
 // ONIG_EXTERN OnigEncodingType OnigEncodingEUC_TW;
 // ONIG_EXTERN OnigEncodingType OnigEncodingEUC_KR;
 // ONIG_EXTERN OnigEncodingType OnigEncodingEUC_CN;
-// ONIG_EXTERN OnigEncodingType OnigEncodingSJIS;
+ONIG_EXTERN OnigEncodingType OnigEncodingSJIS;
 // ONIG_EXTERN OnigEncodingType OnigEncodingCP932;
 // ONIG_EXTERN OnigEncodingType OnigEncodingKOI8;
 // ONIG_EXTERN OnigEncodingType OnigEncodingKOI8_R;
@@ -226,7 +226,7 @@ ONIG_EXTERN OnigEncodingType OnigEncodingUTF8;
 // #define ONIG_ENCODING_EUC_TW       (&OnigEncodingEUC_TW)
 // #define ONIG_ENCODING_EUC_KR       (&OnigEncodingEUC_KR)
 // #define ONIG_ENCODING_EUC_CN       (&OnigEncodingEUC_CN)
-// #define ONIG_ENCODING_SJIS         (&OnigEncodingSJIS)
+#define ONIG_ENCODING_SJIS         (&OnigEncodingSJIS)
 // #define ONIG_ENCODING_CP932        (&OnigEncodingCP932)
 // #define ONIG_ENCODING_KOI8         (&OnigEncodingKOI8)
 // #define ONIG_ENCODING_KOI8_R       (&OnigEncodingKOI8_R)
@@ -243,7 +243,6 @@ ONIG_EXTERN OnigEncodingType OnigEncodingUTF8;
 #define ONIG_ENCODING_UTF32_BE ONIG_ENCODING_UNDEF
 #define ONIG_ENCODING_UTF32_LE ONIG_ENCODING_UNDEF
 #define ONIG_ENCODING_EUC_JP   ONIG_ENCODING_UNDEF
-#define ONIG_ENCODING_SJIS     ONIG_ENCODING_UNDEF
 
 
 /* work size */
