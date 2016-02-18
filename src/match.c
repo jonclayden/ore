@@ -186,30 +186,39 @@ void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n
         ptr[i] = data[i*n_regions] + increment;
 }
 
+// Wrapper around Riconv, to convert between encodings
+const char * ore_iconv (void *iconv_handle, const char *old)
+{
+    if (iconv_handle)
+    {
+        size_t old_size = strlen(old);
+        size_t new_size = old_size * 6;
+        char *buffer = R_alloc(new_size+1, 1);
+        char *buffer_start = buffer;
+        size_t written = Riconv(iconv_handle, &old, &old_size, &buffer, &new_size);
+        *buffer = '\0';
+        return buffer;
+    }
+    else
+        return old;
+}
+
 // Copy string data from a rawmatch_t to an R vector
-void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding, const char *old_enc_name)
+void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, cetype_t encoding, const char *old_enc_name)
 {
     void *iconv_handle = NULL;
     if (old_enc_name != NULL && strlen(old_enc_name) > 0)
+    {
         iconv_handle = Riconv_open("UTF-8", old_enc_name);
+        encoding = CE_UTF8;
+    }
     
     for (int i=0; i<n_matches; i++)
     {
         if (data[i*n_regions] == NULL)
             SET_STRING_ELT(vec, i, mkCharCE("",encoding));
-        else if (iconv_handle)
-        {
-            const char *element = data[i*n_regions];
-            size_t old_size = strlen(element);
-            size_t new_size = old_size * 6;
-            char *buffer = R_alloc(new_size+1, 1);
-            char *buffer_start = buffer;
-            size_t written = Riconv(iconv_handle, &element, &old_size, &buffer, &new_size);
-            *buffer = '\0';
-            SET_STRING_ELT(vec, i, mkCharCE(buffer_start,CE_UTF8));
-        }
         else
-            SET_STRING_ELT(vec, i, mkCharCE(data[i*n_regions],encoding));
+            SET_STRING_ELT(vec, i, mkCharCE(ore_iconv(iconv_handle,data[i*n_regions]), encoding));
     }
     
     if (iconv_handle)
@@ -240,8 +249,15 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 }
 
 // Copy string data from groups into an R matrix
-void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, const cetype_t encoding)
+void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name)
 {
+    void *iconv_handle = NULL;
+    if (old_enc_name != NULL && strlen(old_enc_name) > 0)
+    {
+        iconv_handle = Riconv_open("UTF-8", old_enc_name);
+        encoding = CE_UTF8;
+    }
+    
     for (int i=0; i<n_matches; i++)
     {
         for (int j=1; j<n_regions; j++)
@@ -251,9 +267,12 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
             if (element == NULL)
                 SET_STRING_ELT(mat, (j-1)*n_matches + i, NA_STRING);
             else
-                SET_STRING_ELT(mat, (j-1)*n_matches + i, mkCharCE(element,encoding));
+                SET_STRING_ELT(mat, (j-1)*n_matches + i, mkCharCE(ore_iconv(iconv_handle,element), encoding));
         }
     }
+    
+    if (iconv_handle)
+        Riconv_close(iconv_handle);
     
     // Set column names if supplied
     if (!isNull(col_names))
@@ -455,7 +474,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 PROTECT(byte_lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
                 ore_int_matrix(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names, 0);
                 PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                // ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding);
+                if (using_connection)
+                    ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding, connection->encname);
+                else
+                    ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding, NULL);
                 
                 // Put everything in place
                 SET_ELEMENT(groups, 0, offsets);

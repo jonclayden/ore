@@ -26,11 +26,11 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
 
 void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n_matches, const int increment);
 
-void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding, const char *old_enc_name);
+void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, cetype_t encoding, const char *old_enc_name);
 
 void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n_matches, const SEXP col_names, const int increment);
 
-void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, const cetype_t encoding);
+void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name);
 
 char * ore_read_connection (Rconnection connection);
 
