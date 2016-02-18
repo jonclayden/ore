@@ -24,6 +24,23 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore.ismatch("^\\s*$",""), is_true())
 })
 
+test_that("searching with a connection works", {
+    # Calling readLines() will convert the text to UTF-8
+    if (!("SHIFT-JIS" %in% iconvlist()))
+        skip("The local \"iconv\" implementation doesn't support Shift-JIS")
+    else
+    {
+        c1 <- file("sjis.txt", encoding="SHIFT-JIS")
+        s1 <- ore.search("\\p{Katakana}+", c1)
+        c2 <- file("sjis.txt", encoding="SHIFT-JIS")
+        s2 <- ore.search("\\p{Katakana}+", readLines(c2))
+    
+        # Same character offsets but different byte offsets
+        expect_that(c(s1$offsets,s2$offsets), equals(c(14L,14L)))
+        expect_that(c(s1$byteOffsets,s2$byteOffsets), equals(c(18L,22L)))
+    }
+})
+
 test_that("group extraction and indexing works", {
     match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
     
