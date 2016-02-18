@@ -153,7 +153,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         error("The specified regex object is not valid");
     
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_);
+    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_, FALSE);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     
@@ -205,7 +205,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             {
                 // Create an R character vector containing the matches
                 SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
-                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding, NULL);
                 
                 // If there are groups, extract them and put them in an attribute
                 if (raw_match->n_regions > 1)

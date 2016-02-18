@@ -15,7 +15,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
         error("The specified regex object is not valid");
     
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_);
+    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_, FALSE);
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
     

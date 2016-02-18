@@ -69,9 +69,6 @@
 #' @export ore.search ore_search
 ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
 {
-    if (!is.character(text))
-        text <- as.character(text)
-    
     match <- .Call("ore_search_all", regex, text, as.logical(all), as.integer(start), as.logical(simplify), PACKAGE="ore")
     
     .Workspace$lastMatch <- match
@@ -103,6 +100,8 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
     # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
         cat("<no match>\n")
+    else if (is.null(x$text))
+        cat(es("<#{x$nMatches} match(es)>\n"))
     else
     {
         getOptionWithDefault <- function (value, name, default)

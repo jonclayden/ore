@@ -9,6 +9,11 @@
 // Not strictly part of the API, but useful for case-insensitive string comparison
 extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const UChar *end, const UChar *sascii, int n);
 
+int ore_strnicmp (const char *str1, const char *str2, size_t num)
+{
+    return onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, (const UChar *) str1, (const UChar *) str1 + num, (const UChar *) str2, num);
+}
+
 // Finaliser to clear up garbage-collected "ore" objects
 void ore_regex_finaliser (SEXP regex_ptr)
 {
@@ -43,15 +48,33 @@ OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
     }
 }
 
+// Convert the encoding string from a connection to its Oniguruma equivalent
+OnigEncoding ore_con_to_onig_enc (Rconnection connection)
+{
+#if (R_CONNECTIONS_VERSION > 1)
+    warning("Connection API may have changed");
+#endif
+    
+    const char *enc = connection->encname;
+    if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
+        return ONIG_ENCODING_UTF8;
+    else if (ore_strnicmp(enc,"ISO_8859-1",10) == 0 || ore_strnicmp(enc,"ISO-8859-1",10) == 0 || ore_strnicmp(enc,"ISO8859-1",9) == 0 || ore_strnicmp(enc,"LATIN1",6) == 0)
+        return ONIG_ENCODING_ISO_8859_1;
+    else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
+        return ONIG_ENCODING_SJIS;
+    else
+    {
+        warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
+        return ONIG_ENCODING_ASCII;
+    }
+}
+
 // Interface to onig_new(), used to create compiled regex objects
-regex_t * ore_compile (const char *pattern, const char *options, cetype_t encoding, const char *syntax_name)
+regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding encoding, const char *syntax_name)
 {
     int return_value;
     OnigErrorInfo einfo;
     regex_t *regex;
-    
-    // Convert R encoding to onig data type
-    OnigEncoding onig_encoding = ore_r_to_onig_enc(encoding);
     
     // Parse options and convert to onig option flags
     OnigOptionType onig_options = ONIG_OPTION_NONE;
@@ -87,7 +110,7 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
         error("Syntax name \"%s\" is invalid\n", syntax_name);
     
     // Create the regex struct, and check for errors
-    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, onig_encoding, syntax, &einfo);
+    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, encoding, syntax, &einfo);
     if (return_value != ONIG_NORMAL)
     {
         char message[ONIG_MAX_ERROR_MESSAGE_LEN];
@@ -99,7 +122,7 @@ regex_t * ore_compile (const char *pattern, const char *options, cetype_t encodi
 }
 
 // Retrieve a rawmatch_t object from the specified R object, which may be of class "ore" or just text
-regex_t * ore_retrieve (SEXP regex_, SEXP text_)
+regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_connection)
 {
     // Check the class of the regex object; if it's text this will be NULL
     SEXP class = getAttrib(regex_, R_ClassSymbol);
@@ -108,20 +131,28 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_)
         if (!isString(regex_))
             error("The specified regex must be of character mode");
         
-        // Take the encoding from the search text in this case
-        cetype_t encoding = CE_NATIVE;
-        for (int i=0; i<length(text_); i++)
+        if (using_connection)
         {
-            const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
-            if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
-            {
-                encoding = current_encoding;
-                break;
-            }
+            Rconnection connection = getConnection(asInteger(text_));
+            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_con_to_onig_enc(connection), "ruby");
         }
+        else
+        {
+            // Take the encoding from the search text in this case
+            cetype_t encoding = CE_NATIVE;
+            for (int i=0; i<length(text_); i++)
+            {
+                const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
+                if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
+                {
+                    encoding = current_encoding;
+                    break;
+                }
+            }
         
-        // Compile the regex and return
-        return ore_compile(CHAR(STRING_ELT(regex_,0)), "", encoding, "ruby");
+            // Compile the regex and return
+            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_r_to_onig_enc(encoding), "ruby");
+        }
     }
     else
         return (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
@@ -178,22 +209,22 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     // Obtain pointers to content
     const char *pattern = (const char *) ore_build_pattern(pattern_);
     const char *options = CHAR(STRING_ELT(options_, 0));
-    const UChar *encoding_name = (const UChar *) CHAR(STRING_ELT(encoding_name_, 0));
+    const char *encoding_name = CHAR(STRING_ELT(encoding_name_, 0));
     const char *syntax_name = CHAR(STRING_ELT(syntax_name_, 0));
     
     cetype_t encoding;
-    if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 4, (const UChar *) "auto", 4) == 0)
+    if (ore_strnicmp(encoding_name, "auto", 4) == 0)
         encoding = getCharCE(STRING_ELT(pattern_, 0));
-    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 4, (const UChar *) "utf8", 4) == 0)
+    else if (ore_strnicmp(encoding_name, "UTF8", 4) == 0)
         encoding = CE_UTF8;
-    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 5, (const UChar *) "utf-8", 5) == 0)
+    else if (ore_strnicmp(encoding_name, "UTF-8", 5) == 0)
         encoding = CE_UTF8;
-    else if (onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, encoding_name, encoding_name + 6, (const UChar *) "latin1", 6) == 0)
+    else if (ore_strnicmp(encoding_name, "LATIN1", 6) == 0)
         encoding = CE_LATIN1;
     else
         encoding = CE_NATIVE;
         
-    regex = ore_compile(pattern, options, encoding, syntax_name);
+    regex = ore_compile(pattern, options, ore_r_to_onig_enc(encoding), syntax_name);
     
     // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);

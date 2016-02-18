@@ -1,6 +1,7 @@
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
+#include <R_ext/Riconv.h>
 
 #include <string.h>
 
@@ -11,7 +12,10 @@
 extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 
 // Block size for match data; memory is allocated in chunks this big
-#define MATCH_BLOCK_SIZE    128
+#define MATCH_BLOCK_SIZE        128
+
+// Initial buffer size when reading from a connection; scales exponentially
+#define CONNECTION_BUFFER_SIZE  1024
 
 // Allocate memory for a rawmatch_t object with capacity one block, and its contents
 rawmatch_t * ore_rawmatch_alloc (const int n_regions)
@@ -183,15 +187,33 @@ void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n
 }
 
 // Copy string data from a rawmatch_t to an R vector
-void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding)
+void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, const cetype_t encoding, const char *old_enc_name)
 {
+    void *iconv_handle = NULL;
+    if (old_enc_name != NULL && strlen(old_enc_name) > 0)
+        iconv_handle = Riconv_open("UTF-8", old_enc_name);
+    
     for (int i=0; i<n_matches; i++)
     {
         if (data[i*n_regions] == NULL)
             SET_STRING_ELT(vec, i, mkCharCE("",encoding));
+        else if (iconv_handle)
+        {
+            const char *element = data[i*n_regions];
+            size_t old_size = strlen(element);
+            size_t new_size = old_size * 6;
+            char *buffer = R_alloc(new_size+1, 1);
+            char *buffer_start = buffer;
+            size_t written = Riconv(iconv_handle, &element, &old_size, &buffer, &new_size);
+            *buffer = '\0';
+            SET_STRING_ELT(vec, i, mkCharCE(buffer_start,CE_UTF8));
+        }
         else
             SET_STRING_ELT(vec, i, mkCharCE(data[i*n_regions],encoding));
     }
+    
+    if (iconv_handle)
+        Riconv_close(iconv_handle);
 }
 
 // Copy integer data for groups into an R matrix
@@ -246,18 +268,70 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
     }
 }
 
+// Read text from a connection into a buffer
+char * ore_read_connection (Rconnection connection)
+{
+#if (R_CONNECTIONS_VERSION > 1)
+    warning("Connection API may have changed");
+#endif
+    
+    size_t old_buffer_size = 0;
+    size_t buffer_size = CONNECTION_BUFFER_SIZE;
+    char *buffer = (char *) R_alloc(buffer_size, 1);
+    char *ptr = buffer;
+    
+    Rboolean opened = FALSE;
+    if (!connection->isopen)
+        opened = connection->open(connection);
+    
+    while (TRUE)
+    {
+        size_t n = buffer_size - old_buffer_size;
+        size_t bytes_read = R_ReadConnection(connection, ptr, n);
+        if (bytes_read < n)
+            return buffer;
+        else
+        {
+            old_buffer_size = buffer_size;
+            buffer_size *= 2;
+            ore_realloc(buffer, buffer_size, old_buffer_size, 1);
+            ptr = buffer + old_buffer_size;
+        }
+    }
+    
+    if (opened)
+        connection->destroy(connection);
+}
+
 // Vectorised wrapper around ore_search(), which handles the R API stuff
 SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_)
 {
     // Convert R objects to C types
-    regex_t *regex = ore_retrieve(regex_, text_);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
     
+    // Check whether the text argument is actually a connection
+    Rboolean using_connection = FALSE;
+    SEXP textClass = getAttrib(text_, R_ClassSymbol);
+    for (int i=0; i<length(textClass); i++)
+    {
+        if (strcmp(CHAR(STRING_ELT(textClass,i)), "connection") == 0)
+        {
+            using_connection = TRUE;
+            break;
+        }
+    }
+    
+    if (!using_connection)
+        PROTECT(text_ = AS_CHARACTER(text_));
+    
+    // Retrieve the regex
+    regex_t *regex = ore_retrieve(regex_, text_, using_connection);
+    
     // Obtain the lengths of the text and start vectors (the latter will be recycled if necessary)
-    const int text_len = length(text_);
+    const int text_len = using_connection ? 1 : length(text_);
     const int start_len = length(start_);
     
     // Check for sensible input
@@ -272,16 +346,37 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     // Step through each string to be searched
     for (int i=0; i<text_len; i++)
     {
-        const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
-        if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
-        {
-            warning("Encoding of text element %d does not match the regex", i+1);
-            SET_ELEMENT(results, i, R_NilValue);
-            continue;
-        }
+        rawmatch_t *raw_match;
+        cetype_t encoding;
+        Rconnection connection;
+        char *content;
         
-        // Do the match
-        rawmatch_t *raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), all, (size_t) start[i % start_len] - 1);
+        if (using_connection)
+        {
+            // Check the connection's encoding
+            connection = getConnection(asInteger(text_));
+            OnigEncoding encoding = ore_con_to_onig_enc(connection);
+            if (encoding != regex->enc)
+                warning("Connection encoding does not match the regex");
+            
+            // Do the match
+            content = ore_read_connection(connection);
+            raw_match = ore_search(regex, content, all, (size_t) start[0] - 1);
+        }
+        else
+        {
+            // Check the string's encoding
+            encoding = getCharCE(STRING_ELT(text_, i));
+            if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
+            {
+                warning("Encoding of text element %d does not match the regex", i+1);
+                SET_ELEMENT(results, i, R_NilValue);
+                continue;
+            }
+        
+            // Do the match
+            raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), all, (size_t) start[i % start_len] - 1);
+        }
         
         // Assign NULL if there's no match, otherwise build up an "orematch" object
         if (raw_match == NULL)
@@ -304,7 +399,11 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_STRING_ELT(result_names, 6, mkChar("matches"));
             
             // Convert elements of the raw match data to R vectors
-            PROTECT(text = ScalarString(STRING_ELT(text_,i)));
+            // Note that the text can't easily be returned from a connection because offsets and lengths may be wrong after translation between encodings
+            if (using_connection)
+                text = R_NilValue;
+            else
+                PROTECT(text = ScalarString(STRING_ELT(text_,i)));
             PROTECT(n_matches = ScalarInteger(raw_match->n_matches));
             PROTECT(offsets = NEW_INTEGER(raw_match->n_matches));
             ore_int_vector(offsets, raw_match->offsets, raw_match->n_regions, raw_match->n_matches, 1);
@@ -315,7 +414,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             PROTECT(byte_lengths = NEW_INTEGER(raw_match->n_matches));
             ore_int_vector(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, 0);
             PROTECT(matches = NEW_CHARACTER(raw_match->n_matches));
-            ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding);
+            if (using_connection)
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding, connection->encname);
+            else
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding, NULL);
             
             // Put everything in place
             SET_ELEMENT(result, 0, text);
@@ -327,7 +429,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_ELEMENT(result, 6, matches);
             
             // Unprotect everything back to "text"
-            UNPROTECT(7);
+            UNPROTECT(using_connection ? 6 : 7);
             
             // If there are groups present, extract them
             if (raw_match->n_regions > 1)
@@ -353,7 +455,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 PROTECT(byte_lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
                 ore_int_matrix(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names, 0);
                 PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding);
+                // ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding);
                 
                 // Put everything in place
                 SET_ELEMENT(groups, 0, offsets);
@@ -378,7 +480,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         }
     }
     
-    UNPROTECT(1);
+    UNPROTECT(using_connection ? 1 : 2);
     
     // Return just the first (and only) element of the full list, if requested
     if (simplify && text_len == 1)
