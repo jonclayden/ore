@@ -294,7 +294,7 @@ char * ore_read_connection (Rconnection connection)
         {
             old_buffer_size = buffer_size;
             buffer_size *= 2;
-            ore_realloc(buffer, buffer_size, old_buffer_size, 1);
+            buffer = (char *) ore_realloc(buffer, buffer_size, old_buffer_size, 1);
             ptr = buffer + old_buffer_size;
         }
     }
