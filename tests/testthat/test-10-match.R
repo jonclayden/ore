@@ -38,6 +38,9 @@ test_that("searching with a connection works", {
         # Same character offsets but different byte offsets
         expect_that(c(s1$offsets,s2$offsets), equals(c(14L,14L)))
         expect_that(c(s1$byteOffsets,s2$byteOffsets), equals(c(18L,22L)))
+        
+        close(c1)
+        close(c2)
     }
 })
 
