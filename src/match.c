@@ -197,7 +197,7 @@ const char * ore_iconv (void *iconv_handle, const char *old)
         char *buffer_start = buffer;
         size_t written = Riconv(iconv_handle, &old, &old_size, &buffer, &new_size);
         *buffer = '\0';
-        return buffer;
+        return buffer_start;
     }
     else
         return old;
@@ -207,9 +207,12 @@ const char * ore_iconv (void *iconv_handle, const char *old)
 void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, cetype_t encoding, const char *old_enc_name)
 {
     void *iconv_handle = NULL;
-    if (old_enc_name != NULL && strlen(old_enc_name) > 0)
+    if (old_enc_name != NULL)
     {
-        iconv_handle = Riconv_open("UTF-8", old_enc_name);
+        if (ore_strnicmp(old_enc_name, "native.enc", 10) == 0)
+            iconv_handle = Riconv_open("UTF-8", "");
+        else
+            iconv_handle = Riconv_open("UTF-8", old_enc_name);
         encoding = CE_UTF8;
     }
     
@@ -252,9 +255,12 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name)
 {
     void *iconv_handle = NULL;
-    if (old_enc_name != NULL && strlen(old_enc_name) > 0)
+    if (old_enc_name != NULL)
     {
-        iconv_handle = Riconv_open("UTF-8", old_enc_name);
+        if (ore_strnicmp(old_enc_name, "native.enc", 10) == 0)
+            iconv_handle = Riconv_open("UTF-8", "");
+        else
+            iconv_handle = Riconv_open("UTF-8", old_enc_name);
         encoding = CE_UTF8;
     }
     

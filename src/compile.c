@@ -62,6 +62,8 @@ OnigEncoding ore_con_to_onig_enc (Rconnection connection)
         return ONIG_ENCODING_ISO_8859_1;
     else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
         return ONIG_ENCODING_SJIS;
+    else if (ore_strnicmp(enc,"native.enc",10) == 0)
+        return ONIG_ENCODING_ASCII;
     else
     {
         warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);

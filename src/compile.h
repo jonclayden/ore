@@ -7,6 +7,8 @@ extern Rconnection getConnection (int n);
 
 #include "oniguruma.h"
 
+int ore_strnicmp (const char *str1, const char *str2, size_t num);
+
 void ore_regex_finaliser (SEXP regex_ptr);
 
 int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg);
