@@ -46,7 +46,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
         const char *text = CHAR(STRING_ELT(text_, i));
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text, TRUE, (size_t) start[i % start_len] - 1);
+        rawmatch_t *raw_match = ore_search(regex, text, NULL, TRUE, (size_t) start[i % start_len] - 1);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)

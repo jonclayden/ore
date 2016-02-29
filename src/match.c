@@ -78,7 +78,7 @@ void ore_rawmatch_store_string (rawmatch_t *match, const size_t loc, const char 
 }
 
 // Search a single string for matches to a regex
-rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, const size_t start)
+rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end, const Rboolean all, const size_t start)
 {
     int return_value, length;
     rawmatch_t *result = NULL;
@@ -89,11 +89,19 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const Rboolean all, c
     // The number of matches found so far
     int match_number = 0;
     
+    // Find the end-point of the text (for binary data it may include null bytes)
+    UChar *end_ptr;
+    if (text_end != NULL)
+        end_ptr = (UChar *) text_end;
+    else
+        end_ptr = (UChar *) text + strlen(text);
+    
     // If we're not starting at the beginning, step forward the required number of characters
-    UChar *end_ptr = (UChar *) text + strlen(text);
     UChar *start_ptr;
     if (start == 0)
         start_ptr = (UChar *) text;
+    else if (regex->enc->max_enc_len == 1)
+        start_ptr = (UChar *) text + start;
     else
         start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
     
@@ -294,7 +302,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 }
 
 // Read text from a file into a buffer
-char * ore_read_file (const char *filename)
+file_contents_t * ore_read_file (const char *filename)
 {
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL)
@@ -310,7 +318,10 @@ char * ore_read_file (const char *filename)
         size_t n = buffer_size - old_buffer_size;
         size_t bytes_read = fread(ptr, 1, n, fp);
         if (bytes_read < n)
-            return buffer;
+        {
+            ptr += bytes_read;
+            break;
+        }
         else
         {
             old_buffer_size = buffer_size;
@@ -321,6 +332,11 @@ char * ore_read_file (const char *filename)
     }
     
     fclose(fp);
+    
+    file_contents_t *contents = (file_contents_t *) R_alloc(1, sizeof(file_contents_t));
+    contents->start = buffer;
+    contents->end = ptr;
+    return contents;
 }
 
 // Vectorised wrapper around ore_search(), which handles the R API stuff
@@ -361,7 +377,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     {
         rawmatch_t *raw_match;
         cetype_t encoding;
-        char *content;
+        file_contents_t *contents;
         const char *file_encoding_string;
         
         if (using_file)
@@ -374,8 +390,8 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 warning("File encoding does not match the regex");
             
             // Do the match
-            content = ore_read_file(CHAR(STRING_ELT(text_, 0)));
-            raw_match = ore_search(regex, content, all, (size_t) start[0] - 1);
+            contents = ore_read_file(CHAR(STRING_ELT(text_, 0)));
+            raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
         }
         else
         {
@@ -389,7 +405,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             }
         
             // Do the match
-            raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), all, (size_t) start[i % start_len] - 1);
+            raw_match = ore_search(regex, CHAR(STRING_ELT(text_,i)), NULL, all, (size_t) start[i % start_len] - 1);
         }
         
         // Assign NULL if there's no match, otherwise build up an "orematch" object

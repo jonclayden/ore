@@ -78,8 +78,8 @@ SEXP ore_substitute_substrings (SEXP text_, SEXP n_matches_, SEXP offsets_, SEXP
 backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
 {
     // Match against global regexes for each type of back-reference
-    rawmatch_t *group_number_match = ore_search(group_number_regex, replacement, TRUE, 0);
-    rawmatch_t *group_name_match = ore_search(group_name_regex, replacement, TRUE, 0);
+    rawmatch_t *group_number_match = ore_search(group_number_regex, replacement, NULL, TRUE, 0);
+    rawmatch_t *group_name_match = ore_search(group_name_regex, replacement, NULL, TRUE, 0);
     
     // If there is no back-reference, return
     if (group_number_match == NULL && group_name_match == NULL)
@@ -191,7 +191,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         const char *text = CHAR(STRING_ELT(text_, i));
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text, all, 0);
+        rawmatch_t *raw_match = ore_search(regex, text, NULL, all, 0);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
