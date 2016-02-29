@@ -308,7 +308,7 @@ char * ore_read_file (const char *filename)
     while (TRUE)
     {
         size_t n = buffer_size - old_buffer_size;
-        size_t bytes_read = fread(buffer, 1, n, fp);
+        size_t bytes_read = fread(ptr, 1, n, fp);
         if (bytes_read < n)
             return buffer;
         else
