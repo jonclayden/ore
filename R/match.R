@@ -6,7 +6,9 @@
 #' 
 #' @param regex A single character string or object of class \code{"ore"}. In
 #'   the former case, this will first be passed through \code{\link{ore}}.
-#' @param text A vector of strings to match against.
+#' @param text A vector of strings to match against, or the result of a call to
+#'   \code{\link{ore.file}} to search in a file. In the latter case, match
+#'   offsets will be relative to the file's encoding.
 #' @param all If \code{TRUE}, then all matches within each element of
 #'   \code{text} will be found. Otherwise, the search will stop at the first
 #'   match.
@@ -298,6 +300,7 @@ ore.ismatch <- ore_ismatch <- function (regex, text, all = FALSE)
 #' \code{\link[base]{strsplit}} function in base R.
 #' 
 #' @inheritParams ore.search
+#' @param text A vector of strings to match against.
 #' @param simplify If \code{TRUE}, a character vector containing the pieces
 #'   will be returned if \code{text} is of length 1. Otherwise, a list of such
 #'   objects will always be returned.
@@ -331,6 +334,7 @@ ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
 #' called once per element of \code{text}.
 #' 
 #' @inheritParams ore.search
+#' @param text A vector of strings to match against.
 #' @param replacement A single character string, or a function to be applied
 #'   to the matches.
 #' @param ... Further arguments to \code{replacement}, if it is a function.

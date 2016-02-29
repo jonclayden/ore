@@ -23,7 +23,9 @@ is.orematch(x)
 \item{regex}{A single character string or object of class \code{"ore"}. In
 the former case, this will first be passed through \code{\link{ore}}.}
 
-\item{text}{A vector of strings to match against.}
+\item{text}{A vector of strings to match against, or the result of a call to
+\code{\link{ore.file}} to search in a file. In the latter case, match
+offsets will be relative to the file's encoding.}
 
 \item{all}{If \code{TRUE}, then all matches within each element of
 \code{text} will be found. Otherwise, the search will stop at the first

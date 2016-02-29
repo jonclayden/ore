@@ -24,7 +24,7 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore.ismatch("^\\s*$",""), is_true())
 })
 
-test_that("searching with a connection works", {
+test_that("searching in a file works", {
     # Calling readLines() will convert the text to UTF-8
     if (!("SHIFT-JIS" %in% iconvlist()))
         skip("The local \"iconv\" implementation doesn't support Shift-JIS")
@@ -38,6 +38,7 @@ test_that("searching with a connection works", {
         # Same character offsets but different byte offsets
         expect_that(c(s1$offsets,s2$offsets), equals(c(14L,14L)))
         expect_that(c(s1$byteOffsets,s2$byteOffsets), equals(c(18L,22L)))
+        expect_that(ore::matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), equals("Hello"))
     }
 })
 
