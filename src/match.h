@@ -32,7 +32,7 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name);
 
-char * ore_read_connection (Rconnection connection);
+char * ore_read_file (const char *filename);
 
 SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_);
 

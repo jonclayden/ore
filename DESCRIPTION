@@ -11,7 +11,7 @@ Description: Provides an alternative to R's built-in functionality for handling
     amongst other features.
 Encoding: UTF-8
 License: BSD_3_clause + file LICENCE
-Collate: workspace.R dict.R ore.R match.R es.R zzz.R
+Collate: workspace.R file.R dict.R ore.R match.R es.R zzz.R
 URL: https://github.com/jonclayden/ore
 BugReports: https://github.com/jonclayden/ore/issues
 RoxygenNote: 5.0.1

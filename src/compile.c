@@ -48,21 +48,16 @@ OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
     }
 }
 
-// Convert the encoding string from a connection to its Oniguruma equivalent
-OnigEncoding ore_con_to_onig_enc (Rconnection connection)
+// Convert an encoding string to its Oniguruma equivalent
+OnigEncoding ore_name_to_onig_enc (const char *enc)
 {
-#if (R_CONNECTIONS_VERSION > 1)
-    warning("Connection API may have changed");
-#endif
-    
-    const char *enc = connection->encname;
     if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
         return ONIG_ENCODING_UTF8;
     else if (ore_strnicmp(enc,"ISO_8859-1",10) == 0 || ore_strnicmp(enc,"ISO-8859-1",10) == 0 || ore_strnicmp(enc,"ISO8859-1",9) == 0 || ore_strnicmp(enc,"LATIN1",6) == 0)
         return ONIG_ENCODING_ISO_8859_1;
     else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
         return ONIG_ENCODING_SJIS;
-    else if (ore_strnicmp(enc,"native.enc",10) == 0)
+    else if (ore_strnicmp(enc,"ASCII",5) == 0)
         return ONIG_ENCODING_ASCII;
     else
     {
@@ -124,7 +119,7 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
 }
 
 // Retrieve a rawmatch_t object from the specified R object, which may be of class "ore" or just text
-regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_connection)
+regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_file)
 {
     // Check the class of the regex object; if it's text this will be NULL
     SEXP class = getAttrib(regex_, R_ClassSymbol);
@@ -133,10 +128,10 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_connection
         if (!isString(regex_))
             error("The specified regex must be of character mode");
         
-        if (using_connection)
+        if (using_file)
         {
-            Rconnection connection = getConnection(asInteger(text_));
-            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_con_to_onig_enc(connection), "ruby");
+            SEXP encoding_name = getAttrib(text_, install("encoding"));
+            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_name_to_onig_enc(CHAR(STRING_ELT(encoding_name,0))), "ruby");
         }
         else
         {
