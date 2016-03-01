@@ -1,9 +1,9 @@
+#include <string.h>
+
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
 #include <R_ext/Riconv.h>
-
-#include <string.h>
 
 #include "compile.h"
 #include "match.h"

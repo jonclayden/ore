@@ -1,9 +1,13 @@
+#include <string.h>
+#include <wchar.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+int mk_wcwidth (wchar_t ucs);
+#endif
+
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
-
-#include <string.h>
-#include <wchar.h>
 
 #include "compile.h"
 #include "match.h"
@@ -256,7 +260,11 @@ UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding enc
         int width;
         wchar_t wc;
         mbtowc(&wc, (const char *) ptr, char_len);
+#if defined(_WIN32) || defined(_WIN64)
+        width = mk_wcwidth(wc);
+#else
         width = wcwidth(wc);
+#endif
         
         // Tab and newline characters are expanded into their escaped versions to avoid spurious space in the result
         if (*ptr == '\t' || *ptr == '\n')
