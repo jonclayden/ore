@@ -51,14 +51,68 @@ OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
 // Convert an encoding string to its Oniguruma equivalent
 OnigEncoding ore_name_to_onig_enc (const char *enc)
 {
-    if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
+    if (ore_strnicmp(enc,"ASCII",5) == 0 || ore_strnicmp(enc,"US-ASCII",8) == 0)
+        return ONIG_ENCODING_ASCII;
+    else if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
         return ONIG_ENCODING_UTF8;
     else if (ore_strnicmp(enc,"ISO_8859-1",10) == 0 || ore_strnicmp(enc,"ISO-8859-1",10) == 0 || ore_strnicmp(enc,"ISO8859-1",9) == 0 || ore_strnicmp(enc,"LATIN1",6) == 0)
         return ONIG_ENCODING_ISO_8859_1;
+    else if (ore_strnicmp(enc,"ISO_8859-2",10) == 0 || ore_strnicmp(enc,"ISO-8859-2",10) == 0 || ore_strnicmp(enc,"ISO8859-2",9) == 0 || ore_strnicmp(enc,"LATIN2",6) == 0)
+        return ONIG_ENCODING_ISO_8859_2;
+    else if (ore_strnicmp(enc,"ISO_8859-3",10) == 0 || ore_strnicmp(enc,"ISO-8859-3",10) == 0 || ore_strnicmp(enc,"ISO8859-3",9) == 0 || ore_strnicmp(enc,"LATIN3",6) == 0)
+        return ONIG_ENCODING_ISO_8859_3;
+    else if (ore_strnicmp(enc,"ISO_8859-4",10) == 0 || ore_strnicmp(enc,"ISO-8859-4",10) == 0 || ore_strnicmp(enc,"ISO8859-4",9) == 0 || ore_strnicmp(enc,"LATIN4",6) == 0)
+        return ONIG_ENCODING_ISO_8859_4;
+    else if (ore_strnicmp(enc,"ISO_8859-5",10) == 0 || ore_strnicmp(enc,"ISO-8859-5",10) == 0 || ore_strnicmp(enc,"ISO8859-5",9) == 0 || ore_strnicmp(enc,"LATIN5",6) == 0)
+        return ONIG_ENCODING_ISO_8859_5;
+    else if (ore_strnicmp(enc,"ISO_8859-6",10) == 0 || ore_strnicmp(enc,"ISO-8859-6",10) == 0 || ore_strnicmp(enc,"ISO8859-6",9) == 0 || ore_strnicmp(enc,"LATIN6",6) == 0)
+        return ONIG_ENCODING_ISO_8859_6;
+    else if (ore_strnicmp(enc,"ISO_8859-7",10) == 0 || ore_strnicmp(enc,"ISO-8859-7",10) == 0 || ore_strnicmp(enc,"ISO8859-7",9) == 0 || ore_strnicmp(enc,"LATIN7",6) == 0)
+        return ONIG_ENCODING_ISO_8859_7;
+    else if (ore_strnicmp(enc,"ISO_8859-8",10) == 0 || ore_strnicmp(enc,"ISO-8859-8",10) == 0 || ore_strnicmp(enc,"ISO8859-8",9) == 0 || ore_strnicmp(enc,"LATIN8",6) == 0)
+        return ONIG_ENCODING_ISO_8859_8;
+    else if (ore_strnicmp(enc,"ISO_8859-9",10) == 0 || ore_strnicmp(enc,"ISO-8859-9",10) == 0 || ore_strnicmp(enc,"ISO8859-9",9) == 0 || ore_strnicmp(enc,"LATIN9",6) == 0)
+        return ONIG_ENCODING_ISO_8859_9;
+    else if (ore_strnicmp(enc,"ISO_8859-10",11) == 0 || ore_strnicmp(enc,"ISO-8859-10",11) == 0 || ore_strnicmp(enc,"ISO8859-10",10) == 0 || ore_strnicmp(enc,"LATIN10",7) == 0)
+        return ONIG_ENCODING_ISO_8859_10;
+    else if (ore_strnicmp(enc,"ISO_8859-11",11) == 0 || ore_strnicmp(enc,"ISO-8859-11",11) == 0 || ore_strnicmp(enc,"ISO8859-11",10) == 0 || ore_strnicmp(enc,"LATIN11",7) == 0)
+        return ONIG_ENCODING_ISO_8859_11;
+    else if (ore_strnicmp(enc,"ISO_8859-13",11) == 0 || ore_strnicmp(enc,"ISO-8859-13",11) == 0 || ore_strnicmp(enc,"ISO8859-13",10) == 0 || ore_strnicmp(enc,"LATIN13",7) == 0)
+        return ONIG_ENCODING_ISO_8859_13;
+    else if (ore_strnicmp(enc,"ISO_8859-14",11) == 0 || ore_strnicmp(enc,"ISO-8859-14",11) == 0 || ore_strnicmp(enc,"ISO8859-14",10) == 0 || ore_strnicmp(enc,"LATIN14",7) == 0)
+        return ONIG_ENCODING_ISO_8859_14;
+    else if (ore_strnicmp(enc,"ISO_8859-15",11) == 0 || ore_strnicmp(enc,"ISO-8859-15",11) == 0 || ore_strnicmp(enc,"ISO8859-15",10) == 0 || ore_strnicmp(enc,"LATIN15",7) == 0)
+        return ONIG_ENCODING_ISO_8859_15;
+    else if (ore_strnicmp(enc,"ISO_8859-16",11) == 0 || ore_strnicmp(enc,"ISO-8859-16",11) == 0 || ore_strnicmp(enc,"ISO8859-16",10) == 0 || ore_strnicmp(enc,"LATIN16",7) == 0)
+        return ONIG_ENCODING_ISO_8859_16;
+    else if (ore_strnicmp(enc,"UTF-16BE",8) == 0)
+        return ONIG_ENCODING_UTF16_BE;
+    else if (ore_strnicmp(enc,"UTF-16LE",8) == 0)
+        return ONIG_ENCODING_UTF16_LE;
+    else if (ore_strnicmp(enc,"UTF-32BE",8) == 0)
+        return ONIG_ENCODING_UTF32_BE;
+    else if (ore_strnicmp(enc,"UTF-32LE",8) == 0)
+        return ONIG_ENCODING_UTF32_LE;
+    else if (ore_strnicmp(enc,"BIG5",4) == 0 || ore_strnicmp(enc,"BIG-5",5) == 0 || ore_strnicmp(enc,"BIGFIVE",7) == 0 || ore_strnicmp(enc,"BIG-FIVE",8) == 0)
+        return ONIG_ENCODING_BIG5;
+    else if (ore_strnicmp(enc,"CP932",5) == 0)
+        return ONIG_ENCODING_CP932;
+    else if (ore_strnicmp(enc,"CP1251",6) == 0)
+        return ONIG_ENCODING_CP1251;
+    else if (ore_strnicmp(enc,"EUC-JP",6) == 0 || ore_strnicmp(enc,"EUCJP",5) == 0)
+        return ONIG_ENCODING_EUC_JP;
+    else if (ore_strnicmp(enc,"EUC-KR",6) == 0 || ore_strnicmp(enc,"EUCKR",5) == 0)
+        return ONIG_ENCODING_EUC_KR;
+    else if (ore_strnicmp(enc,"EUC-TW",6) == 0 || ore_strnicmp(enc,"EUCTW",5) == 0)
+        return ONIG_ENCODING_EUC_TW;
+    else if (ore_strnicmp(enc,"GB18030",7) == 0)
+        return ONIG_ENCODING_GB18030;
+    else if (ore_strnicmp(enc,"KOI8-R",6) == 0)
+        return ONIG_ENCODING_KOI8_R;
+    else if (ore_strnicmp(enc,"KOI8",4) == 0)
+        return ONIG_ENCODING_KOI8;
     else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
         return ONIG_ENCODING_SJIS;
-    else if (ore_strnicmp(enc,"ASCII",5) == 0)
-        return ONIG_ENCODING_ASCII;
     else
     {
         warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
