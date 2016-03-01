@@ -197,7 +197,7 @@ groups <- function (object, ...)
 
 #' @rdname matches
 #' @export
-groups.list <- function (object, simplify = FALSE, ...)
+groups.list <- function (object, simplify = TRUE, ...)
 {
     if (simplify)
     {
