@@ -144,9 +144,13 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
 #' 
 #' @param object An R object. Methods are provided for generic lists and
 #'   \code{"orematch"} objects.
-#' @param ... Further arguments to methods. Unused here.
+#' @param simplify For the list methods, should nonmatching elements be removed
+#'   from the result?
+#' @param ... Further arguments to methods.
 #' @return A vector, matrix, array, or list of the same, containing full
-#'   matches or subgroups.
+#'   matches or subgroups. If \code{simplify} is \code{TRUE}, the result may
+#'   have a \code{dropped} attribute, giving the indices of nonmatching
+#'   elements.
 #' @seealso \code{\link{ore.search}}
 #' @export
 matches <- function (object, ...)
@@ -156,9 +160,18 @@ matches <- function (object, ...)
 
 #' @rdname matches
 #' @export
-matches.list <- function (object, ...)
+matches.list <- function (object, simplify = TRUE, ...)
 {
-    return (sapply(object, matches, ...))
+    if (simplify)
+    {
+        matched <- !sapply(object, is.null)
+        result <- sapply(object[matched], matches, ...)
+        if (any(!matched))
+            attr(result, "dropped") <- which(!matched)
+        return (result)
+    }
+    else
+        return (sapply(object, matches, ...))
 }
 
 #' @rdname matches
@@ -186,7 +199,16 @@ groups <- function (object, ...)
 #' @export
 groups.list <- function (object, ...)
 {
-    return (sapply(object, groups, ..., simplify="array"))
+    if (simplify)
+    {
+        matched <- !sapply(object, is.null)
+        result <- sapply(object[matched], groups, ..., simplify="array")
+        if (any(!matched))
+            attr(result, "dropped") <- which(!matched)
+        return (result)
+    }
+    else
+        return (sapply(object, groups, ..., simplify="array"))
 }
 
 #' @rdname matches

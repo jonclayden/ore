@@ -14,7 +14,7 @@
 \usage{
 matches(object, ...)
 
-\method{matches}{list}(object, ...)
+\method{matches}{list}(object, simplify = TRUE, ...)
 
 \method{matches}{orematch}(object, ...)
 
@@ -34,11 +34,16 @@ groups(object, ...)
 \item{object}{An R object. Methods are provided for generic lists and
 \code{"orematch"} objects.}
 
-\item{...}{Further arguments to methods. Unused here.}
+\item{...}{Further arguments to methods.}
+
+\item{simplify}{For the list methods, should nonmatching elements be removed
+from the result?}
 }
 \value{
 A vector, matrix, array, or list of the same, containing full
-  matches or subgroups.
+  matches or subgroups. If \code{simplify} is \code{TRUE}, the result may
+  have a \code{dropped} attribute, giving the indices of nonmatching
+  elements.
 }
 \description{
 These functions extract entire matches, or just subgroup matches, from
