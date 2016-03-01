@@ -2,6 +2,21 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.3.0
+
+- It is now possible to search directly in text files, using their native
+  encoding, or in binary files, byte-by-byte. To do this, a call to the new
+  ore.file() function should replace the usual text argument to ore.search().
+  All of Onigmo's many encodings are supported for text files.
+- A new infix operator, %~|%, can be used filter vectors by whether they match
+  a regular expression.
+- The "matches" and "groups" methods for lists now drop nonmatching elements by
+  default. This helps avoid many NULLs in results.
+- The "print" method for "orematch" objects now works correctly with
+  double-width characters.
+
+===============================================================================
+
 VERSION 1.2.2
 
 - Zero-length matches could lead to segmentation faults. This has been

@@ -31,6 +31,7 @@ If you prefer the more verbose but also more friendly approach to creating regul
 - [Splitting](#splitting)
 - [The pattern dictionary](#the-pattern-dictionary)
 - [Additional convenience functions](#additional-convenience-functions)
+- [Searching in files](#searching-in-files)
 
 ## Installation
 
@@ -284,9 +285,9 @@ if ("I have 2 dogs, 3 cats and 4 hamsters" %~% "-?\\d+")
 # context: I have   dogs, 3 cats and 4 hamsters
 ```
 
-The `%~~%` operator works likewise, except that all matches will be found (i.e. it sets `all=TRUE` when calling `ore.search()`).
+The `%~~%` operator works likewise, except that all matches will be found (i.e. it sets `all=TRUE` when calling `ore.search()`). Finally, the `%~|%` operator filters a vector, returning just elements which match the regular expression.
 
-Text matching the entire regex, or parenthesised groups, can be extracted using the `matches()` and `groups()` convenience functions.
+Text matching the entire regex, or parenthesised groups, can be extracted using the `matches()` and `groups()` convenience functions, or even more concisely using indexing.
 
 ```R
 # An example from ?regexpr
@@ -294,9 +295,41 @@ re <- "^(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)"
 text <- "http://stat.umn.edu:80/xyz"
 match <- ore.search(re, text)
 matches(match)
-# "http://stat.umn.edu:80/xyz"
+# [1] "http://stat.umn.edu:80/xyz"
+
+match[1]
+# [1] "http://stat.umn.edu:80/xyz"
 
 groups(match)
 #      [,1]      [,2]   [,3]           [,4]  [,5] [,6]  
 # [1,] "http://" "http" "stat.umn.edu" ":80" "80" "/xyz"
+
+match[1,3]
+# [1] "stat.umn.edu"
 ```
+
+## Searching in files
+
+Since version 1.3.0 of the package, it has been possible to search directly within files, using their native encoding if it is supported by Onigmo (which supports many more encodings than R does internally). Binary files may also be searched, but in that case the regex is fixed to use ASCII encoding, and the file is examined byte-by-byte.
+
+For example, using a test file [provided with the package source](https://github.com/jonclayden/ore/blob/master/tests/testthat/sjis.txt), and if your local `iconv` supports the [Shift JIS encoding](https://en.wikipedia.org/wiki/Shift_JIS), you can try
+
+```R
+match <- ore.search("\\p{Katakana}+", ore.file("sjis.txt",encoding="SHIFT_JIS"), all=TRUE)
+matches(match)
+# [1] "コ"       "ディング" "ファイル"
+```
+
+Note that if you read the file using R's `readLines` function, it will be re-encoded to UTF-8. The same matches will be found, but the byte offsets are different:
+
+```R
+match <- ore.search("\\p{Katakana}+", ore.file("sjis.txt",encoding="SHIFT_JIS"), all=TRUE)
+match$byteOffsets
+# [1] 18 22 44
+
+match <- ore.search("\\p{Katakana}+", readLines(file("sjis.txt",encoding="SHIFT_JIS")), all=TRUE)
+match$byteOffsets
+# [1] 22 28 61
+```
+
+Hence, if you want to know where in a file the match can be found, the first of these approaches will give the right answer, while the latter will not.
