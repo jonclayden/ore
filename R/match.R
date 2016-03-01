@@ -243,7 +243,9 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' all=FALSE)}, while \code{\%~~\%} corresponds to \code{ore.ismatch(...,
 #' all=TRUE)}. Either way, the first argument can be an \code{"ore"} object,
 #' in which case the second is the text to search, or a character vector, in
-#' which case the second argument is assumed to contain the regex.
+#' which case the second argument is assumed to contain the regex. The
+#' \code{\%~|\%} shorthand returns just those elements of the text vector which
+#' match the regular expression.
 #' 
 #' @param regex A single character string or object of class \code{"ore"}.
 #' @param text A character vector of strings to search.
@@ -291,6 +293,16 @@ ore.ismatch <- ore_ismatch <- function (regex, text, all = FALSE)
         return (ore.ismatch(X, Y, all=TRUE))
     else
         return (ore.ismatch(Y, X, all=TRUE))
+}
+
+#' @rdname ore.ismatch
+#' @export
+"%~|%" <- function (X, Y)
+{
+    if (is.ore(X))
+        return (Y[ore.ismatch(X,Y)])
+    else
+        return (X[ore.ismatch(Y,X)])
 }
 
 #' Split strings using a regex
