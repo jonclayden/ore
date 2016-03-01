@@ -203,7 +203,7 @@ const char * ore_iconv (void *iconv_handle, const char *old)
         size_t new_size = old_size * 6;
         char *buffer = R_alloc(new_size+1, 1);
         char *buffer_start = buffer;
-        size_t written = Riconv(iconv_handle, &old, &old_size, &buffer, &new_size);
+        Riconv(iconv_handle, &old, &old_size, &buffer, &new_size);
         *buffer = '\0';
         return buffer_start;
     }
@@ -376,7 +376,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     for (int i=0; i<text_len; i++)
     {
         rawmatch_t *raw_match;
-        cetype_t encoding;
+        cetype_t encoding = CE_NATIVE;
         file_contents_t *contents;
         const char *file_encoding_string;
         

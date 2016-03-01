@@ -254,7 +254,7 @@ char * ore_build_pattern (SEXP pattern_)
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_name_)
 {
     regex_t *regex;
-    int n_groups, return_value;
+    int n_groups;
     SEXP result, regex_ptr;
     
     // Obtain pointers to content
@@ -317,7 +317,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
         for (int i=0; i<n_groups; i++)
             SET_STRING_ELT(names, i, NA_STRING);
         
-        return_value = onig_foreach_name(regex, &ore_store_name, names);
+        onig_foreach_name(regex, &ore_store_name, names);
         
         for (int i=0; i<n_groups; i++)
         {
