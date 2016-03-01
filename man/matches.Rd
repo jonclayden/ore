@@ -22,7 +22,7 @@ matches(object, ...)
 
 groups(object, ...)
 
-\method{groups}{list}(object, ...)
+\method{groups}{list}(object, simplify = FALSE, ...)
 
 \method{groups}{orematch}(object, ...)
 
