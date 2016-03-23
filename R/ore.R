@@ -74,3 +74,20 @@ print.ore <- function (x, ...)
     cat(paste(" - ", attr(x,"encoding"), " encoding\n", sep=""))
     cat(paste(" - ", attr(x,"syntax"), " syntax\n", sep=""))
 }
+
+#' Escape regular expression special characters
+#' 
+#' Escape characters that would usually be interpreted specially in a regular
+#' expression, returning a modified version of the argument. This can be
+#' useful when incorporating a general-purpose string into a larger regex.
+#' 
+#' @param text A character vector.
+#' @return A modified version of the argument, with special characters escaped
+#'   by prefixing them with a backslash.
+#' 
+#' @seealso \code{\link{ore}}
+#' @export ore.escape ore_escape
+ore.escape <- ore_escape <- function (text)
+{
+    .Call("ore_escape", as.character(text), PACKAGE="ore")
+}

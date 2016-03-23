@@ -2,6 +2,6 @@ OBJECTS_ENC = onig/enc/ascii.o onig/enc/big5.o onig/enc/cp1251.o onig/enc/cp932.
 
 OBJECTS_ONIG = onig/regcomp.o onig/regenc.o onig/regerror.o onig/regexec.o onig/regext.o onig/reggnu.o onig/regparse.o onig/regposerr.o onig/regposix.o onig/regsyntax.o onig/regtrav.o onig/regversion.o onig/st.o
 
-OBJECTS = compile.o match.o print.o split.o subst.o wcwidth.o zzz.o $(OBJECTS_ONIG) $(OBJECTS_ENC)
+OBJECTS = compile.o escape.o match.o print.o split.o subst.o wcwidth.o zzz.o $(OBJECTS_ONIG) $(OBJECTS_ENC)
 
 PKG_CPPFLAGS = -Ionig

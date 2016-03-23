@@ -17,4 +17,5 @@ test_that("Oniguruma regular expression compilation and interpretation works", {
     expect_that(attr(regexWithSyntax,"syntax"), equals("fixed"))
     expect_that(ore("(\\w+"), throws_error())
     expect_that(regexGenerator(), equals(simpleRegex,check.attributes=FALSE))
+    expect_that(ore.escape("-?\\d+"), equals("-\\?\\\\d\\+"))
 })
