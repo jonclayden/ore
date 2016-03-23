@@ -2,6 +2,7 @@
 % Please edit documentation in R/ore.R
 \name{ore.escape}
 \alias{ore.escape}
+\alias{ore_escape}
 \title{Escape regular expression special characters}
 \usage{
 ore.escape(text)

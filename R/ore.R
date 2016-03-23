@@ -86,6 +86,7 @@ print.ore <- function (x, ...)
 #'   by prefixing them with a backslash.
 #' 
 #' @seealso \code{\link{ore}}
+#' @aliases ore_escape
 #' @export ore.escape ore_escape
 ore.escape <- ore_escape <- function (text)
 {
