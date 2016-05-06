@@ -2,6 +2,14 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.4.0
+
+- The new ore.escape() function can be used to escape characters which would
+  usually have special significance in a regular expression. This can be
+  helpful when incorporating arbitrary strings into a regex using ore().
+
+===============================================================================
+
 VERSION 1.3.0
 
 - It is now possible to search directly in text files, using their native
