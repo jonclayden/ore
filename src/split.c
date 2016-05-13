@@ -24,8 +24,6 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     const int start_len = length(start_);
     
     // Check for sensible input
-    if (text_len < 1)
-        error("The text vector is empty");
     if (start_len < 1)
         error("The vector of starting positions is empty");
     

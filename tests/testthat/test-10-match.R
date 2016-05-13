@@ -11,6 +11,8 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore.search(regexUtf8,text,all=TRUE)$offsets, equals(c(6L,13L)))
     expect_that(ore.search(regexUtf8,text,start=10L)$offsets, equals(13L))
     
+    expect_that(ore.search(regex,NULL), is_identical_to(list()))
+    
     expect_that(ore.search(ore("Have"),text), is_null())
     expect_that(ore::matches(ore.search(ore("Have",options="i"),text)), equals("have"))
     

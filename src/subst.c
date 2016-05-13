@@ -157,10 +157,8 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     
-    // Obtain the lengths of the text vector, and check it's sensible
+    // Obtain the length of the text vector
     const int text_len = length(text_);
-    if (text_len < 1)
-        error("The text vector is empty");
     
     // Look for back-references in the replacement, if it's a string
     backref_info_t *backref_info = NULL;
