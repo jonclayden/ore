@@ -517,5 +517,8 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     if (simplify && text_len == 1)
         return VECTOR_ELT(results, 0);
     else
+    {
+        setAttrib(results, R_ClassSymbol, mkString("orematches"));
         return results;
+    }
 }
