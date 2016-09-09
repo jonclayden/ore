@@ -11,7 +11,7 @@ test_that("Oniguruma regular expression matching works", {
     expect_that(ore.search(regexUtf8,text,all=TRUE)$offsets, equals(c(6L,13L)))
     expect_that(ore.search(regexUtf8,text,start=10L)$offsets, equals(13L))
     
-    expect_that(ore.search(regex,NULL), is_identical_to(list()))
+    expect_that(ore.search(regex,NULL), is_identical_to(structure(list(),class="orematches")))
     
     expect_that(ore.search(ore("Have"),text), is_null())
     expect_that(ore::matches(ore.search(ore("Have",options="i"),text)), equals("have"))
@@ -24,6 +24,9 @@ test_that("Oniguruma regular expression matching works", {
     
     expect_that(ore.ismatch("[aeiou]",c("sky","lake")), equals(c(FALSE,TRUE)))
     expect_that(ore.ismatch("^\\s*$",""), is_true())
+    
+    # Check infix syntax and implicit last match argument to matches()
+    expect_that(if ("lake" %~% "[aeiou]") ore::matches(), equals("a"))
 })
 
 test_that("searching in a file works", {
@@ -46,10 +49,15 @@ test_that("searching in a file works", {
 
 test_that("group extraction and indexing works", {
     match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
-    
     expect_that(dim(groups(match)), equals(c(5L,2L)))
     expect_that(match[2], equals("is"))
     expect_that(match[2,2], equals("s"))
+    
+    matches <- ore.search("(\\w)(\\w)", c("This","is","a","test"), all=TRUE)
+    expect_that(matches[1,2], equals("is"))
+    expect_that(matches[1,2,2], equals("s"))
+    expect_that(matches[,1], equals(c("Th","is",NA,"te")))
+    expect_that(matches[,1,2], equals(c("h","s",NA,"e")))
 })
 
 test_that("literal, back-referenced and functional substitution work", {
