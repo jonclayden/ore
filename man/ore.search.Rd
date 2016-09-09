@@ -2,22 +2,28 @@
 % Please edit documentation in R/match.R
 \name{ore.search}
 \alias{[.orematch}
+\alias{[.orematches}
 \alias{is.orematch}
 \alias{is_orematch}
 \alias{ore.search}
 \alias{ore_search}
 \alias{orematch}
 \alias{print.orematch}
+\alias{print.orematches}
 \title{Search for matches to a regular expression}
 \usage{
 ore.search(regex, text, all = FALSE, start = 1L, simplify = TRUE)
 
 is.orematch(x)
 
-\method{[}{orematch}(x, i, j, ...)
+\method{[}{orematch}(x, j, k, ...)
+
+\method{[}{orematches}(x, i, j, k, ...)
 
 \method{print}{orematch}(x, lines = NULL, context = NULL, width = NULL,
   ...)
+
+\method{print}{orematches}(x, ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -36,15 +42,18 @@ searching. Will be recycled to the length of \code{text}.}
 
 \item{simplify}{If \code{TRUE}, an object of class \code{"orematch"} will
 be returned if \code{text} is of length 1. Otherwise, a list of such
-objects will always be returned.}
+objects, with class \code{"orematches"}, will always be returned.}
 
 \item{x}{An R object.}
 
-\item{i}{For indexing into an \code{"orematch"} object, the match number.}
+\item{j}{For indexing, the match number.}
 
-\item{j}{For indexing into an \code{"orematch"} object, the group number.}
+\item{k}{For indexing, the group number.}
 
 \item{...}{Ignored.}
+
+\item{i}{For indexing into an \code{"orematches"} object only, the string
+number.}
 
 \item{lines}{The maximum number of lines to print. If \code{NULL}, this
 defaults to the value of the \code{"ore.lines"} option, or 0 if that is
@@ -78,7 +87,7 @@ For \code{ore.search}, an \code{"orematch"} object, or a list of
 }
 \description{
 Search a character vector for one or more matches to an Oniguruma-compatible
-regular expression. The result is of class \code{"orematch"}, for which
+regular expression. The result is of class \code{"orematches"}, for which
 printing and indexing methods are available.
 }
 \note{
