@@ -178,7 +178,9 @@ print.orematches <- function (x, ...)
 #' string is searched. For other objects they return \code{NA}.
 #' 
 #' @param object An R object. Methods are provided for generic lists and
-#'   \code{"orematch"} objects.
+#'   \code{"orematch"} objects. If no object is provided (i.e. the method is
+#'   called with no arguments), the value of \code{\link{ore.lastmatch()}} will
+#'   be used as a default.
 #' @param simplify For the list methods, should nonmatching elements be removed
 #'   from the result?
 #' @param ... Further arguments to methods.
@@ -190,7 +192,10 @@ print.orematches <- function (x, ...)
 #' @export
 matches <- function (object, ...)
 {
-    UseMethod("matches")
+    if (missing(object))
+        matches(ore.lastmatch())
+    else
+        UseMethod("matches", object)
 }
 
 #' @rdname matches
@@ -227,7 +232,10 @@ matches.default <- function (object, ...)
 #' @export
 groups <- function (object, ...)
 {
-    UseMethod("groups")
+    if (missing(object))
+        groups(ore.lastmatch())
+    else
+        UseMethod("groups", object)
 }
 
 #' @rdname matches
