@@ -2,6 +2,18 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.5.0
+
+- The object returned by ore.search() now generally has the class "orematches".
+  This class has its own indexing and print methods to avoid copious output and
+  allow quicker access to multiple matches.
+- The ore.search() and ore.split() functions now accept zero-length text
+  vectors, returning an empty list rather than producing an error.
+- The matches() and groups() functions now use the last match by default, if
+  called with no argument.
+
+===============================================================================
+
 VERSION 1.4.0
 
 - The new ore.escape() function can be used to escape characters which would
