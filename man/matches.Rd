@@ -3,18 +3,18 @@
 \name{matches}
 \alias{groups}
 \alias{groups.default}
-\alias{groups.list}
 \alias{groups.orearg}
 \alias{groups.orematch}
+\alias{groups.orematches}
 \alias{matches}
 \alias{matches.default}
-\alias{matches.list}
 \alias{matches.orematch}
+\alias{matches.orematches}
 \title{Extract matching substrings}
 \usage{
 matches(object, ...)
 
-\method{matches}{list}(object, simplify = TRUE, ...)
+\method{matches}{orematches}(object, simplify = TRUE, ...)
 
 \method{matches}{orematch}(object, ...)
 
@@ -22,7 +22,7 @@ matches(object, ...)
 
 groups(object, ...)
 
-\method{groups}{list}(object, simplify = TRUE, ...)
+\method{groups}{orematches}(object, simplify = TRUE, ...)
 
 \method{groups}{orematch}(object, ...)
 
@@ -32,7 +32,9 @@ groups(object, ...)
 }
 \arguments{
 \item{object}{An R object. Methods are provided for generic lists and
-\code{"orematch"} objects.}
+\code{"orematch"} objects. If no object is provided (i.e. the method is
+called with no arguments), the value of \code{\link{ore.lastmatch()}} will
+be used as a default.}
 
 \item{...}{Further arguments to methods.}
 
