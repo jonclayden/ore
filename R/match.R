@@ -334,9 +334,9 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' @seealso \code{\link{ore.search}}
 #' @aliases ore_ismatch
 #' @export ore.ismatch ore_ismatch
-ore.ismatch <- ore_ismatch <- function (regex, text, all = FALSE)
+ore.ismatch <- ore_ismatch <- function (regex, text, ...)
 {
-    match <- ore.search(regex, text, all=all, start=1L, simplify=FALSE)
+    match <- ore.search(regex, text, simplify=FALSE, ...)
     return (!sapply(match, is.null))
 }
 
