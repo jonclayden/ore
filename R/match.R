@@ -72,9 +72,9 @@
 #' matching substrings.
 #' @aliases orematch ore_search
 #' @export ore.search ore_search
-ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE)
+ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE, incremental = !all)
 {
-    match <- .Call("ore_search_all", regex, text, as.logical(all), as.integer(start), as.logical(simplify), PACKAGE="ore")
+    match <- .Call("ore_search_all", regex, text, as.logical(all), as.integer(start), as.logical(simplify), as.logical(incremental), PACKAGE="ore")
     
     .Workspace$lastMatch <- match
     return (match)

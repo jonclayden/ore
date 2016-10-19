@@ -302,7 +302,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 }
 
 // Read text from a file into a buffer
-file_contents_t * ore_read_file (const char *filename)
+file_contents_t * ore_read_file (const char *filename, const int buffer_size_level)
 {
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL)
@@ -310,24 +310,40 @@ file_contents_t * ore_read_file (const char *filename)
     
     size_t old_buffer_size = 0;
     size_t buffer_size = FILE_BUFFER_SIZE;
+    if (buffer_size_level > 0)
+    {
+        for (int i=1; i<buffer_size_level; i++)
+            buffer_size *= 2;
+    }
+    
     char *buffer = (char *) R_alloc(buffer_size, 1);
     char *ptr = buffer;
+    Rboolean more = FALSE;
     
-    while (TRUE)
+    if (buffer_size_level > 0)
     {
-        size_t n = buffer_size - old_buffer_size;
-        size_t bytes_read = fread(ptr, 1, n, fp);
-        if (bytes_read < n)
+        size_t bytes_read = fread(ptr, 1, buffer_size, fp);
+        ptr += bytes_read;
+        more = (bytes_read == buffer_size);
+    }
+    else
+    {
+        while (TRUE)
         {
-            ptr += bytes_read;
-            break;
-        }
-        else
-        {
-            old_buffer_size = buffer_size;
-            buffer_size *= 2;
-            buffer = (char *) ore_realloc(buffer, buffer_size, old_buffer_size, 1);
-            ptr = buffer + old_buffer_size;
+            size_t n = buffer_size - old_buffer_size;
+            size_t bytes_read = fread(ptr, 1, n, fp);
+            if (bytes_read < n)
+            {
+                ptr += bytes_read;
+                break;
+            }
+            else
+            {
+                old_buffer_size = buffer_size;
+                buffer_size *= 2;
+                buffer = (char *) ore_realloc(buffer, buffer_size, old_buffer_size, 1);
+                ptr = buffer + old_buffer_size;
+            }
         }
     }
     
@@ -336,16 +352,18 @@ file_contents_t * ore_read_file (const char *filename)
     file_contents_t *contents = (file_contents_t *) R_alloc(1, sizeof(file_contents_t));
     contents->start = buffer;
     contents->end = ptr;
+    contents->more = more;
     return contents;
 }
 
 // Vectorised wrapper around ore_search(), which handles the R API stuff
-SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_)
+SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP incremental_)
 {
     // Convert R objects to C types
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
+    const Rboolean incremental = asLogical(incremental_) == TRUE;
     int *start = INTEGER(start_);
     
     // Check whether the text argument is actually a file path
@@ -388,8 +406,26 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 warning("File encoding does not match the regex");
             
             // Do the match
-            contents = ore_read_file(CHAR(STRING_ELT(text_, 0)));
-            raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
+            if (incremental && !all)
+            {
+                for (int j=1; ; j++)
+                {
+                    contents = ore_read_file(CHAR(STRING_ELT(text_, 0)), j);
+                    raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
+                    
+                    size_t end_of_last_match = 0;
+                    if (raw_match != NULL)
+                        end_of_last_match = (size_t) raw_match->byte_offsets[raw_match->n_matches-1] + raw_match->byte_lengths[raw_match->n_matches-1];
+                    
+                    if (!contents->more || (raw_match != NULL && end_of_last_match < (contents->end - contents->start)))
+                        break;
+                }
+            }
+            else
+            {
+                contents = ore_read_file(CHAR(STRING_ELT(text_, 0)), 0);
+                raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
+            }
         }
         else
         {

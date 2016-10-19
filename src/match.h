@@ -15,8 +15,9 @@ typedef struct {
 } rawmatch_t;
 
 typedef struct {
-    char  * start;
-    char  * end;
+    char     * start;
+    char     * end;
+    Rboolean   more;
 } file_contents_t;
 
 rawmatch_t * ore_rawmatch_alloc (const int n_regions);
@@ -37,8 +38,8 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name);
 
-file_contents_t * ore_read_file (const char *filename);
+file_contents_t * ore_read_file (const char *filename, const int buffer_size_level);
 
-SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_);
+SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP incremental_);
 
 #endif
