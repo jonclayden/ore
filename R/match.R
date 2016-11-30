@@ -17,6 +17,9 @@
 #' @param simplify If \code{TRUE}, an object of class \code{"orematch"} will
 #'   be returned if \code{text} is of length 1. Otherwise, a list of such
 #'   objects, with class \code{"orematches"}, will always be returned.
+#' @param incremental If \code{TRUE} and the \code{text} argument points to a
+#'   file, the file is read in increasingly large blocks. This can reduce
+#'   search time in large files.
 #' @param x An R object.
 #' @param i For indexing into an \code{"orematches"} object only, the string
 #'   number.
@@ -314,9 +317,7 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' 
 #' @param regex A single character string or object of class \code{"ore"}.
 #' @param text A character vector of strings to search.
-#' @param all Passed to \code{\link{ore.search}}. Makes no difference to the
-#'   return value of these functions, but influences the underlying
-#'   \code{"orematch"} object, which can be retrieved afterwards.
+#' @param ... Further arguments to \code{\link{ore.search}}.
 #' @param X A character vector or \code{"ore"} object. See Details.
 #' @param Y A character vector. See Details.
 #' @return A logical vector, indicating whether elements of \code{text} match

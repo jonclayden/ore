@@ -8,7 +8,7 @@
 \alias{ore_ismatch}
 \title{Does text match a regex?}
 \usage{
-ore.ismatch(regex, text, all = FALSE)
+ore.ismatch(regex, text, ...)
 
 X \%~\% Y
 
@@ -21,9 +21,7 @@ X \%~|\% Y
 
 \item{text}{A character vector of strings to search.}
 
-\item{all}{Passed to \code{\link{ore.search}}. Makes no difference to the
-return value of these functions, but influences the underlying
-\code{"orematch"} object, which can be retrieved afterwards.}
+\item{...}{Further arguments to \code{\link{ore.search}}.}
 
 \item{X}{A character vector or \code{"ore"} object. See Details.}
 

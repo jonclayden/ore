@@ -12,7 +12,8 @@
 \alias{print.orematches}
 \title{Search for matches to a regular expression}
 \usage{
-ore.search(regex, text, all = FALSE, start = 1L, simplify = TRUE)
+ore.search(regex, text, all = FALSE, start = 1L, simplify = TRUE,
+  incremental = !all)
 
 is.orematch(x)
 
@@ -43,6 +44,10 @@ searching. Will be recycled to the length of \code{text}.}
 \item{simplify}{If \code{TRUE}, an object of class \code{"orematch"} will
 be returned if \code{text} is of length 1. Otherwise, a list of such
 objects, with class \code{"orematches"}, will always be returned.}
+
+\item{incremental}{If \code{TRUE} and the \code{text} argument points to a
+file, the file is read in increasingly large blocks. This can reduce
+search time in large files.}
 
 \item{x}{An R object.}
 
