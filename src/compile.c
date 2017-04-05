@@ -287,25 +287,25 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     R_RegisterCFinalizerEx(regex_ptr, &ore_regex_finaliser, FALSE);
     setAttrib(result, install(".compiled"), regex_ptr);
     
-    setAttrib(result, install("options"), ScalarString(STRING_ELT(options_, 0)));
-    setAttrib(result, install("syntax"), ScalarString(STRING_ELT(syntax_name_, 0)));
+    setAttrib(result, install("options"), PROTECT(ScalarString(STRING_ELT(options_, 0))));
+    setAttrib(result, install("syntax"), PROTECT(ScalarString(STRING_ELT(syntax_name_, 0))));
     
     switch (encoding)
     {
         case CE_UTF8:
-        setAttrib(result, install("encoding"), mkString("UTF-8"));
+        setAttrib(result, install("encoding"), PROTECT(mkString("UTF-8")));
         break;
         
         case CE_LATIN1:
-        setAttrib(result, install("encoding"), mkString("latin1"));
+        setAttrib(result, install("encoding"), PROTECT(mkString("latin1")));
         break;
         
         default:
-        setAttrib(result, install("encoding"), mkString("unknown"));
+        setAttrib(result, install("encoding"), PROTECT(mkString("unknown")));
         break;
     }
     
-    setAttrib(result, install("nGroups"), ScalarInteger(n_groups));
+    setAttrib(result, install("nGroups"), PROTECT(ScalarInteger(n_groups)));
     
     // Obtain group names, if available
     if (n_groups > 0)
@@ -336,6 +336,6 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     
     setAttrib(result, R_ClassSymbol, mkString("ore"));
     
-    UNPROTECT(2);
+    UNPROTECT(6);
     return result;
 }
