@@ -12,7 +12,7 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 - Matches can be efficiently obtained over only part of the strings.
 - There are fewer core functions, and they have more consistent names.
 
-Oniguruma (or rather, the Onigmo fork of it) is the regular expression library used by the [Ruby programming language](http://ruby-lang.org/), and `ore` is somewhat inspired by Ruby's regular expression features; although it is implemented in what aims to be a natural way for R users, including full vectorisation.
+Oniguruma (or rather, the [Onigmo](https://github.com/k-takata/Onigmo) fork of it) is the regular expression library used by the [Ruby programming language](http://ruby-lang.org/), and `ore` is somewhat inspired by Ruby's regular expression features; although it is implemented in what aims to be a natural way for R users, including full vectorisation.
 
 This `README` covers the package's R interface only, and assumes that the reader is already familiar with regular expressions. Please see the [official reference document](https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE) for details of supported regular expression syntax.
 
