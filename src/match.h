@@ -1,7 +1,7 @@
 #ifndef _MATCH_H_
 #define _MATCH_H_
 
-#include "oniguruma.h"
+#include "onigmo.h"
 
 typedef struct {
     int     capacity;

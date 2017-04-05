@@ -4,7 +4,7 @@
 #include <Rdefines.h>
 #include <Rinternals.h>
 
-#include "oniguruma.h"
+#include "onigmo.h"
 #include "zzz.h"
 
 extern regex_t *group_number_regex;

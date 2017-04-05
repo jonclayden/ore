@@ -10,7 +10,7 @@
 #include "print.h"
 #include "wcwidth.h"
 
-extern UChar * onigenc_step_back (OnigEncoding enc, const UChar *start, const UChar *s, int n);
+extern UChar * onigenc_step_back (OnigEncoding enc, const OnigUChar* start, const OnigUChar* s, const OnigUChar* end, int n);
 
 // Extract an element of an R list by name
 SEXP ore_get_list_element (SEXP list, const char *name)
@@ -253,7 +253,7 @@ UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding enc
 {
     for (int i=0; i<n; i++)
     {
-        int char_len = encoding->mbc_enc_len(ptr);
+        int char_len = onigenc_mbclen_approximate(ptr, ptr+encoding->max_enc_len, encoding);
         int width;
         wchar_t wc;
         mbtowc(&wc, (const char *) ptr, char_len);
@@ -288,6 +288,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     SEXP text_ = ore_get_list_element(match, "text");
     const UChar *text = (const UChar *) CHAR(STRING_ELT(text_, 0));
     OnigEncoding encoding = ore_r_to_onig_enc(getCharCE(STRING_ELT(text_, 0)));
+    const UChar *end = text + strlen(CHAR(STRING_ELT(text_, 0)));
     size_t text_len = onigenc_strlen_null(encoding, text);
     
     // Retrieve offsets and convert to C convention by subtracting 1
@@ -319,7 +320,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         {
             // There is more precontext than we want, so truncate (with an ellipsis)
             precontext_len = context;
-            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], precontext_len);
+            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], end, precontext_len);
             for (int j=0; j<3; j++)
                 ore_push_byte(state, '.', 1);
         }
@@ -327,7 +328,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         {
             // There is some precontext
             precontext_len = offsets[i] - start;
-            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], precontext_len);
+            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], end, precontext_len);
         }
         else
             ptr = (UChar *) text + byte_offsets[i];

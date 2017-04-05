@@ -1,7 +1,7 @@
 #ifndef _COMPILE_H_
 #define _COMPILE_H_
 
-#include "oniguruma.h"
+#include "onigmo.h"
 
 int ore_strnicmp (const char *str1, const char *str2, size_t num);
 

@@ -97,8 +97,18 @@ OnigEncoding ore_name_to_onig_enc (const char *enc)
         return ONIG_ENCODING_BIG5;
     else if (ore_strnicmp(enc,"CP932",5) == 0)
         return ONIG_ENCODING_CP932;
-    else if (ore_strnicmp(enc,"CP1251",6) == 0)
-        return ONIG_ENCODING_CP1251;
+    else if (ore_strnicmp(enc,"CP1250",6) == 0 || ore_strnicmp(enc,"WINDOWS-1250",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1250;
+    else if (ore_strnicmp(enc,"CP1251",6) == 0 || ore_strnicmp(enc,"WINDOWS-1251",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1251;
+    else if (ore_strnicmp(enc,"CP1252",6) == 0 || ore_strnicmp(enc,"WINDOWS-1252",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1252;
+    else if (ore_strnicmp(enc,"CP1253",6) == 0 || ore_strnicmp(enc,"WINDOWS-1253",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1253;
+    else if (ore_strnicmp(enc,"CP1254",6) == 0 || ore_strnicmp(enc,"WINDOWS-1254",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1254;
+    else if (ore_strnicmp(enc,"CP1257",6) == 0 || ore_strnicmp(enc,"WINDOWS-1257",12) == 0)
+        return ONIG_ENCODING_WINDOWS_1257;
     else if (ore_strnicmp(enc,"EUC-JP",6) == 0 || ore_strnicmp(enc,"EUCJP",5) == 0)
         return ONIG_ENCODING_EUC_JP;
     else if (ore_strnicmp(enc,"EUC-KR",6) == 0 || ore_strnicmp(enc,"EUCKR",5) == 0)
@@ -109,8 +119,8 @@ OnigEncoding ore_name_to_onig_enc (const char *enc)
         return ONIG_ENCODING_GB18030;
     else if (ore_strnicmp(enc,"KOI8-R",6) == 0)
         return ONIG_ENCODING_KOI8_R;
-    else if (ore_strnicmp(enc,"KOI8",4) == 0)
-        return ONIG_ENCODING_KOI8;
+    else if (ore_strnicmp(enc,"KOI8-U",4) == 0)
+        return ONIG_ENCODING_KOI8_U;
     else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
         return ONIG_ENCODING_SJIS;
     else
@@ -146,16 +156,16 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
         option_pointer++;
     }
     
-    OnigSyntaxType *syntax;
+    OnigSyntaxType *syntax = (OnigSyntaxType *) R_alloc(1, sizeof(OnigSyntaxType));
     if (strncmp(syntax_name, "ruby", 4) == 0)
     {
         // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
-        syntax = ONIG_SYNTAX_RUBY;
+        onig_copy_syntax(syntax, ONIG_SYNTAX_RUBY);
         ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
     }
     else if (strncmp(syntax_name, "fixed", 5) == 0)
     {
-        syntax = ONIG_SYNTAX_ASIS;
+        onig_copy_syntax(syntax, ONIG_SYNTAX_ASIS);
     }
     else
         error("Syntax name \"%s\" is invalid\n", syntax_name);
