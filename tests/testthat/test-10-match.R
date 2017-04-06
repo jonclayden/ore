@@ -64,6 +64,7 @@ test_that("literal, back-referenced and functional substitution work", {
     expect_that(ore.subst("\\d+","no","2 dogs"), equals("no dogs"))
     expect_that(ore.subst("(\\d+)","\\1\\1","2 dogs"), equals("22 dogs"))
     expect_that(ore.subst("\\d+",function(i) as.numeric(i)^2,"2 dogs"), equals("4 dogs"))
+    expect_that(ore.subst("\\d+",function(i) max(as.numeric(i)), "2, 4, 6 or 8 dogs?", all=TRUE), equals("8, 8, 8 or 8 dogs?"))
 })
 
 test_that("splitting a string by a regular expression works", {
