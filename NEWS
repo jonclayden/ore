@@ -2,6 +2,21 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.6.0
+
+- The Onigmo library has been updated to version 6.1.1.
+- Files will now be searched incrementally, meaning that large files do not
+  need to be read in their entirety if the match is near the beginning. This is
+  disabled by default if all matches are requested.
+- Additional arguments to ore.search() are now accessible through an ellipsis
+  argument to ore.ismatch().
+- The results of a substitution function are now recycled across matches, and
+  can therefore be of any length. 
+- A handful of subtle garbage-collection heisenbugs have been corrected.
+  (Reported by Tomas Kalibera.)
+
+===============================================================================
+
 VERSION 1.5.0
 
 - The object returned by ore.search() now generally has the class "orematches".
