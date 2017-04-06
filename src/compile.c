@@ -6,6 +6,8 @@
 
 #include "compile.h"
 
+OnigSyntaxType *modified_ruby_syntax;
+
 // Not strictly part of the API, but useful for case-insensitive string comparison
 extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const UChar *end, const UChar *sascii, int n);
 
@@ -156,17 +158,11 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
         option_pointer++;
     }
     
-    OnigSyntaxType *syntax = (OnigSyntaxType *) R_alloc(1, sizeof(OnigSyntaxType));
+    OnigSyntaxType *syntax;
     if (strncmp(syntax_name, "ruby", 4) == 0)
-    {
-        // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
-        onig_copy_syntax(syntax, ONIG_SYNTAX_RUBY);
-        ONIG_OPTION_OFF(syntax->options, ONIG_OPTION_ASCII_RANGE);
-    }
+        syntax = modified_ruby_syntax;
     else if (strncmp(syntax_name, "fixed", 5) == 0)
-    {
-        onig_copy_syntax(syntax, ONIG_SYNTAX_ASIS);
-    }
+        syntax = (OnigSyntaxType *) ONIG_SYNTAX_ASIS;
     else
         error("Syntax name \"%s\" is invalid\n", syntax_name);
     

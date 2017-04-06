@@ -9,6 +9,7 @@
 
 extern regex_t *group_number_regex;
 extern regex_t *group_name_regex;
+extern OnigSyntaxType *modified_ruby_syntax;
 
 // R wrapper function for onig_init(); called when the package is loaded
 SEXP ore_init ()
@@ -38,6 +39,11 @@ SEXP ore_init ()
         error("Oniguruma compile: %s\n", message);
     }
     
+    // Use the default (Ruby) syntax, with one adjustment: we want \d, \s and \w to work across scripts
+    modified_ruby_syntax = (OnigSyntaxType *) malloc(sizeof(OnigSyntaxType));
+    onig_copy_syntax(modified_ruby_syntax, ONIG_SYNTAX_RUBY);
+    ONIG_OPTION_OFF(modified_ruby_syntax->options, ONIG_OPTION_ASCII_RANGE);
+    
     return R_NilValue;
 }
 
@@ -46,6 +52,7 @@ SEXP ore_done ()
 {
     onig_free(group_number_regex);
     onig_free(group_name_regex);
+    free(modified_ruby_syntax);
     
     onig_end();
     
