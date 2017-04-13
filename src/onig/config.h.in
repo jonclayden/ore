@@ -113,6 +113,9 @@
 /* Define if enable CR+NL as line terminator */
 #undef USE_CRNL_AS_LINE_TERMINATOR
 
+/* Define if token-threaded VM required */
+#undef USE_TOKEN_THREADED_VM
+
 /* Version number of package */
 #undef VERSION
 

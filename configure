@@ -676,6 +676,7 @@ enable_option_checking
 with_statistics
 enable_combination_explosion_check
 enable_crnl_as_line_terminator
+enable_token_threaded_vm
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1297,6 +1298,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-combination-explosion-check   enable combination explosion check
   --enable-crnl-as-line-terminator   enable CR+NL as line terminator
+  --enable-token-threaded-vm   enable token-threaded VM (requires GCC)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -2364,6 +2366,16 @@ $as_echo "#define USE_CRNL_AS_LINE_TERMINATOR 1" >>confdefs.h
 
 fi
 
+# Check whether --enable-token-threaded-vm was given.
+if test "${enable_token_threaded_vm+set}" = set; then :
+  enableval=$enable_token_threaded_vm; token_threaded_vm=$enableval
+fi
+
+if test ! "${token_threaded_vm}" = yes; then
+
+$as_echo "#define USE_TOKEN_THREADED_VM 0" >>confdefs.h
+
+fi
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'

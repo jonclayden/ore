@@ -84,3 +84,4 @@
 #define DEFAULT_KCODE KCODE_NONE
 #define DLEXT ".so"
 #define DLEXT2 ".dll"
+#define USE_TOKEN_THREADED_VM 0

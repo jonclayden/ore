@@ -15,7 +15,7 @@ AC_ARG_ENABLE(combination-explosion-check,
 	[  --enable-combination-explosion-check   enable combination explosion check],
 	[comb_expl_check=$enableval])
 if test "${comb_expl_check}" = yes; then
-  AC_DEFINE(USE_COMBINATION_EXPLOSION_CHECK,1,[Define if combination explosion check])
+    AC_DEFINE(USE_COMBINATION_EXPLOSION_CHECK,1,[Define if combination explosion check])
 fi
 
 dnl check for CRNL_AS_LINE_TERMINATOR
@@ -23,9 +23,16 @@ AC_ARG_ENABLE(crnl-as-line-terminator,
 	[  --enable-crnl-as-line-terminator   enable CR+NL as line terminator],
 	[crnl_as_line_terminator=$enableval])
 if test "${crnl_as_line_terminator}" = yes; then
-  AC_DEFINE(USE_CRNL_AS_LINE_TERMINATOR,1,[Define if enable CR+NL as line terminator])
+    AC_DEFINE(USE_CRNL_AS_LINE_TERMINATOR,1,[Define if enable CR+NL as line terminator])
 fi
 
+dnl check for TOKEN_THREADED_VM
+AC_ARG_ENABLE(token-threaded-vm,
+    [  --enable-token-threaded-vm   enable token-threaded VM (requires GCC)],
+    [token_threaded_vm=$enableval])
+if test ! "${token_threaded_vm}" = yes; then
+    AC_DEFINE(USE_TOKEN_THREADED_VM,0,[Define if token-threaded VM required])
+fi
 
 dnl Checks for header files.
 AC_HEADER_STDC
