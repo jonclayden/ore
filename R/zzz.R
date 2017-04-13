@@ -1,7 +1,7 @@
-#' @useDynLib ore
+#' @useDynLib ore, .registration = TRUE, .fixes = "C_"
 .onLoad <- function (libname, pkgname)
 {
-    .Call("ore_init", PACKAGE="ore")
+    .Call(C_ore_init)
     
     if (Sys.getlocale("LC_CTYPE") %~% "^([A-Za-z_]+)\\.([\\w\\-.:]+)$")
     {
@@ -14,5 +14,5 @@
 
 .onUnload <- function (libpath)
 {
-    .Call("ore_done", PACKAGE="ore")
+    .Call(C_ore_done)
 }

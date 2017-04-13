@@ -3,8 +3,15 @@
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
+#include <R_ext/Rdynload.h>
 
 #include "onigmo.h"
+#include "compile.h"
+#include "escape.h"
+#include "match.h"
+#include "print.h"
+#include "split.h"
+#include "subst.h"
 #include "zzz.h"
 
 extern regex_t *group_number_regex;
@@ -57,4 +64,23 @@ SEXP ore_done ()
     onig_end();
     
     return R_NilValue;
+}
+
+static R_CallMethodDef callMethods[] = {
+    { "ore_build",          (DL_FUNC) &ore_build,           4 },
+    { "ore_escape",         (DL_FUNC) &ore_escape,          1 },
+    { "ore_search_all",     (DL_FUNC) &ore_search_all,      6 },
+    { "ore_print_match",    (DL_FUNC) &ore_print_match,     5 },
+    { "ore_split",          (DL_FUNC) &ore_split,           4 },
+    { "ore_substitute_all", (DL_FUNC) &ore_substitute_all,  6 },
+    { "ore_init",           (DL_FUNC) &ore_init,            0 },
+    { "ore_done",           (DL_FUNC) &ore_done,            0 },
+    { NULL, NULL, 0 }
+};
+
+void R_init_ore (DllInfo *info)
+{
+   R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+   R_useDynamicSymbols(info, FALSE);
+   R_forceSymbols(info, TRUE);
 }

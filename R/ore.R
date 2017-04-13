@@ -48,7 +48,7 @@
 #' @export
 ore <- function (..., options = "", encoding = "auto", syntax = c("ruby","fixed"))
 {
-    regex <- .Call("ore_build", ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax), PACKAGE="ore")
+    regex <- .Call(C_ore_build, ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax))
     return (regex)
 }
 
@@ -90,5 +90,5 @@ print.ore <- function (x, ...)
 #' @export ore.escape ore_escape
 ore.escape <- ore_escape <- function (text)
 {
-    .Call("ore_escape", as.character(text), PACKAGE="ore")
+    .Call(C_ore_escape, as.character(text))
 }

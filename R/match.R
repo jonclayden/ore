@@ -77,7 +77,7 @@
 #' @export ore.search ore_search
 ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE, incremental = !all)
 {
-    match <- .Call("ore_search_all", regex, text, as.logical(all), as.integer(start), as.logical(simplify), as.logical(incremental), PACKAGE="ore")
+    match <- .Call(C_ore_search_all, regex, text, as.logical(all), as.integer(start), as.logical(simplify), as.logical(incremental))
     
     .Workspace$lastMatch <- match
     return (match)
@@ -149,7 +149,7 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
         context <- getOptionWithDefault(context, "ore.context", 30L)
         width <- getOptionWithDefault(width, "width", 80L)
         
-        .Call("ore_print_match", x, context, width, lines, usingColour, PACKAGE="ore")
+        .Call(C_ore_print_match, x, context, width, lines, usingColour)
     }
     
     invisible(NULL)
@@ -394,7 +394,7 @@ ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
     if (!is.character(text))
         text <- as.character(text)
     
-    return (.Call("ore_split", regex, text, as.integer(start), as.logical(simplify), PACKAGE="ore"))
+    return (.Call(C_ore_split, regex, text, as.integer(start), as.logical(simplify)))
 }
 
 #' Replace matched substrings with new text
@@ -437,5 +437,5 @@ ore.subst <- ore_subst <- function (regex, replacement, text, ..., all = FALSE)
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
         
-    return (.Call("ore_substitute_all", regex, replacement, text, as.logical(all), new.env(), pairlist(...), PACKAGE="ore"))
+    return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), new.env(), pairlist(...)))
 }
