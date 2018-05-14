@@ -10,12 +10,12 @@ test_that("Oniguruma regular expression compilation and interpretation works", {
     # To check that ore.dict() picks up the right enclosure
     regexGenerator <- function() { str <- "-?\\d+"; ore(str) }
     
-    expect_that(simpleRegex, is_a("ore"))
-    expect_that(attr(groupedRegex,"nGroups"), equals(2L))
-    expect_that(attr(regexWithOption,"options"), equals("i"))
-    expect_that(attr(regexWithEncoding,"encoding"), equals("UTF-8"))
-    expect_that(attr(regexWithSyntax,"syntax"), equals("fixed"))
-    expect_that(ore("(\\w+"), throws_error())
-    expect_that(regexGenerator(), equals(simpleRegex,check.attributes=FALSE))
-    expect_that(ore.escape("-?\\d+"), equals("-\\?\\\\d\\+"))
+    expect_is(simpleRegex, "ore")
+    expect_identical(attr(groupedRegex,"nGroups"), 2L)
+    expect_equal(attr(regexWithOption,"options"), "i")
+    expect_equal(attr(regexWithEncoding,"encoding"), "UTF-8")
+    expect_equal(attr(regexWithSyntax,"syntax"), "fixed")
+    expect_error(ore("(\\w+"))
+    expect_equal(regexGenerator(), simpleRegex, check.attributes=FALSE)
+    expect_equal(ore.escape("-?\\d+"), "-\\?\\\\d\\+")
 })

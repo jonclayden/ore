@@ -5,28 +5,28 @@ test_that("Oniguruma regular expression matching works", {
     regexUtf8 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
     text <- readLines("drink.txt", encoding="UTF-8")
     
-    expect_that(ore::matches(ore.search(regex,text)), equals("have"))
-    expect_that(ore.search(regex,text,all=TRUE)$offsets, equals(6L))
-    expect_that(ore.search(regex,text,start=10L), is_null())
-    expect_that(ore.search(regexUtf8,text,all=TRUE)$offsets, equals(c(6L,13L)))
-    expect_that(ore.search(regexUtf8,text,start=10L)$offsets, equals(13L))
+    expect_equal(ore::matches(ore.search(regex,text)), "have")
+    expect_equal(ore.search(regex,text,all=TRUE)$offsets, 6L)
+    expect_null(ore.search(regex,text,start=10L))
+    expect_equal(ore.search(regexUtf8,text,all=TRUE)$offsets, c(6L,13L))
+    expect_equal(ore.search(regexUtf8,text,start=10L)$offsets, 13L)
     
-    expect_that(ore.search(regex,NULL), is_identical_to(structure(list(),class="orematches")))
+    expect_identical(ore.search(regex,NULL), structure(list(),class="orematches"))
     
-    expect_that(ore.search(ore("Have"),text), is_null())
-    expect_that(ore::matches(ore.search(ore("Have",options="i"),text)), equals("have"))
+    expect_null(ore.search(ore("Have"),text))
+    expect_equal(ore::matches(ore.search(ore("Have",options="i"),text)), "have")
     
-    expect_that(ore::matches(ore.search(ore(".+"),"one\ntwo")), equals("one"))
-    expect_that(ore::matches(ore.search(ore(".+",options="m"),"one\ntwo")), equals("one\ntwo"))
+    expect_equal(ore::matches(ore.search(ore(".+"),"one\ntwo")), "one")
+    expect_equal(ore::matches(ore.search(ore(".+",options="m"),"one\ntwo")), "one\ntwo")
     
-    expect_that(ore::matches(ore.search(ore("."),"1.7")), equals("1"))
-    expect_that(ore::matches(ore.search(ore(".",syntax="fixed"),"1.7")), equals("."))
+    expect_equal(ore::matches(ore.search(ore("."),"1.7")), "1")
+    expect_equal(ore::matches(ore.search(ore(".",syntax="fixed"),"1.7")), ".")
     
-    expect_that(ore.ismatch("[aeiou]",c("sky","lake")), equals(c(FALSE,TRUE)))
-    expect_that(ore.ismatch("^\\s*$",""), is_true())
+    expect_equal(ore.ismatch("[aeiou]",c("sky","lake")), c(FALSE,TRUE))
+    expect_true(ore.ismatch("^\\s*$",""))
     
     # Check infix syntax and implicit last match argument to matches()
-    expect_that(if ("lake" %~% "[aeiou]") ore::matches(), equals("a"))
+    expect_equal(if ("lake" %~% "[aeiou]") ore::matches(), "a")
 })
 
 test_that("searching in a file works", {
@@ -41,32 +41,32 @@ test_that("searching in a file works", {
         close(con)
     
         # Same character offsets but different byte offsets
-        expect_that(c(s1$offsets,s2$offsets), equals(c(14L,14L)))
-        expect_that(c(s1$byteOffsets,s2$byteOffsets), equals(c(18L,22L)))
-        expect_that(ore::matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), equals("Hello"))
+        expect_equal(c(s1$offsets,s2$offsets), c(14L,14L))
+        expect_equal(c(s1$byteOffsets,s2$byteOffsets), c(18L,22L))
+        expect_equal(ore::matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), "Hello")
     }
 })
 
 test_that("group extraction and indexing works", {
     match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
-    expect_that(dim(groups(match)), equals(c(5L,2L)))
-    expect_that(match[2], equals("is"))
-    expect_that(match[2,2], equals("s"))
+    expect_equal(dim(groups(match)), c(5L,2L))
+    expect_equal(match[2], "is")
+    expect_equal(match[2,2], "s")
     
     matches <- ore.search("(\\w)(\\w)", c("This","is","a","test"), all=TRUE)
-    expect_that(matches[1,2], equals("is"))
-    expect_that(matches[1,2,2], equals("s"))
-    expect_that(matches[,1], equals(c("Th","is",NA,"te")))
-    expect_that(matches[,1,2], equals(c("h","s",NA,"e")))
+    expect_equal(matches[1,2], "is")
+    expect_equal(matches[1,2,2], "s")
+    expect_equal(matches[,1], c("Th","is",NA,"te"))
+    expect_equal(matches[,1,2], c("h","s",NA,"e"))
 })
 
 test_that("literal, back-referenced and functional substitution work", {
-    expect_that(ore.subst("\\d+","no","2 dogs"), equals("no dogs"))
-    expect_that(ore.subst("(\\d+)","\\1\\1","2 dogs"), equals("22 dogs"))
-    expect_that(ore.subst("\\d+",function(i) as.numeric(i)^2,"2 dogs"), equals("4 dogs"))
-    expect_that(ore.subst("\\d+",function(i) max(as.numeric(i)), "2, 4, 6 or 8 dogs?", all=TRUE), equals("8, 8, 8 or 8 dogs?"))
+    expect_equal(ore.subst("\\d+","no","2 dogs"), "no dogs")
+    expect_equal(ore.subst("(\\d+)","\\1\\1","2 dogs"), "22 dogs")
+    expect_equal(ore.subst("\\d+",function(i) as.numeric(i)^2,"2 dogs"), "4 dogs")
+    expect_equal(ore.subst("\\d+",function(i) max(as.numeric(i)), "2, 4, 6 or 8 dogs?", all=TRUE), "8, 8, 8 or 8 dogs?")
 })
 
 test_that("splitting a string by a regular expression works", {
-    expect_that(ore.split("[\\s\\-()]+","(801) 234-5678"), equals(c("","801","234","5678")))
+    expect_equal(ore.split("[\\s\\-()]+","(801) 234-5678"), c("","801","234","5678"))
 })
