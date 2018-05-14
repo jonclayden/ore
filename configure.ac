@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(onigmo, 6.1.1)
+AC_INIT(onigmo, 6.1.3)
 
 AC_CONFIG_HEADER(src/onig/config.h)
 
