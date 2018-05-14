@@ -4,4 +4,4 @@ OBJECTS_ONIG = onig/regcomp.o onig/regenc.o onig/regerror.o onig/regexec.o onig/
 
 OBJECTS = compile.o escape.o match.o print.o split.o subst.o wcwidth.o zzz.o $(OBJECTS_ONIG) $(OBJECTS_ENC)
 
-PKG_CPPFLAGS = -Ionig -Ionig/enc -Ionig/enc/unicode
+PKG_CPPFLAGS = -Ionig -Ionig/enc -Ionig/enc/unicode -DUNALIGNED_WORD_ACCESS=0
