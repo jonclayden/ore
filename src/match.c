@@ -394,7 +394,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         rawmatch_t *raw_match;
         cetype_t encoding = CE_NATIVE;
         file_contents_t *contents;
-        const char *file_encoding_string;
+        const char *file_encoding_string = NULL;
         
         if (using_file)
         {
