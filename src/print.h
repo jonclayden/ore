@@ -11,7 +11,7 @@ typedef struct {
     Rboolean in_match;
     int loc;
     int current_match;
-    char current_match_string[6];
+    char current_match_string[12];
     char *current_match_loc;
     
     char *match;
