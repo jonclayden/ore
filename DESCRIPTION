@@ -1,6 +1,6 @@
 Package: ore
-Version: 1.6.0
-Date: 2017-04-13
+Version: 1.6.1
+Date: 2018-05-21
 Title: An R Interface to the Onigmo Regular Expression Library
 Author: Jon Clayden, based on Onigmo by K. Kosako and K. Takata
 Maintainer: Jon Clayden <code@clayden.org>
