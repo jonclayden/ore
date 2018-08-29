@@ -240,14 +240,14 @@ char * ore_build_pattern (SEXP pattern_)
         Rboolean name_present = (!isNull(names) && strcmp(CHAR(STRING_ELT(names,i)), "") != 0);
         
         if (name_present)
-            strncpy(ptr++, "(", 1);
+            *ptr++ = '(';
         
         // Copy in the element
-        strncpy(ptr, current_string, current_len);
+        memcpy(ptr, current_string, current_len);
         ptr += current_len;
         
         if (name_present)
-            strncpy(ptr++, ")", 1);
+            *ptr++ = ')';
     }
     
     // Nul-terminate the string

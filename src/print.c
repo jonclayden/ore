@@ -94,7 +94,7 @@ void ore_print_line (printstate_t *state)
     // Switch off colour printing temporarily if we're in the middle of a match
     if (state->use_colour && state->in_match)
     {
-        strncpy(state->match, "\x1b[0m", 4);
+        memcpy(state->match, "\x1b[0m", 4);
         state->match += 4;
     }
     *state->match = '\0';
@@ -130,7 +130,7 @@ void ore_print_line (printstate_t *state)
     // Turn colour back on if we were mid-match
     if (state->use_colour && state->in_match)
     {
-        strncpy(state->match, "\x1b[36m", 5);
+        memcpy(state->match, "\x1b[36m", 5);
         state->match += 5;
     }
     
@@ -193,7 +193,7 @@ void ore_switch_state (printstate_t *state, Rboolean match)
         // Append the colour escape code, if appropriate
         if (state->use_colour)
         {
-            strncpy(state->match, "\x1b[36m", 5);
+            memcpy(state->match, "\x1b[36m", 5);
             state->match += 5;
         }
         
@@ -212,7 +212,7 @@ void ore_switch_state (printstate_t *state, Rboolean match)
         // Switch back to normal colour, if appropriate
         if (state->use_colour)
         {
-            strncpy(state->match, "\x1b[0m", 4);
+            memcpy(state->match, "\x1b[0m", 4);
             state->match += 4;
         }
         
