@@ -218,14 +218,15 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 
                 // This is arcane R API territory: we create a LANGSXP (an evaluable pairlist), and append the "..." pairlist, then evaluate the result and coerce to a character vector
                 SEXP call = PROTECT(listAppend(lang2(replacement_, matches), function_args));
-                SEXP result = PROTECT(coerceVector(eval(call, environment), STRSXP));
-                const int result_len = length(result);
+                SEXP result = PROTECT(eval(call, environment));
+                SEXP char_result = PROTECT(coerceVector(result, STRSXP));
+                const int result_len = length(char_result);
                 
                 // Extract the replacements as C strings, from the R character vector of results
                 for (int j=0; j<raw_match->n_matches; j++)
-                    replacements[j] = (const char *) CHAR(STRING_ELT(result, j % result_len));
+                    replacements[j] = (const char *) CHAR(STRING_ELT(char_result, j % result_len));
                 
-                UNPROTECT(3);
+                UNPROTECT(4);
             }
             else
             {
