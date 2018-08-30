@@ -2,6 +2,12 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.6.2
+
+- Additional warnings from GCC 8 and rchk have been resolved.
+
+===============================================================================
+
 VERSION 1.6.1
 
 - The Onigmo library has been updated to version 6.1.3.
