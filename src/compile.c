@@ -181,17 +181,24 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
 // Retrieve a rawmatch_t object from the specified R object, which may be of class "ore" or just text
 regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_file)
 {
-    // Check the class of the regex object; if it's text this will be NULL
+    regex_t *regex = NULL;
+    
+    // Check the class of the regex object; if it's "ore", look for a valid pointer
     SEXP class = getAttrib(regex_, R_ClassSymbol);
-    if (isNull(class) || strcmp(CHAR(STRING_ELT(class,0)), "ore") != 0)
+    if (!isNull(class) && strcmp(CHAR(STRING_ELT(class,0)), "ore") == 0)
+        regex = (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
+    
+    if (regex == NULL)
     {
-        if (!isString(regex_))
-            error("The specified regex must be of character mode");
+        if (!isString(regex_) || length(regex_) == 0)
+            error("The specified regex must be a single character string");
+        else if (length(regex_) > 1)
+            warning("Only the first element of the specified regex vector will be used");
         
         if (using_file)
         {
             SEXP encoding_name = getAttrib(text_, install("encoding"));
-            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_name_to_onig_enc(CHAR(STRING_ELT(encoding_name,0))), "ruby");
+            regex = ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_name_to_onig_enc(CHAR(STRING_ELT(encoding_name,0))), "ruby");
         }
         else
         {
@@ -208,11 +215,11 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_file)
             }
         
             // Compile the regex and return
-            return ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_r_to_onig_enc(encoding), "ruby");
+            regex = ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_r_to_onig_enc(encoding), "ruby");
         }
     }
-    else
-        return (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
+    
+    return regex;
 }
 
 // Create a pattern string by concatenating the elements of the supplied vector, parenthesising named elements
