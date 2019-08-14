@@ -15,6 +15,7 @@
 #' @export ore.file ore_file
 ore.file <- ore_file <- function (path, encoding = getOption("ore.encoding"), binary = FALSE)
 {
+    path <- path.expand(path)
     if (!file.exists(path))
         stop(paste0("\"", path, "\": file not found"))
     else
