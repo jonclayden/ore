@@ -2,6 +2,18 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.6.3
+
+- The ore.file() function now performs path expansion on its argument.
+- The package is now more careful to check that "external" pointers are valid
+  before dereferencing them, thereby avoiding potential segfaults. (Reported
+  by Thomas Weise, #5).
+- Multiarchitecture support is now explicitly declared, ensuring that 32-bit
+  and 64-bit versions are built when installing from source on Windows.
+  (Reported by Ioannis Mamalikidis, #6).
+
+===============================================================================
+
 VERSION 1.6.2
 
 - Additional warnings from GCC 8 and rchk have been resolved.
