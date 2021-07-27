@@ -146,8 +146,33 @@ backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
     }
 }
 
-// Vectorised substitution with a single replacement string, or R function
-SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args)
+// Vectorised substitution with replacement strings, or from an R function
+// 
+// This function is double-vectorised, on both the text and replacement
+// arguments. It returns a list as long as the text input (except where
+// simplified). Given the regex /(\d+)/, input text of c("2 dogs","1+1=2"), and
+// all matches requested starting from position 0, the following table maps out
+// the results for different modes of replacement. fx(...) is shorthand for
+// function(x) {...}.
+// 
+//   REPLACEMENT                   RESULT
+//   "0"                        => c("0 dogs","0+0=0")
+//   "\\1\\1"                   => c("22 dogs","11+11=22")
+//   fx(as.integer(x)*2L)       => c("4 dogs","2+2=4")
+//   c("many","some")           => c("many dogs","many+some=many")
+//   c(NA,"0","1")              => c("2 dogs","1+0=1")
+//   list("many","some")        => list(c("many dogs","many+many=many"),
+//                                      c("some dogs","some+some=some"))
+//   list("0",c("many","some")) => list(c("0 dogs","0+0=0"),
+//                                      c("many dogs","many+some=many"))
+//   fx(max(as.integer(x)))     => list("2 dogs","2+2=2")
+// (If the function returns fewer elements than the match vector it receives
+// as input, they are recycled.)
+//   fx(as.integer(x)+1:3)      => list(c("3 dogs","4 dogs","5 dogs"),
+//                                      "2+3=5")
+// (If the function returns an integer multiple of the number of elements in
+// the match vector, the original strings are duplicated.)
+SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP environment, SEXP function_args)
 {
     if (isNull(regex_))
         error("The specified regex object is not valid");
@@ -156,9 +181,12 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     regex_t *regex = (regex_t *) ore_retrieve(regex_, text_, FALSE);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
+    const Rboolean simplify = asLogical(simplify_) == TRUE;
+    int *start = INTEGER(start_);
     
     // Obtain the length of the text vector
     const int text_len = length(text_);
+    const int start_len = length(start_);
     
     // Look for back-references in the replacement, if it's a string
     backref_info_t *backref_info = NULL;
@@ -172,7 +200,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         backref_info = ore_find_backrefs(CHAR(STRING_ELT(replacement_,0)), group_names);
     }
     
-    SEXP results = PROTECT(NEW_CHARACTER(text_len));
+    SEXP results = PROTECT(NEW_LIST(text_len));
     
     // Step through each string to be searched
     for (int i=0; i<text_len; i++)
@@ -189,14 +217,15 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         const char *text = CHAR(STRING_ELT(text_, i));
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text, NULL, all, 0);
+        rawmatch_t *raw_match = ore_search(regex, text, NULL, all, (size_t) start[i % start_len] - 1);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
-            SET_STRING_ELT(results, i, STRING_ELT(text_,i));
+            SET_ELEMENT(results, i, ScalarString(STRING_ELT(text_,i)));
         else
         {
-            const char **replacements = (const char **) R_alloc(raw_match->n_matches, sizeof(char *));
+            const char **replacements;
+            int replacement_len = raw_match->n_matches;
             
             // If the replacement is a function, construct a call to the function and run it
             if (isFunction(replacement_))
@@ -222,8 +251,13 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 SEXP char_result = PROTECT(coerceVector(result, STRSXP));
                 const int result_len = length(char_result);
                 
+                // If the function returns a longer vector than it receives, we will recycle the input strings
+                if (result_len > replacement_len)
+                    replacement_len = result_len;
+                replacements = (const char **) R_alloc(replacement_len, sizeof(char *));
+                
                 // Extract the replacements as C strings, from the R character vector of results
-                for (int j=0; j<raw_match->n_matches; j++)
+                for (int j=0; j<replacement_len; j++)
                     replacements[j] = (const char *) CHAR(STRING_ELT(char_result, j % result_len));
                 
                 UNPROTECT(4);
