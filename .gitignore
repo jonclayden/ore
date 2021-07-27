@@ -1,5 +1,6 @@
 *.o
 *.so
+.DS_Store
 /config.*
 /src/onig/config.h
 /Rprof.out
