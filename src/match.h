@@ -2,6 +2,7 @@
 #define _MATCH_H_
 
 #include "onigmo.h"
+#include "compile.h"
 
 typedef struct {
     int     capacity;
@@ -38,7 +39,7 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, cetype_t encoding, const char *old_enc_name);
 
-file_contents_t * ore_read_file (const char *filename, const int buffer_size_level);
+file_contents_t * ore_read_file (text_t *text, const int buffer_size_level);
 
 SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP incremental_);
 

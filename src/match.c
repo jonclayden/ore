@@ -302,12 +302,8 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 }
 
 // Read text from a file into a buffer
-file_contents_t * ore_read_file (const char *filename, const int buffer_size_level)
+file_contents_t * ore_read_file (text_t *text, const int buffer_size_level)
 {
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL)
-        error("Could not open file %s", filename);
-    
     size_t old_buffer_size = 0;
     size_t buffer_size = FILE_BUFFER_SIZE;
     if (buffer_size_level > 0)
@@ -322,7 +318,7 @@ file_contents_t * ore_read_file (const char *filename, const int buffer_size_lev
     
     if (buffer_size_level > 0)
     {
-        size_t bytes_read = fread(ptr, 1, buffer_size, fp);
+        size_t bytes_read = text->read(text->handle, ptr, buffer_size, SEEK_SET);
         ptr += bytes_read;
         more = (bytes_read == buffer_size);
     }
@@ -331,7 +327,7 @@ file_contents_t * ore_read_file (const char *filename, const int buffer_size_lev
         while (TRUE)
         {
             size_t n = buffer_size - old_buffer_size;
-            size_t bytes_read = fread(ptr, 1, n, fp);
+            size_t bytes_read = text->read(text->handle, ptr, n, SEEK_CUR);
             if (bytes_read < n)
             {
                 ptr += bytes_read;
@@ -346,8 +342,6 @@ file_contents_t * ore_read_file (const char *filename, const int buffer_size_lev
             }
         }
     }
-    
-    fclose(fp);
     
     file_contents_t *contents = (file_contents_t *) R_alloc(1, sizeof(file_contents_t));
     contents->start = buffer;
@@ -367,18 +361,15 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     int *start = INTEGER(start_);
     
     // Check whether the text argument is actually a file path
-    Rboolean using_file = FALSE;
-    SEXP textClass = getAttrib(text_, R_ClassSymbol);
-    if (length(textClass) > 0 && strcmp(CHAR(STRING_ELT(textClass,0)), "orefile") == 0)
-        using_file = TRUE;
-    else
+    const Rboolean using_file = inherits(text_, "orefile") || inherits(text_, "connection");
+    if (!using_file)
         PROTECT(text_ = AS_CHARACTER(text_));
     
-    // Retrieve the regex
-    regex_t *regex = ore_retrieve(regex_, text_, using_file);
+    // Retrieve the text and the regex
+    text_t *text = ore_text(text_);
+    regex_t *regex = ore_retrieve(regex_, text->encoding);
     
-    // Obtain the lengths of the text and start vectors (the latter will be recycled if necessary)
-    const int text_len = using_file ? 1 : length(text_);
+    // Obtain the length of the start vector (which will be recycled if necessary)
     const int start_len = length(start_);
     
     // Check for sensible input
@@ -386,10 +377,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         error("The vector of starting positions is empty");
     
     SEXP results;
-    PROTECT(results = NEW_LIST(text_len));
+    PROTECT(results = NEW_LIST(text->length));
     
     // Step through each string to be searched
-    for (int i=0; i<text_len; i++)
+    for (size_t i=0; i<text->length; i++)
     {
         rawmatch_t *raw_match;
         cetype_t encoding = CE_NATIVE;
@@ -401,16 +392,15 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             // Check the file's encoding
             SEXP encoding_name = getAttrib(text_, install("encoding"));
             file_encoding_string = CHAR(STRING_ELT(encoding_name, 0));
-            OnigEncoding file_encoding = ore_name_to_onig_enc(file_encoding_string);
-            if (file_encoding != regex->enc)
-                warning("File encoding does not match the regex");
+            if (text->encoding != regex->enc)
+                warning("Text encoding does not match the regex");
             
             // Do the match
             if (incremental && !all)
             {
                 for (int j=1; ; j++)
                 {
-                    contents = ore_read_file(CHAR(STRING_ELT(text_, 0)), j);
+                    contents = ore_read_file(text, j);
                     raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
                     
                     size_t end_of_last_match = 0;
@@ -423,9 +413,13 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             }
             else
             {
-                contents = ore_read_file(CHAR(STRING_ELT(text_, 0)), 0);
+                contents = ore_read_file(text, 0);
                 raw_match = ore_search(regex, contents->start, contents->end, all, (size_t) start[0] - 1);
             }
+            
+            // R handles closing connections, but plain files need to be closed manually
+            if (text->source == FILE_SOURCE)
+                fclose((FILE *) text->handle);
         }
         else
         {
@@ -550,7 +544,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     UNPROTECT(using_file ? 1 : 2);
     
     // Return just the first (and only) element of the full list, if requested
-    if (simplify && text_len == 1)
+    if (simplify && text->length == 1)
         return VECTOR_ELT(results, 0);
     else
     {
