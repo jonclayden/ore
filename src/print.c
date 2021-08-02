@@ -20,11 +20,11 @@ SEXP ore_get_list_element (SEXP list, const char *name)
     
     for (int i=0; i<length(names); i++)
     {
-    	if (strcmp(CHAR(STRING_ELT(names,i)), name) == 0)
+        if (strcmp(CHAR(STRING_ELT(names,i)), name) == 0)
         {
-    	   element = VECTOR_ELT(list, i);
-    	   break;
-       }
+            element = VECTOR_ELT(list, i);
+            break;
+        }
     }
     
     return element;
