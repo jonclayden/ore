@@ -2,9 +2,16 @@
 
 #include <R.h>
 #include <Rdefines.h>
+#include <Rversion.h>
 #include <Rinternals.h>
+#include <R_ext/Connections.h>
 
 #include "compile.h"
+
+// If R is recent enough for R_GetConnection() to be available, and the connections API is the expected version, support reading from connections
+#if defined(R_VERSION) && R_VERSION >= R_Version(3,3,0) && defined(R_CONNECTIONS_VERSION) && R_CONNECTIONS_VERSION == 1
+#define USING_CONNECTIONS
+#endif
 
 OnigSyntaxType *modified_ruby_syntax;
 
@@ -132,6 +139,72 @@ OnigEncoding ore_name_to_onig_enc (const char *enc)
     }
 }
 
+static size_t ore_read_file (void *handle, void *buffer, size_t bytes, int origin)
+{
+    FILE *file = (FILE *) handle;
+    if (origin != SEEK_CUR)
+        fseek(file, 0, origin);
+    return fread(buffer, 1, bytes, file);
+}
+
+#ifdef USING_CONNECTIONS
+static size_t ore_read_connection (void *handle, void *buffer, size_t bytes, int origin)
+{
+    Rconnection connection = (Rconnection) handle;
+    if (origin != SEEK_CUR)
+        error("Seeking is not supported for connections");
+    return R_ReadConnection(connection, buffer, bytes);
+}
+#endif
+
+text_t * ore_text (SEXP text_)
+{
+    text_t *text = (text_t *) R_alloc(1, sizeof(text_t));
+    text->object = text_;
+    text->length = 1;
+    
+    if (inherits(text_, "orefile"))
+    {
+        const SEXP encoding_name = getAttrib(text_, install("encoding"));
+        text->encoding = ore_name_to_onig_enc(CHAR(STRING_ELT(encoding_name,0)));
+        text->source = FILE_SOURCE;
+        text->handle = fopen(CHAR(STRING_ELT(text_,0)), "rb");
+        if (text->handle == NULL)
+            error("Could not open file %s", CHAR(STRING_ELT(text_,0)));
+        text->read = &ore_read_file;
+    }
+#ifdef USING_CONNECTIONS
+    else if (inherits(text_, "connection"))
+    {
+        const Rconnection connection = R_GetConnection(text_);
+        text->encoding = ore_name_to_onig_enc(connection->encname);
+        text->source = CONNECTION_SOURCE;
+        text->handle = connection;
+        text->read = &ore_read_connection;
+    }
+#endif
+    else if (isString(text_))
+    {
+        text->length = length(text_);
+        text->source = VECTOR_SOURCE;
+        text->handle = text->read = NULL;
+        
+        cetype_t encoding = CE_NATIVE;
+        for (size_t i=0; i<text->length; i++)
+        {
+            const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
+            if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
+            {
+                encoding = current_encoding;
+                break;
+            }
+        }
+        text->encoding = ore_r_to_onig_enc(encoding);
+    }
+    
+    return text;
+}
+
 // Interface to onig_new(), used to create compiled regex objects
 regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding encoding, const char *syntax_name)
 {
@@ -178,14 +251,13 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
     return regex;
 }
 
-// Retrieve a rawmatch_t object from the specified R object, which may be of class "ore" or just text
-regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_file)
+// Retrieve a regex_t object from the specified R object, which may be of class "ore" or just text
+regex_t * ore_retrieve (SEXP regex_, OnigEncoding encoding)
 {
     regex_t *regex = NULL;
     
     // Check the class of the regex object; if it's "ore", look for a valid pointer
-    SEXP class = getAttrib(regex_, R_ClassSymbol);
-    if (!isNull(class) && strcmp(CHAR(STRING_ELT(class,0)), "ore") == 0)
+    if (inherits(regex_, "ore"))
         regex = (regex_t *) R_ExternalPtrAddr(getAttrib(regex_, install(".compiled")));
     
     if (regex == NULL)
@@ -195,28 +267,8 @@ regex_t * ore_retrieve (SEXP regex_, SEXP text_, const Rboolean using_file)
         else if (length(regex_) > 1)
             warning("Only the first element of the specified regex vector will be used");
         
-        if (using_file)
-        {
-            SEXP encoding_name = getAttrib(text_, install("encoding"));
-            regex = ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_name_to_onig_enc(CHAR(STRING_ELT(encoding_name,0))), "ruby");
-        }
-        else
-        {
-            // Take the encoding from the search text in this case
-            cetype_t encoding = CE_NATIVE;
-            for (int i=0; i<length(text_); i++)
-            {
-                const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
-                if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
-                {
-                    encoding = current_encoding;
-                    break;
-                }
-            }
-        
-            // Compile the regex and return
-            regex = ore_compile(CHAR(STRING_ELT(regex_,0)), "", ore_r_to_onig_enc(encoding), "ruby");
-        }
+        // Compile the regex and return
+        regex = ore_compile(CHAR(STRING_ELT(regex_,0)), "", encoding, "ruby");
     }
     
     return regex;
