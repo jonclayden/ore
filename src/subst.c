@@ -5,6 +5,7 @@
 #include <Rinternals.h>
 
 #include "compile.h"
+#include "text.h"
 #include "match.h"
 #include "subst.h"
 
@@ -153,12 +154,10 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         error("The specified regex object is not valid");
     
     // Convert R objects to C types
-    regex_t *regex = (regex_t *) ore_retrieve(regex_, text_, FALSE);
+    text_t *text = ore_text(text_);
+    regex_t *regex = ore_retrieve(regex_, text->encoding);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
-    
-    // Obtain the length of the text vector
-    const int text_len = length(text_);
     
     // Look for back-references in the replacement, if it's a string
     backref_info_t *backref_info = NULL;
@@ -172,44 +171,42 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         backref_info = ore_find_backrefs(CHAR(STRING_ELT(replacement_,0)), group_names);
     }
     
-    SEXP results = PROTECT(NEW_CHARACTER(text_len));
+    SEXP results = PROTECT(NEW_CHARACTER(text->length));
     
     // Step through each string to be searched
-    for (int i=0; i<text_len; i++)
+    for (int i=0; i<text->length; i++)
     {
-        // Find and check the encoding of the search string
-        const cetype_t encoding = getCharCE(STRING_ELT(text_, i));
-        if ((encoding == CE_UTF8 && regex->enc == ONIG_ENCODING_ISO_8859_1) || (encoding == CE_LATIN1 && regex->enc == ONIG_ENCODING_UTF8))
+        text_element_t *text_element = ore_text_element(text, i);
+        if (text_element->encoding != regex->enc)
         {
             warning("Encoding of text element %d does not match the regex", i+1);
-            SET_ELEMENT(results, i, ScalarString(STRING_ELT(text_,i)));
+            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));
             continue;
         }
         
-        const char *text = CHAR(STRING_ELT(text_, i));
-        
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text, NULL, all, 0);
+        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, 0);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
-            SET_STRING_ELT(results, i, STRING_ELT(text_,i));
+            SET_STRING_ELT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));
         else
         {
             const char **replacements = (const char **) R_alloc(raw_match->n_matches, sizeof(char *));
+            const cetype_t r_encoding = ore_onig_to_r_enc(text_element->encoding);
             
             // If the replacement is a function, construct a call to the function and run it
             if (isFunction(replacement_))
             {
                 // Create an R character vector containing the matches
                 SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
-                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, encoding, NULL);
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, r_encoding, NULL);
                 
                 // If there are groups, extract them and put them in an attribute
                 if (raw_match->n_regions > 1)
                 {
                     SEXP group_matches = PROTECT(allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, encoding, NULL);
+                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, r_encoding, NULL);
                     setAttrib(matches, install("groups"), group_matches);
                     UNPROTECT(1);
                 }
@@ -260,10 +257,12 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             }
             
             // Do the main substitution, and insert the result
-            char *result = ore_substitute(text, raw_match->n_matches, offsets, lengths, replacements);
-            SET_STRING_ELT(results, i, mkCharCE(result,encoding));
+            char *result = ore_substitute(text_element->start, raw_match->n_matches, offsets, lengths, replacements);
+            SET_STRING_ELT(results, i, ore_string_to_rchar(result, ore_onig_to_r_enc(text_element->encoding), text->encoding_name));
         }
     }
+    
+    ore_text_done(text);
     
     UNPROTECT(1);
     return results;

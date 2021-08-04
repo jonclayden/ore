@@ -6,6 +6,7 @@
 #include <Rinternals.h>
 
 #include "compile.h"
+#include "text.h"
 #include "match.h"
 #include "print.h"
 #include "wcwidth.h"
