@@ -1,2 +1,4 @@
 ^\.travis\.yml$
+^\.covrignore$
+^\.github$
 \.o$
