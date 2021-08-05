@@ -189,7 +189,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
-            SET_STRING_ELT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));
+            SET_STRING_ELT(results, i, ore_text_element_to_rchar(text_element, text->encoding_name));
         else
         {
             const char **replacements = (const char **) R_alloc(raw_match->n_matches, sizeof(char *));
