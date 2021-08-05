@@ -177,7 +177,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     for (int i=0; i<text->length; i++)
     {
         text_element_t *text_element = ore_text_element(text, i);
-        if (text_element->encoding != regex->enc)
+        if (!ore_consistent_encodings(text_element->encoding, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));

@@ -303,7 +303,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             for (int j=1; ; j++)
             {
                 text_element = ore_text_element(text, j);
-                if (j == 1 && text_element->encoding != regex->enc)
+                if (j == 1 && !ore_consistent_encodings(text_element->encoding, regex->enc))
                 {
                     warning("File encoding does not match the regex");
                     SET_ELEMENT(results, i, R_NilValue);
@@ -323,7 +323,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         else
         {
             text_element = ore_text_element(text, i);
-            if (text_element->encoding != regex->enc)
+            if (!ore_consistent_encodings(text_element->encoding, regex->enc))
             {
                 warning("Encoding of text element %d does not match the regex", i+1);
                 SET_ELEMENT(results, i, R_NilValue);

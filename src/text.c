@@ -147,6 +147,16 @@ OnigEncoding ore_name_to_onig_enc (const char *enc)
     }
 }
 
+// Check whether the two specified encodings are consistent with one another
+Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second)
+{
+    // ASCII is used as an "unknown" or default encoding, so it is considered consistent with everything
+    if (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII)
+        return TRUE;
+    else
+        return FALSE;
+}
+
 // Wrapper around Riconv, to convert between encodings
 const char * ore_iconv (void *iconv_handle, const char *old)
 {

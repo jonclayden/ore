@@ -35,6 +35,8 @@ cetype_t ore_onig_to_r_enc (OnigEncoding encoding);
 
 OnigEncoding ore_name_to_onig_enc (const char *enc);
 
+Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second);
+
 const char * ore_iconv (void *iconv_handle, const char *old);
 
 text_t * ore_text (SEXP text_);
