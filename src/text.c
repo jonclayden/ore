@@ -43,30 +43,8 @@ char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len,
     }
 }
 
-// Convert an R encoding value to its Oniguruma equivalent
-OnigEncoding ore_r_to_onig_enc (cetype_t encoding)
-{
-    switch (encoding)
-    {
-        case CE_UTF8:   return ONIG_ENCODING_UTF8;
-        case CE_LATIN1: return ONIG_ENCODING_ISO_8859_1;
-        default:        return ONIG_ENCODING_ASCII;
-    }
-}
-
-// Convert an Oniguruma encoding to its R equivalent (where possible)
-cetype_t ore_onig_to_r_enc (OnigEncoding encoding)
-{
-    if (encoding == ONIG_ENCODING_UTF8)
-        return CE_UTF8;
-    else if (encoding == ONIG_ENCODING_ISO_8859_1)
-        return CE_LATIN1;
-    else
-        return CE_NATIVE;
-}
-
 // Convert an encoding string to its Oniguruma equivalent
-OnigEncoding ore_name_to_onig_enc (const char *enc)
+static OnigEncoding ore_name_to_onig_enc (const char *enc)
 {
     if (ore_strnicmp(enc,"ASCII",5) == 0 || ore_strnicmp(enc,"US-ASCII",8) == 0)
         return ONIG_ENCODING_ASCII;
@@ -147,14 +125,55 @@ OnigEncoding ore_name_to_onig_enc (const char *enc)
     }
 }
 
+// Create a consistent encoding structure from an existing type, propagating as closely as possible
+encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_enc)
+{
+    // The fallback R encoding, where nothing else is marked
+    cetype_t final_r_enc = CE_NATIVE;
+    
+    // If there's no Oniguruma encoding, work from a name, if available
+    if (name != NULL && strlen(name) > 0 && onig_enc == NULL)
+        onig_enc = ore_name_to_onig_enc(name);
+    
+    // If there's no R encoding, take it from the Oniguruma one
+    if (r_enc == NULL)
+    {
+        if (onig_enc == ONIG_ENCODING_UTF8)
+            final_r_enc = CE_UTF8;
+        else if (onig_enc == ONIG_ENCODING_ISO_8859_1)
+            final_r_enc = CE_LATIN1;
+        else
+            final_r_enc = CE_NATIVE;
+    }
+    
+    // Propagate back from the R encoding if necessary, but R asserts very few encodings
+    if (onig_enc == NULL && r_enc != NULL)
+    {
+        switch (*r_enc)
+        {
+            case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;          break;
+            case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;    break;
+            default:        onig_enc = ONIG_ENCODING_ASCII;         break;
+        }
+    }
+    
+    // Create, populate and return the encoding structure
+    encoding_t *encoding = (encoding_t *) R_alloc(1, sizeof(encoding_t));
+    if (name != NULL)
+        strncpy(encoding->name, name, ORE_ENCODING_NAME_MAX_LEN);
+    else
+        encoding->name[0] = '\0';
+    encoding->onig_enc = onig_enc;
+    encoding->r_enc = final_r_enc;
+    
+    return encoding;
+}
+
 // Check whether the two specified encodings are consistent with one another
 Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second)
 {
     // ASCII is used as an "unknown" or default encoding, so it is considered consistent with everything
-    if (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII)
-        return TRUE;
-    else
-        return FALSE;
+    return (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII);
 }
 
 // Wrapper around Riconv, to convert between encodings
@@ -201,8 +220,7 @@ text_t * ore_text (SEXP text_)
     if (inherits(text_, "orefile"))
     {
         const SEXP encoding_name = getAttrib(text_, install("encoding"));
-        text->encoding_name = CHAR(STRING_ELT(encoding_name,0));
-        text->encoding = ore_name_to_onig_enc(text->encoding_name);
+        text->encoding = ore_encoding(CHAR(STRING_ELT(encoding_name,0)), NULL, NULL);
         text->source = FILE_SOURCE;
         text->handle = fopen(CHAR(STRING_ELT(text_,0)), "rb");
         if (text->handle == NULL)
@@ -212,8 +230,7 @@ text_t * ore_text (SEXP text_)
     else if (inherits(text_, "connection"))
     {
         const Rconnection connection = R_GetConnection(text_);
-        text->encoding_name = connection->encname;
-        text->encoding = ore_name_to_onig_enc(connection->encname);
+        text->encoding = ore_encoding(connection->encname, NULL, NULL);
         text->source = CONNECTION_SOURCE;
         text->handle = connection;
     }
@@ -234,8 +251,7 @@ text_t * ore_text (SEXP text_)
                 break;
             }
         }
-        text->encoding = ore_r_to_onig_enc(encoding);
-        text->encoding_name = NULL;
+        text->encoding = ore_encoding(NULL, NULL, &encoding);
     }
     else
         error("The specified object cannot be used as a text source");
@@ -254,10 +270,10 @@ text_element_t * ore_text_element (text_t *text, const size_t index)
     if (text->source == VECTOR_SOURCE)
     {
         const char *string = CHAR(STRING_ELT(text->object, index));
-        const cetype_t encoding = getCharCE(STRING_ELT(text->object, index));
+        cetype_t encoding = getCharCE(STRING_ELT(text->object, index));
         element->start = string;
         element->end = string + strlen(string);
-        element->encoding = (encoding == CE_UTF8 || encoding == CE_LATIN1) ? ore_r_to_onig_enc(encoding) : text->encoding;
+        element->encoding = ore_encoding(NULL, NULL, &encoding);
     }
     // Incremental file source: we just want an initial subset of the file
     else if (text->source == FILE_SOURCE && index > 0)
@@ -325,26 +341,25 @@ text_element_t * ore_text_element (text_t *text, const size_t index)
     return element;
 }
 
-SEXP ore_text_element_to_rchar (text_element_t *element, const char *old_enc_name)
+SEXP ore_text_element_to_rchar (text_element_t *element)
 {
-    cetype_t encoding = ore_onig_to_r_enc(element->encoding);
-    return ore_string_to_rchar(element->start, encoding, old_enc_name);
+    return ore_string_to_rchar(element->start, element->encoding);
 }
 
-SEXP ore_string_to_rchar (const char *string, cetype_t encoding, const char *old_enc_name)
+SEXP ore_string_to_rchar (const char *string, encoding_t *encoding)
 {
     void *iconv_handle = NULL;
     
-    if (old_enc_name != NULL)
+    if (encoding != NULL)
     {
-        if (ore_strnicmp(old_enc_name, "native.enc", 10) == 0)
+        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
             iconv_handle = Riconv_open("UTF-8", "");
         else
-            iconv_handle = Riconv_open("UTF-8", old_enc_name);
-        encoding = CE_UTF8;
+            iconv_handle = Riconv_open("UTF-8", encoding->name);
+        encoding->r_enc = CE_UTF8;
     }
     
-    SEXP result = PROTECT(mkCharCE(ore_iconv(iconv_handle, string), encoding));
+    SEXP result = PROTECT(mkCharCE(ore_iconv(iconv_handle, string), encoding->r_enc));
     
     if (iconv_handle)
         Riconv_close(iconv_handle);

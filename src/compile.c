@@ -30,7 +30,7 @@ int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int 
 }
 
 // Interface to onig_new(), used to create compiled regex objects
-regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding encoding, const char *syntax_name)
+regex_t * ore_compile (const char *pattern, const char *options, encoding_t *encoding, const char *syntax_name)
 {
     int return_value;
     OnigErrorInfo einfo;
@@ -64,7 +64,7 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
         error("Syntax name \"%s\" is invalid\n", syntax_name);
     
     // Create the regex struct, and check for errors
-    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, encoding, syntax, &einfo);
+    return_value = onig_new(&regex, (UChar *) pattern, (UChar *) pattern+strlen(pattern), onig_options, encoding->onig_enc, syntax, &einfo);
     if (return_value != ONIG_NORMAL)
     {
         char message[ONIG_MAX_ERROR_MESSAGE_LEN];
@@ -76,7 +76,7 @@ regex_t * ore_compile (const char *pattern, const char *options, OnigEncoding en
 }
 
 // Retrieve a regex_t object from the specified R object, which may be of class "ore" or just text
-regex_t * ore_retrieve (SEXP regex_, OnigEncoding encoding)
+regex_t * ore_retrieve (SEXP regex_, encoding_t *encoding)
 {
     regex_t *regex = NULL;
     
@@ -164,7 +164,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     else
         encoding = CE_NATIVE;
         
-    regex = ore_compile(pattern, options, ore_r_to_onig_enc(encoding), syntax_name);
+    regex = ore_compile(pattern, options, ore_encoding(NULL,NULL,&encoding), syntax_name);
     
     // Get and store number of captured groups
     n_groups = onig_number_of_captures(regex);

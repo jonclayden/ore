@@ -34,10 +34,10 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     for (int i=0; i<text->length; i++)
     {
         text_element_t *text_element = ore_text_element(text, i);
-        if (!ore_consistent_encodings(text_element->encoding, regex->enc))
+        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
-            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));
+            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
             continue;
         }
         
@@ -46,12 +46,11 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
-            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element, text->encoding_name)));
+            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
         else
         {
             // Create a vector long enough to hold the pieces
             SEXP result = PROTECT(NEW_CHARACTER(raw_match->n_matches + 1));
-            const cetype_t r_encoding = ore_onig_to_r_enc(text_element->encoding);
             
             char *fragment;
             ptrdiff_t offset = 0;
@@ -68,7 +67,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
                 if (current_length > 0)
                     strncpy(fragment, text_element->start+offset, current_length);
                 *(fragment + current_length) = '\0';
-                SET_STRING_ELT(result, j, ore_string_to_rchar(fragment, r_encoding, text->encoding_name));
+                SET_STRING_ELT(result, j, ore_string_to_rchar(fragment, text_element->encoding));
                 offset += current_length + raw_match->byte_lengths[loc];
             }
             
@@ -78,7 +77,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
             if (current_length > 0)
                 strncpy(fragment, text_element->start+offset, current_length);
             *(fragment + current_length) = '\0';
-            SET_STRING_ELT(result, raw_match->n_matches, ore_string_to_rchar(fragment, r_encoding, text->encoding_name));
+            SET_STRING_ELT(result, raw_match->n_matches, ore_string_to_rchar(fragment, text_element->encoding));
             
             SET_ELEMENT(results, i, result);
             UNPROTECT(1);

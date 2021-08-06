@@ -288,9 +288,10 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     // NB: There is only one string in the object, since each searched string produces a new "orematch" object
     SEXP text_ = ore_get_list_element(match, "text");
     const UChar *text = (const UChar *) CHAR(STRING_ELT(text_, 0));
-    OnigEncoding encoding = ore_r_to_onig_enc(getCharCE(STRING_ELT(text_, 0)));
+    cetype_t r_encoding = getCharCE(STRING_ELT(text_, 0));
+    encoding_t *encoding = ore_encoding(NULL, NULL, &r_encoding);
     const UChar *end = text + strlen(CHAR(STRING_ELT(text_, 0)));
-    size_t text_len = onigenc_strlen_null(encoding, text);
+    size_t text_len = onigenc_strlen_null(encoding->onig_enc, text);
     
     // Retrieve offsets and convert to C convention by subtracting 1
     const int *offsets_ = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
@@ -307,7 +308,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     
     // Create the print state object
-    printstate_t *state = ore_alloc_printstate(context, width, max_lines, use_colour, n_matches, encoding->max_enc_len);
+    printstate_t *state = ore_alloc_printstate(context, width, max_lines, use_colour, n_matches, encoding->onig_enc->max_enc_len);
     
     // Print precontext, matched text, and postcontext for each match
     size_t start = 0;
@@ -321,7 +322,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         {
             // There is more precontext than we want, so truncate (with an ellipsis)
             precontext_len = context;
-            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], end, precontext_len);
+            ptr = onigenc_step_back(encoding->onig_enc, text, text+byte_offsets[i], end, precontext_len);
             for (int j=0; j<3; j++)
                 ore_push_byte(state, '.', 1);
         }
@@ -329,15 +330,15 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         {
             // There is some precontext
             precontext_len = offsets[i] - start;
-            ptr = onigenc_step_back(encoding, text, text+byte_offsets[i], end, precontext_len);
+            ptr = onigenc_step_back(encoding->onig_enc, text, text+byte_offsets[i], end, precontext_len);
         }
         else
             ptr = (UChar *) text + byte_offsets[i];
         
         // Push precontext, switch to match mode, print matched text, and then switch back
-        ptr = ore_push_chars(state, ptr, precontext_len, encoding);
+        ptr = ore_push_chars(state, ptr, precontext_len, encoding->onig_enc);
         ore_switch_state(state, TRUE);
-        ptr = ore_push_chars(state, ptr, lengths[i], encoding);
+        ptr = ore_push_chars(state, ptr, lengths[i], encoding->onig_enc);
         ore_switch_state(state, FALSE);
         
         // Update starting position for next loop
@@ -364,7 +365,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         }
         
         // Push the postcontext
-        ptr = ore_push_chars(state, ptr, postcontext_len, encoding);
+        ptr = ore_push_chars(state, ptr, postcontext_len, encoding->onig_enc);
         
         // Update the start position to the end of the postcontext
         start += postcontext_len;
