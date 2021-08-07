@@ -45,7 +45,7 @@ const char * ore_iconv (void *iconv_handle, const char *old);
 
 text_t * ore_text (SEXP text_);
 
-text_element_t * ore_text_element (text_t *text, const size_t index);
+text_element_t * ore_text_element (text_t *text, const size_t index, const Rboolean incremental, text_element_t *previous);
 
 SEXP ore_text_element_to_rchar (text_element_t *element);
 

@@ -33,7 +33,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     // Step through each string to be searched
     for (int i=0; i<text->length; i++)
     {
-        text_element_t *text_element = ore_text_element(text, i);
+        text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
         if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);

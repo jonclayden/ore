@@ -193,20 +193,16 @@ const char * ore_iconv (void *iconv_handle, const char *old)
         return old;
 }
 
-static size_t ore_read_file (void *handle, void *buffer, size_t bytes, int origin)
+static size_t ore_read_file (void *handle, void *buffer, size_t bytes)
 {
     FILE *file = (FILE *) handle;
-    if (origin != SEEK_CUR)
-        fseek(file, 0, origin);
     return fread(buffer, 1, bytes, file);
 }
 
 #ifdef USING_CONNECTIONS
-static size_t ore_read_connection (void *handle, void *buffer, size_t bytes, int origin)
+static size_t ore_read_connection (void *handle, void *buffer, size_t bytes)
 {
     Rconnection connection = (Rconnection) handle;
-    if (origin != SEEK_CUR)
-        error("Seeking is not supported for connections");
     return R_ReadConnection(connection, buffer, bytes);
 }
 #endif
@@ -259,7 +255,7 @@ text_t * ore_text (SEXP text_)
     return text;
 }
 
-text_element_t * ore_text_element (text_t *text, const size_t index)
+text_element_t * ore_text_element (text_t *text, const size_t index, const Rboolean incremental, text_element_t *previous)
 {
     if (text == NULL)
         return NULL;
@@ -275,61 +271,42 @@ text_element_t * ore_text_element (text_t *text, const size_t index)
         element->end = string + strlen(string);
         element->encoding = ore_encoding(NULL, NULL, &encoding);
     }
-    // Incremental file source: we just want an initial subset of the file
-    else if (text->source == FILE_SOURCE && index > 0)
-    {
-        size_t buffer_size = FILE_BUFFER_SIZE;
-        for (size_t i=1; i<index; i++)
-            buffer_size *= 2;
-        
-        char *buffer = (char *) R_alloc(buffer_size, 1);
-        size_t bytes_read = ore_read_file(text->handle, buffer, buffer_size, SEEK_SET);
-        
-        element->start = buffer;
-        element->end = buffer + bytes_read;
-        element->encoding = text->encoding;
-        element->incomplete = (bytes_read == buffer_size);
-    }
     else
     {
-        size_t old_buffer_size = 0;
-        size_t buffer_size = FILE_BUFFER_SIZE;
+        char *buffer, *ptr;
+        size_t buffer_size;
+        if (incremental && previous != NULL)
+        {
+            buffer_size = (size_t) (previous->end - previous->start);
+            buffer = ore_realloc(previous->start, 2 * buffer_size, buffer_size, 1);
+            ptr = buffer + buffer_size;
+        }
+        else
+        {
+            buffer_size = FILE_BUFFER_SIZE;
+            buffer = (char *) R_alloc(buffer_size, 1);
+            ptr = buffer;
+        }
         
-        char *buffer = (char *) R_alloc(buffer_size, 1);
-        char *ptr = buffer;
         while (TRUE)
         {
-            const size_t n = buffer_size - old_buffer_size;
             size_t bytes_read;
-            
-            switch (text->source)
-            {
-                case FILE_SOURCE:
-                bytes_read = ore_read_file(text->handle, ptr, n, SEEK_CUR);
-                break;
-                
+            if (text->source == FILE_SOURCE)
+                bytes_read = ore_read_file(text->handle, ptr, buffer_size);
 #ifdef USING_CONNECTIONS
-                case CONNECTION_SOURCE:
-                bytes_read = ore_read_connection(text->handle, ptr, n, SEEK_CUR);
-                break;
+            else if (text->source == CONNECTION_SOURCE)
+                bytes_read = ore_read_connection(text->handle, ptr, buffer_size);
 #endif
-                
-                case VECTOR_SOURCE:
-                // Already handled – only here to silence compiler warnings
-                break;
-            }
+            ptr += bytes_read;
             
-            if (bytes_read < n)
-            {
-                ptr += bytes_read;
+            if (incremental)
+                element->incomplete = (bytes_read == buffer_size);
+            if (incremental || bytes_read < buffer_size)
                 break;
-            }
             else
             {
-                old_buffer_size = buffer_size;
-                buffer_size *= 2;
-                buffer = (char *) ore_realloc(buffer, buffer_size, old_buffer_size, 1);
-                ptr = buffer + old_buffer_size;
+                buffer = ore_realloc(buffer, 2 * buffer_size, buffer_size, 1);
+                buffer_size = (size_t) (ptr - buffer);
             }
         }
         

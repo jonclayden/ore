@@ -270,7 +270,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
-    const Rboolean incremental = asLogical(incremental_) == TRUE;
+    const Rboolean incremental = (asLogical(incremental_) == TRUE) && !all;
     int *start = INTEGER(start_);
     
     // Check whether the text argument is actually a file path
@@ -295,42 +295,35 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     // Step through each string to be searched
     for (size_t i=0; i<text->length; i++)
     {
-        text_element_t *text_element;
+        text_element_t *text_element = NULL;
         rawmatch_t *raw_match;
         
-        if (incremental && !all && text->source == FILE_SOURCE)
+        // Retrieve the text element and check its encoding is compatible with the regex
+        text_element = ore_text_element(text, i, incremental, text_element);
+        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
-            for (int j=1; ; j++)
-            {
-                text_element = ore_text_element(text, j);
-                if (j == 1 && !ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
-                {
-                    warning("File encoding does not match the regex");
-                    SET_ELEMENT(results, i, R_NilValue);
-                    break;
-                }
-                
-                raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[0] - 1);
-                
-                size_t end_of_last_match = 0;
-                if (raw_match != NULL)
-                    end_of_last_match = (size_t) raw_match->byte_offsets[raw_match->n_matches-1] + raw_match->byte_lengths[raw_match->n_matches-1];
-                
-                if (!text_element->incomplete || (raw_match != NULL && end_of_last_match < (text_element->end - text_element->start)))
-                    break;
-            }
+            warning("Encoding of text element %d does not match the regex", i+1);
+            SET_ELEMENT(results, i, R_NilValue);
+            continue;
         }
-        else
+        
+        // Do the match
+        raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
+        
+        // If there is more text to come from the source, and there is no match so far, or the match may be incomplete, extract more and continue
+        while (text_element->incomplete)
         {
-            text_element = ore_text_element(text, i);
-            if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+            if (raw_match != NULL)
             {
-                warning("Encoding of text element %d does not match the regex", i+1);
-                SET_ELEMENT(results, i, R_NilValue);
-                continue;
+                // If we've seen a match but it runs right up to the end of the text, continue in case we've missed some
+                // NB: This is an imperfect heuristic - it isn't hard to design text/regex pairs that mislead it - but the user can always disable incremental search
+                const size_t end_of_last_match = (size_t) raw_match->byte_offsets[raw_match->n_matches - 1] + raw_match->byte_lengths[raw_match->n_matches - 1];
+                if (end_of_last_match < (text_element->end - text_element->start))
+                    break;
             }
             
-            // Do the match
+            // Ask again for the element, to get more of it, and rerun the match
+            text_element = ore_text_element(text, i, incremental, text_element);
             raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         }
         
