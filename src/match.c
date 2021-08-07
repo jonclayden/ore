@@ -333,10 +333,11 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         else
         {
             SEXP result, result_names, result_text, n_matches, offsets, byte_offsets, lengths, byte_lengths, matches;
+            const Rboolean have_groups = (raw_match->n_regions >= 2);
             
             // Allocate memory for data structures
-            PROTECT(result = NEW_LIST(raw_match->n_regions < 2 ? 7 : 8));
-            PROTECT(result_names = NEW_CHARACTER(raw_match->n_regions < 2 ? 7 : 8));
+            PROTECT(result = NEW_LIST(have_groups ? 9 : 8));
+            PROTECT(result_names = NEW_CHARACTER(have_groups ? 9 : 8));
             
             // List element names
             SET_STRING_ELT(result_names, 0, mkChar("text"));
@@ -418,11 +419,16 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 UNPROTECT(7);
             }
             
+            // Record the source encoding
+            SEXP source_encoding = PROTECT(mkString(text->encoding->name));
+            SET_ELEMENT(result, have_groups ? 8 : 7, source_encoding);
+            SET_STRING_ELT(result_names, have_groups ? 8 : 7, mkChar("sourceEncoding"));
+            
             // Set names and class, and insert into full list
             setAttrib(result, R_NamesSymbol, result_names);
             setAttrib(result, R_ClassSymbol, mkString("orematch"));
             SET_ELEMENT(results, i, result);
-            UNPROTECT(2);
+            UNPROTECT(3);
         }
     }
     
