@@ -351,7 +351,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             // Convert elements of the raw match data to R vectors
             // Note that the text can't easily be returned from a file because offsets and lengths may be wrong after translation between encodings
             if (using_file)
-                result_text = R_NilValue;
+                PROTECT(result_text = ScalarString(ore_text_element_to_rchar(text_element)));
             else
                 PROTECT(result_text = ScalarString(STRING_ELT(text_,i)));
             PROTECT(n_matches = ScalarInteger(raw_match->n_matches));
@@ -376,7 +376,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_ELEMENT(result, 6, matches);
             
             // Unprotect everything back to "result_text"
-            UNPROTECT(using_file ? 6 : 7);
+            UNPROTECT(7);
             
             // If there are groups present, extract them
             if (raw_match->n_regions > 1)

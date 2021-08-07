@@ -11,7 +11,7 @@
 #include "print.h"
 #include "wcwidth.h"
 
-extern UChar * onigenc_step_back (OnigEncoding enc, const OnigUChar* start, const OnigUChar* s, const OnigUChar* end, int n);
+extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 
 // Extract an element of an R list by name
 SEXP ore_get_list_element (SEXP list, const char *name)
@@ -295,14 +295,9 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     
     // Retrieve offsets and convert to C convention by subtracting 1
     const int *offsets_ = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
-    const int *byte_offsets_ = (const int *) INTEGER(ore_get_list_element(match, "byteOffsets"));
     int *offsets = (int *) R_alloc(n_matches, sizeof(int));
-    int *byte_offsets = (int *) R_alloc(n_matches, sizeof(int));
     for (int i=0; i<n_matches; i++)
-    {
         offsets[i] = offsets_[i] - 1;
-        byte_offsets[i] = byte_offsets_[i] - 1;
-    }
     
     // Retrieve match lengths
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
@@ -322,18 +317,13 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         {
             // There is more precontext than we want, so truncate (with an ellipsis)
             precontext_len = context;
-            ptr = onigenc_step_back(encoding->onig_enc, text, text+byte_offsets[i], end, precontext_len);
             for (int j=0; j<3; j++)
                 ore_push_byte(state, '.', 1);
         }
-        else if (offsets[i] > start)
-        {
-            // There is some precontext
-            precontext_len = offsets[i] - start;
-            ptr = onigenc_step_back(encoding->onig_enc, text, text+byte_offsets[i], end, precontext_len);
-        }
         else
-            ptr = (UChar *) text + byte_offsets[i];
+            precontext_len = offsets[i] - start;
+        
+        ptr = onigenc_step(encoding->onig_enc, text, end, offsets[i] - precontext_len);
         
         // Push precontext, switch to match mode, print matched text, and then switch back
         ptr = ore_push_chars(state, ptr, precontext_len, encoding->onig_enc);
