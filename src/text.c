@@ -203,6 +203,8 @@ static size_t ore_read_file (void *handle, void *buffer, size_t bytes)
 static size_t ore_read_connection (void *handle, void *buffer, size_t bytes)
 {
     Rconnection connection = (Rconnection) handle;
+    if (!connection->isopen)
+        connection->open(connection);
     return R_ReadConnection(connection, buffer, bytes);
 }
 #endif
