@@ -193,6 +193,7 @@ const char * ore_iconv (void *iconv_handle, const char *old)
         return old;
 }
 
+// Helper functions to read a chunk of data from a file or connection
 static size_t ore_read_file (void *handle, void *buffer, size_t bytes)
 {
     FILE *file = (FILE *) handle;
@@ -209,6 +210,7 @@ static size_t ore_read_connection (void *handle, void *buffer, size_t bytes)
 }
 #endif
 
+// Create a text object from an R object: a file path, connection or literal character vector
 text_t * ore_text (SEXP text_)
 {
     text_t *text = (text_t *) R_alloc(1, sizeof(text_t));
@@ -227,7 +229,7 @@ text_t * ore_text (SEXP text_)
 #ifdef USING_CONNECTIONS
     else if (inherits(text_, "connection"))
     {
-        const Rconnection connection = R_GetConnection(text_);
+        Rconnection connection = R_GetConnection(text_);
         text->encoding = ore_encoding(connection->encname, NULL, NULL);
         text->source = CONNECTION_SOURCE;
         text->handle = connection;
@@ -257,6 +259,8 @@ text_t * ore_text (SEXP text_)
     return text;
 }
 
+// Extract the text element with the specified index
+// For file and connection sources, index is ignored but reading may be incremental, passing in the previously read fragment
 text_element_t * ore_text_element (text_t *text, const size_t index, const Rboolean incremental, text_element_t *previous)
 {
     if (text == NULL)
@@ -307,8 +311,10 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
                 break;
             else
             {
-                buffer = ore_realloc(buffer, 2 * buffer_size, buffer_size, 1);
+                // NB: Any pointer arithmetic must happen before the buffer is reallocated
                 buffer_size = (size_t) (ptr - buffer);
+                buffer = ore_realloc(buffer, 2 * buffer_size, buffer_size, 1);
+                ptr = buffer + buffer_size;
             }
         }
         
@@ -320,11 +326,13 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
     return element;
 }
 
+// Convert a text element to a CHARSXP (single string)
 SEXP ore_text_element_to_rchar (text_element_t *element)
 {
     return ore_string_to_rchar(element->start, element->encoding);
 }
 
+// Convert a C string to a CHARSXP, changing encoding if necessary
 SEXP ore_string_to_rchar (const char *string, encoding_t *encoding)
 {
     void *iconv_handle = NULL;
@@ -347,6 +355,7 @@ SEXP ore_string_to_rchar (const char *string, encoding_t *encoding)
     return result;
 }
 
+// Tidy up a text object, where needed
 void ore_text_done (text_t *text)
 {
     // R handles closing connections, but plain files need to be closed manually
