@@ -13,8 +13,29 @@
 
 extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
 
+typedef struct {
+    Rboolean    use_colour;
+    int         width;
+    int         max_lines;
+    int         lines_done;
+    int         n_matches;
+    
+    Rboolean    in_match;
+    int         loc;
+    int         current_match;
+    char        current_match_string[12];
+    char       *current_match_loc;
+    
+    char       *match;
+    char       *match_start;
+    char       *context;
+    char       *context_start;
+    char       *number;
+    char       *number_start;
+} printstate_t;
+
 // Extract an element of an R list by name
-SEXP ore_get_list_element (SEXP list, const char *name)
+static SEXP ore_get_list_element (SEXP list, const char *name)
 {
     SEXP element = R_NilValue;
     SEXP names = getAttrib(list, R_NamesSymbol);
@@ -32,7 +53,7 @@ SEXP ore_get_list_element (SEXP list, const char *name)
 }
 
 // Create a printstate_t object, which keeps track of various things
-printstate_t * ore_alloc_printstate (const int context, const int width, const int max_lines, const Rboolean use_colour, const int n_matches, const int max_enc_len)
+static printstate_t * ore_alloc_printstate (const int context, const int width, const int max_lines, const Rboolean use_colour, const int n_matches, const int max_enc_len)
 {
     printstate_t *state = (printstate_t *) R_alloc(1, sizeof(printstate_t));
     
@@ -80,13 +101,13 @@ printstate_t * ore_alloc_printstate (const int context, const int width, const i
 }
 
 // Can more lines be printed, or should we stop?
-Rboolean ore_more_lines (printstate_t *state)
+static Rboolean ore_more_lines (printstate_t *state)
 {
     return (state->max_lines == 0 || state->lines_done < state->max_lines);
 }
 
 // This function actually prints a line of buffered text, with annotations, to the terminal
-void ore_print_line (printstate_t *state)
+static void ore_print_line (printstate_t *state)
 {
     // Forget it if the buffer is empty, or we're already printed as many lines as are allowed
     if (state->loc == 0 || !ore_more_lines(state))
@@ -140,7 +161,7 @@ void ore_print_line (printstate_t *state)
 }
 
 // Add a byte to the match (or context), updating other lines appropriately
-void ore_do_push_byte (printstate_t *state, const char byte, const int width)
+static void ore_do_push_byte (printstate_t *state, const char byte, const int width)
 {
     if (state->in_match || state->use_colour)
     {
@@ -187,7 +208,7 @@ void ore_do_push_byte (printstate_t *state, const char byte, const int width)
 }
 
 // Switch from inside to outside match state, or vice versa
-void ore_switch_state (printstate_t *state, Rboolean match)
+static void ore_switch_state (printstate_t *state, Rboolean match)
 {
     if (match && !state->in_match)
     {
@@ -222,7 +243,7 @@ void ore_switch_state (printstate_t *state, Rboolean match)
 }
 
 // Push a byte to the buffers, starting a new line if there isn't space for it
-void ore_push_byte (printstate_t *state, const char byte, const int width)
+static void ore_push_byte (printstate_t *state, const char byte, const int width)
 {
     // Print the line and reset the buffers if there isn't space
     if (state->loc + width >= state->width)
@@ -250,7 +271,7 @@ void ore_push_byte (printstate_t *state, const char byte, const int width)
 }
 
 // Push a fixed number of (possibly multibyte) characters to the buffers
-UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding)
+static UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding)
 {
     for (int i=0; i<n; i++)
     {
