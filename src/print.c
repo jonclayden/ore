@@ -53,7 +53,7 @@ static SEXP ore_get_list_element (SEXP list, const char *name)
 }
 
 // Create a printstate_t object, which keeps track of various things
-static printstate_t * ore_alloc_printstate (const int context, const int width, const int max_lines, const Rboolean use_colour, const int n_matches, const int max_enc_len)
+static printstate_t * ore_printstate (const int context, const int width, const int max_lines, const Rboolean use_colour, const int n_matches, const int max_enc_len)
 {
     printstate_t *state = (printstate_t *) R_alloc(1, sizeof(printstate_t));
     
@@ -324,7 +324,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     
     // Create the print state object
-    printstate_t *state = ore_alloc_printstate(context, width, max_lines, use_colour, n_matches, encoding->onig_enc->max_enc_len);
+    printstate_t *state = ore_printstate(context, width, max_lines, use_colour, n_matches, encoding->onig_enc->max_enc_len);
     
     // Print precontext, matched text, and postcontext for each match
     size_t start = 0;
