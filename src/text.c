@@ -176,10 +176,28 @@ Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second)
     return (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII);
 }
 
+// Obtain a handle for converting to an encoding R understands
+void * ore_iconv_handle (encoding_t *encoding)
+{
+    void *iconv_handle = NULL;
+    
+    if (encoding != NULL)
+    {
+        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
+            iconv_handle = Riconv_open("UTF-8", "");
+        else
+            iconv_handle = Riconv_open("UTF-8", encoding->name);
+        
+        encoding->r_enc = CE_UTF8;
+    }
+    
+    return iconv_handle;
+}
+
 // Wrapper around Riconv, to convert between encodings
 const char * ore_iconv (void *iconv_handle, const char *old)
 {
-    if (iconv_handle)
+    if (iconv_handle != NULL)
     {
         size_t old_size = strlen(old);
         size_t new_size = old_size * 6;
@@ -191,6 +209,13 @@ const char * ore_iconv (void *iconv_handle, const char *old)
     }
     else
         return old;
+}
+
+// Close the specified handle
+void ore_iconv_done (void *iconv_handle)
+{
+    if (iconv_handle != NULL)
+        Riconv_close(iconv_handle);
 }
 
 // Helper functions to read a chunk of data from a file or connection
@@ -335,21 +360,9 @@ SEXP ore_text_element_to_rchar (text_element_t *element)
 // Convert a C string to a CHARSXP, changing encoding if necessary
 SEXP ore_string_to_rchar (const char *string, encoding_t *encoding)
 {
-    void *iconv_handle = NULL;
-    
-    if (encoding != NULL)
-    {
-        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
-            iconv_handle = Riconv_open("UTF-8", "");
-        else
-            iconv_handle = Riconv_open("UTF-8", encoding->name);
-        encoding->r_enc = CE_UTF8;
-    }
-    
+    void *iconv_handle = ore_iconv_handle(encoding);
     SEXP result = PROTECT(mkCharCE(ore_iconv(iconv_handle, string), encoding->r_enc));
-    
-    if (iconv_handle)
-        Riconv_close(iconv_handle);
+    ore_iconv_done(iconv_handle);
     
     UNPROTECT(1);
     return result;

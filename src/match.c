@@ -3,7 +3,6 @@
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
-#include <R_ext/Riconv.h>
 
 #include "compile.h"
 #include "text.h"
@@ -176,15 +175,7 @@ void ore_int_vector (SEXP vec, const int *data, const int n_regions, const int n
 // Copy string data from a rawmatch_t to an R vector
 void ore_char_vector (SEXP vec, const char **data, const int n_regions, const int n_matches, encoding_t *encoding)
 {
-    void *iconv_handle = NULL;
-    if (encoding != NULL)
-    {
-        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
-            iconv_handle = Riconv_open("UTF-8", "");
-        else
-            iconv_handle = Riconv_open("UTF-8", encoding->name);
-        encoding->r_enc = CE_UTF8;
-    }
+    void *iconv_handle = ore_iconv_handle(encoding);
     
     for (int i=0; i<n_matches; i++)
     {
@@ -194,8 +185,7 @@ void ore_char_vector (SEXP vec, const char **data, const int n_regions, const in
             SET_STRING_ELT(vec, i, mkCharCE(ore_iconv(iconv_handle,data[i*n_regions]), encoding->r_enc));
     }
     
-    if (iconv_handle)
-        Riconv_close(iconv_handle);
+    ore_iconv_done(iconv_handle);
 }
 
 // Copy integer data for groups into an R matrix
@@ -224,15 +214,7 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 // Copy string data from groups into an R matrix
 void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, encoding_t *encoding)
 {
-    void *iconv_handle = NULL;
-    if (encoding != NULL)
-    {
-        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
-            iconv_handle = Riconv_open("UTF-8", "");
-        else
-            iconv_handle = Riconv_open("UTF-8", encoding->name);
-        encoding->r_enc = CE_UTF8;
-    }
+    void *iconv_handle = ore_iconv_handle(encoding);
     
     for (int i=0; i<n_matches; i++)
     {
@@ -247,8 +229,7 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
         }
     }
     
-    if (iconv_handle)
-        Riconv_close(iconv_handle);
+    ore_iconv_done(iconv_handle);
     
     // Set column names if supplied
     if (!isNull(col_names))
