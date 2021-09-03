@@ -3,7 +3,7 @@
 {
     .Call(C_ore_init)
     
-    if (Sys.getlocale("LC_CTYPE") %~% "^([A-Za-z_]+)\\.([\\w\\-.:]+)$")
+    if (Sys.getlocale("LC_CTYPE") %~% "^([A-Za-z_ ]+)\\.([\\w\\-.:]+)$")
     {
         if (isTRUE(ore.lastmatch()[,2] %in% iconvlist()))
             options(ore.encoding=ore.lastmatch()[,2])
