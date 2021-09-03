@@ -160,7 +160,10 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
     // Create, populate and return the encoding structure
     encoding_t *encoding = (encoding_t *) R_alloc(1, sizeof(encoding_t));
     if (name != NULL)
-        strncpy(encoding->name, name, ORE_ENCODING_NAME_MAX_LEN);
+    {
+        strncpy(encoding->name, name, ORE_ENCODING_NAME_MAX_LEN-1);
+        encoding->name[ORE_ENCODING_NAME_MAX_LEN-1] = '\0';
+    }
     else
         encoding->name[0] = '\0';
     encoding->onig_enc = onig_enc;
@@ -321,7 +324,7 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
         
         while (TRUE)
         {
-            size_t bytes_read;
+            size_t bytes_read = 0;
             if (text->source == FILE_SOURCE)
                 bytes_read = ore_read_file(text->handle, ptr, buffer_size);
 #ifdef USING_CONNECTIONS
