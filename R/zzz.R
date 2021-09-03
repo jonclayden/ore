@@ -3,13 +3,22 @@
 {
     .Call(C_ore_init)
     
-    if (Sys.getlocale("LC_CTYPE") %~% "^([A-Za-z_ ]+)\\.([\\w\\-.:]+)$")
+    match <- ore_search("^([A-Z_ ]+)\\.([\\w\\-.:]+)$", toupper(Sys.getlocale("LC_CTYPE")))
+    if (is.null(match))
+        encoding <- "ASCII"
+    else
     {
-        if (isTRUE(ore.lastmatch()[,2] %in% iconvlist()))
-            options(ore.encoding=ore.lastmatch()[,2])
+        needle <- match[,2]
+        haystack <- toupper(iconvlist())
+        if (isTRUE(needle %in% haystack))
+            encoding <- needle
+        else if (isTRUE(paste0("CP", needle) %in% haystack))
+            encoding <- paste0("CP", needle)
         else
-            options(ore.encoding="ASCII")
+            encoding <- "ASCII"
     }
+    
+    options(ore.encoding=encoding)
 }
 
 .onUnload <- function (libpath)

@@ -92,17 +92,17 @@ static OnigEncoding ore_name_to_onig_enc (const char *enc)
         return ONIG_ENCODING_BIG5;
     else if (ore_strnicmp(enc,"CP932",5) == 0)
         return ONIG_ENCODING_CP932;
-    else if (ore_strnicmp(enc,"CP1250",6) == 0 || ore_strnicmp(enc,"1250",4) == 0 || ore_strnicmp(enc,"WINDOWS-1250",12) == 0)
+    else if (ore_strnicmp(enc,"CP1250",6) == 0 || ore_strnicmp(enc,"WINDOWS-1250",12) == 0)
         return ONIG_ENCODING_WINDOWS_1250;
-    else if (ore_strnicmp(enc,"CP1251",6) == 0 || ore_strnicmp(enc,"1251",4) == 0 || ore_strnicmp(enc,"WINDOWS-1251",12) == 0)
+    else if (ore_strnicmp(enc,"CP1251",6) == 0 || ore_strnicmp(enc,"WINDOWS-1251",12) == 0)
         return ONIG_ENCODING_WINDOWS_1251;
-    else if (ore_strnicmp(enc,"CP1252",6) == 0 || ore_strnicmp(enc,"1252",4) == 0 || ore_strnicmp(enc,"WINDOWS-1252",12) == 0)
+    else if (ore_strnicmp(enc,"CP1252",6) == 0 || ore_strnicmp(enc,"WINDOWS-1252",12) == 0)
         return ONIG_ENCODING_WINDOWS_1252;
-    else if (ore_strnicmp(enc,"CP1253",6) == 0 || ore_strnicmp(enc,"1253",4) == 0 || ore_strnicmp(enc,"WINDOWS-1253",12) == 0)
+    else if (ore_strnicmp(enc,"CP1253",6) == 0 || ore_strnicmp(enc,"WINDOWS-1253",12) == 0)
         return ONIG_ENCODING_WINDOWS_1253;
-    else if (ore_strnicmp(enc,"CP1254",6) == 0 || ore_strnicmp(enc,"1254",4) == 0 || ore_strnicmp(enc,"WINDOWS-1254",12) == 0)
+    else if (ore_strnicmp(enc,"CP1254",6) == 0 || ore_strnicmp(enc,"WINDOWS-1254",12) == 0)
         return ONIG_ENCODING_WINDOWS_1254;
-    else if (ore_strnicmp(enc,"CP1257",6) == 0 || ore_strnicmp(enc,"1257",4) == 0 || ore_strnicmp(enc,"WINDOWS-1257",12) == 0)
+    else if (ore_strnicmp(enc,"CP1257",6) == 0 || ore_strnicmp(enc,"WINDOWS-1257",12) == 0)
         return ONIG_ENCODING_WINDOWS_1257;
     else if (ore_strnicmp(enc,"EUC-JP",6) == 0 || ore_strnicmp(enc,"EUCJP",5) == 0)
         return ONIG_ENCODING_EUC_JP;
