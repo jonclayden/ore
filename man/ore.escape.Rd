@@ -22,4 +22,3 @@ useful when incorporating a general-purpose string into a larger regex.
 \seealso{
 \code{\link{ore}}
 }
-

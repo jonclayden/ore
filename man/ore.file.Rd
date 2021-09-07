@@ -2,8 +2,8 @@
 % Please edit documentation in R/file.R
 \name{ore.file}
 \alias{ore.file}
-\alias{ore_file}
 \alias{orefile}
+\alias{ore_file}
 \title{Use a file as a text source}
 \usage{
 ore.file(path, encoding = getOption("ore.encoding"), binary = FALSE)
@@ -25,4 +25,3 @@ Identify a file path to be used as a text source for a subsequent call to
 \seealso{
 \code{\link{ore.search}} for actually searching through the file.
 }
-

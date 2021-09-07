@@ -15,4 +15,5 @@ License: BSD_3_clause + file LICENCE
 Collate: workspace.R file.R dict.R ore.R match.R es.R zzz.R
 URL: https://github.com/jonclayden/ore
 BugReports: https://github.com/jonclayden/ore/issues
-RoxygenNote: 5.0.1
+Roxygen: list(old_usage=TRUE)
+RoxygenNote: 7.1.1

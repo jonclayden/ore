@@ -52,4 +52,3 @@ ore.subst("\\\\d+", function(i) as.numeric(i)^2, "2 dogs")
 \seealso{
 \code{\link{ore.search}}
 }
-

@@ -21,4 +21,3 @@ This function can be used to obtain the \code{"orematch"} object, or list,
 corresponding to the last call to \code{\link{ore.search}}. This can be
 useful after performing a search implicitly, for example with \code{\%~\%}.
 }
-

@@ -39,4 +39,3 @@ ore.dict(protocol)
 \seealso{
 \code{\link{ore}}, which passes its arguments through this function
 }
-

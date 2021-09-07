@@ -43,4 +43,3 @@ es("1/(1+x) for x=3 is #{x <- 3; 1/(1+x)}")
 \seealso{
 \code{\link{ore.subst}}
 }
-

@@ -34,4 +34,3 @@ ore.split("-?\\\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
 \seealso{
 \code{\link{ore.search}}
 }
-
