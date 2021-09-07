@@ -161,7 +161,6 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
         {
             case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;                  break;
             case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;            break;
-            case CE_NATIVE: onig_enc = ore_name_to_onig_enc("native.enc");  break;
             default:        onig_enc = ONIG_ENCODING_ASCII;                 break;
         }
     }
