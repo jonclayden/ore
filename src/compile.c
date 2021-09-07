@@ -12,7 +12,7 @@
 OnigSyntaxType *modified_ruby_syntax;
 
 // Finaliser to clear up garbage-collected "ore" objects
-void ore_regex_finaliser (SEXP regex_ptr)
+static void ore_regex_finaliser (SEXP regex_ptr)
 {
     regex_t *regex = (regex_t *) R_ExternalPtrAddr(regex_ptr);
     onig_free(regex);
@@ -20,7 +20,7 @@ void ore_regex_finaliser (SEXP regex_ptr)
 }
 
 // Insert a group name into an R vector; used as a callback by ore_build()
-int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
+static int ore_store_name (const UChar *name, const UChar *name_end, int n_groups, int *group_numbers, regex_t *regex, void *arg)
 {
     SEXP name_vector = (SEXP) arg;
     for (int i=0; i<n_groups; i++)
@@ -99,7 +99,7 @@ regex_t * ore_retrieve (SEXP regex_, encoding_t *encoding)
 }
 
 // Create a pattern string by concatenating the elements of the supplied vector, parenthesising named elements
-char * ore_build_pattern (SEXP pattern_)
+static char * ore_build_pattern (SEXP pattern_)
 {
     const int pattern_parts = length(pattern_);
     if (pattern_parts < 1)
@@ -142,8 +142,6 @@ char * ore_build_pattern (SEXP pattern_)
 // R wrapper for ore_compile(): builds the regex and creates an R "ore" object
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_name_)
 {
-    regex_t *regex;
-    int n_groups;
     SEXP result, regex_ptr;
     
     // Obtain pointers to content
@@ -152,22 +150,20 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     const char *encoding_name = CHAR(STRING_ELT(encoding_name_, 0));
     const char *syntax_name = CHAR(STRING_ELT(syntax_name_, 0));
     
-    cetype_t encoding;
+    encoding_t *encoding;
     if (ore_strnicmp(encoding_name, "auto", 4) == 0)
-        encoding = getCharCE(STRING_ELT(pattern_, 0));
-    else if (ore_strnicmp(encoding_name, "UTF8", 4) == 0)
-        encoding = CE_UTF8;
-    else if (ore_strnicmp(encoding_name, "UTF-8", 5) == 0)
-        encoding = CE_UTF8;
-    else if (ore_strnicmp(encoding_name, "LATIN1", 6) == 0)
-        encoding = CE_LATIN1;
+    {
+        cetype_t r_enc = getCharCE(STRING_ELT(pattern_, 0));
+        encoding = ore_encoding(NULL, NULL, &r_enc);
+    }
     else
-        encoding = CE_NATIVE;
-        
-    regex = ore_compile(pattern, options, ore_encoding(NULL,NULL,&encoding), syntax_name);
+        encoding = ore_encoding(encoding_name, NULL, NULL);
+    
+    // Compile the regex
+    regex_t *regex = ore_compile(pattern, options, encoding, syntax_name);
     
     // Get and store number of captured groups
-    n_groups = onig_number_of_captures(regex);
+    int n_groups = onig_number_of_captures(regex);
     
     PROTECT(result = mkString(pattern));
     
@@ -178,22 +174,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     
     setAttrib(result, install("options"), PROTECT(ScalarString(STRING_ELT(options_, 0))));
     setAttrib(result, install("syntax"), PROTECT(ScalarString(STRING_ELT(syntax_name_, 0))));
-    
-    switch (encoding)
-    {
-        case CE_UTF8:
-        setAttrib(result, install("encoding"), PROTECT(mkString("UTF-8")));
-        break;
-        
-        case CE_LATIN1:
-        setAttrib(result, install("encoding"), PROTECT(mkString("latin1")));
-        break;
-        
-        default:
-        setAttrib(result, install("encoding"), PROTECT(mkString("unknown")));
-        break;
-    }
-    
+    setAttrib(result, install("encoding"), PROTECT(ScalarString(STRING_ELT(encoding_name_, 0))));
     setAttrib(result, install("nGroups"), PROTECT(ScalarInteger(n_groups)));
     
     // Obtain group names, if available

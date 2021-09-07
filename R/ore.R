@@ -1,7 +1,7 @@
 #' Oniguruma regular expressions
 #' 
 #' Create, test for, and print objects of class \code{"ore"}, which represent
-#' Oniguruma regular expressions. These are length-1 character vectors with
+#' Oniguruma regular expressions. These are unit-length character vectors with
 #' additional attributes, including a pointer to the compiled version.
 #' 
 #' @param ... One or more strings or dictionary labels, constituting a valid
@@ -14,10 +14,10 @@
 #'   usual interpretation of the regex. These may currently include \code{"i"}
 #'   for case-insensitive matching, and \code{"m"} for multiline matching (in
 #'   which case \code{"."} matches the newline character).
-#' @param encoding The encoding that matching will take place in, a string
-#'   string naming one of the encoding types discussed in
-#'   \code{\link[base]{Encoding}}, or \code{"auto"}. In the latter case, the
-#'   encoding of \code{pattern} will be used.
+#' @param encoding A string specifying the encoding that matching will take
+#'   place in. The default is given by the \code{"ore.encoding"} option, which
+#'   is usually set automatically from the current locale when the package is
+#'   loaded, but can be modified if needed.
 #' @param syntax The regular expression syntax being used. The default is
 #'   \code{"ruby"}, which reflects the syntax of the Ruby language, which is
 #'   very similar to that of Perl. An alternative is \code{"fixed"}, for
@@ -25,13 +25,15 @@
 #' @param x An R object.
 #' @return The \code{ore} function returns the final pattern, with class
 #'   \code{"ore"} and the following attributes:
+#'   \describe{
 #'     \item{.compiled}{A low-level pointer to the compiled version of the
-#'       regular expresion.}
+#'       regular expression.}
 #'     \item{options}{Options, copied from the argument of the same name.}
 #'     \item{encoding}{The specified or detected encoding.}
 #'     \item{syntax}{The specified syntax type.}
 #'     \item{nGroups}{The number of groups in the pattern.}
 #'     \item{groupNames}{Group names, if applicable.}
+#'   }
 #'   The \code{is.ore} function returns a logical vector indicating whether
 #'   its argument represents an \code{"ore"} object.
 #' @examples
@@ -46,7 +48,7 @@
 #' PCRE (used by base R) and Oniguruma (used by \code{ore}) have similar
 #' features. See \code{\link{ore.dict}} for details of the pattern dictionary.
 #' @export
-ore <- function (..., options = "", encoding = "auto", syntax = c("ruby","fixed"))
+ore <- function (..., options = "", encoding = getOption("ore.encoding"), syntax = c("ruby","fixed"))
 {
     regex <- .Call(C_ore_build, ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax))
     return (regex)

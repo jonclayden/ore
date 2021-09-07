@@ -37,6 +37,7 @@
 #' @param ... Ignored.
 #' @return For \code{ore.search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
+#'   \describe{
 #'     \item{text}{A copy of the \code{text} element for the current match.}
 #'     \item{nMatches}{The number of matches found.}
 #'     \item{offsets}{The offsets (in characters) of each match.}
@@ -47,6 +48,7 @@
 #'     \item{groups}{Equivalent metadata for each parenthesised subgroup in
 #'       \code{regex}, in a series of matrices. If named groups are present in
 #'       the regex then \code{dimnames} will be set appropriately.}
+#'   }
 #'   For \code{is.orematch}, a logical vector indicating whether the specified
 #'   object has class \code{"orematch"}. For extraction with one index, a
 #'   vector of matched substrings. For extraction with two indices, a vector
