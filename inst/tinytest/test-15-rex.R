@@ -1,8 +1,5 @@
-context("Compatibility with rex")
-
-test_that("ore search works with rex output", {
-    skip_if_not_installed("rex")
-    
+if (system.file(package="rex") != "")
+{
     regex <- rex::rex(start,
         ## match the protocol -- may exist or may not
         maybe(capture(
@@ -23,4 +20,4 @@ test_that("ore search works with rex output", {
 
     url <- "http://www.clayden.org/"
     expect_equal(ore::matches(ore.search(regex,url)), url)
-})
+}
