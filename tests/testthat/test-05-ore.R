@@ -1,6 +1,8 @@
 context("Regular expression compilation")
 
 test_that("Oniguruma regular expression compilation and interpretation works", {
+    options(ore.encoding="ASCII")
+    
     simpleRegex <- ore("-?\\d+")
     groupedRegex <- ore("(.)-(.)")
     regexWithOption <- ore("[abc]", options="i")
