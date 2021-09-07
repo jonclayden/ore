@@ -34,5 +34,5 @@ if ("SHIFT-JIS" %in% iconvlist())
     expect_equal(sapply(results,"[[","byteOffsets"), c(18L,22L,18L,18L))
     
     # Binary search
-    expect_equal(ore::matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), "Hello")
+    expect_equal(matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), "Hello")
 }

@@ -19,5 +19,5 @@ if (system.file(package="rex") != "")
         end)
 
     url <- "http://www.clayden.org/"
-    expect_equal(ore::matches(ore.search(regex,url)), url)
+    expect_equal(matches(ore.search(regex,url)), url)
 }

@@ -1,5 +1,3 @@
-options(ore.encoding="ASCII")
-
 simpleRegex <- ore("-?\\d+")
 groupedRegex <- ore("(.)-(.)")
 regexWithOption <- ore("[abc]", options="i")

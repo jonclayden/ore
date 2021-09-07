@@ -1,8 +1,11 @@
-regex <- ore("\\b\\w{4}\\b", encoding="ASCII")
+# For these purposes we treat ASCII as the default encoding
+options(ore.encoding="ASCII")
+
+regex <- ore("\\b\\w{4}\\b")
 regexUtf8 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
 text <- readLines("drink.txt", encoding="UTF-8")
 
-expect_equal(ore::matches(ore.search(regex,text)), "have")
+expect_equal(matches(ore.search(regex,text)), "have")
 expect_equal(ore.search(regex,text,all=TRUE)$offsets, 6L)
 expect_null(ore.search(regex,text,start=10L))
 expect_equal(ore.search(regexUtf8,text,all=TRUE)$offsets, c(6L,13L))
@@ -11,19 +14,19 @@ expect_equal(ore.search(regexUtf8,text,start=10L)$offsets, 13L)
 expect_identical(ore.search(regex,NULL), structure(list(),class="orematches"))
 
 expect_null(ore.search(ore("Have"),text))
-expect_equal(ore::matches(ore.search(ore("Have",options="i"),text)), "have")
+expect_equal(matches(ore.search(ore("Have",options="i"),text)), "have")
 
-expect_equal(ore::matches(ore.search(ore(".+"),"one\ntwo")), "one")
-expect_equal(ore::matches(ore.search(ore(".+",options="m"),"one\ntwo")), "one\ntwo")
+expect_equal(matches(ore.search(ore(".+"),"one\ntwo")), "one")
+expect_equal(matches(ore.search(ore(".+",options="m"),"one\ntwo")), "one\ntwo")
 
-expect_equal(ore::matches(ore.search(ore("."),"1.7")), "1")
-expect_equal(ore::matches(ore.search(ore(".",syntax="fixed"),"1.7")), ".")
+expect_equal(matches(ore.search(ore("."),"1.7")), "1")
+expect_equal(matches(ore.search(ore(".",syntax="fixed"),"1.7")), ".")
 
 expect_equal(ore.ismatch("[aeiou]",c("sky","lake")), c(FALSE,TRUE))
 expect_true(ore.ismatch("^\\s*$",""))
 
 # Check infix syntax and implicit last match argument to matches()
-expect_equal(if ("lake" %~% "[aeiou]") ore::matches(), "a")
+expect_equal(if ("lake" %~% "[aeiou]") matches(), "a")
 
 # Check single-match indexing
 match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
