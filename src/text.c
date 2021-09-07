@@ -46,7 +46,15 @@ char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len,
 // Convert an encoding string to its Oniguruma equivalent
 static OnigEncoding ore_name_to_onig_enc (const char *enc)
 {
-    if (ore_strnicmp(enc,"ASCII",5) == 0 || ore_strnicmp(enc,"US-ASCII",8) == 0)
+    if (ore_strnicmp(enc, "native.enc", 10) == 0)
+    {
+        SEXP native_encoding = GetOption1(install("ore.encoding"));
+        if (!isString(native_encoding))
+            return ONIG_ENCODING_ASCII;
+        else
+            return ore_name_to_onig_enc(CHAR(STRING_ELT(native_encoding, 0)));
+    }
+    else if (ore_strnicmp(enc,"ASCII",5) == 0 || ore_strnicmp(enc,"US-ASCII",8) == 0)
         return ONIG_ENCODING_ASCII;
     else if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
         return ONIG_ENCODING_UTF8;
@@ -151,9 +159,10 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
     {
         switch (*r_enc)
         {
-            case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;          break;
-            case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;    break;
-            default:        onig_enc = ONIG_ENCODING_ASCII;         break;
+            case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;                  break;
+            case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;            break;
+            case CE_NATIVE: onig_enc = ore_name_to_onig_enc("native.enc");  break;
+            default:        onig_enc = ONIG_ENCODING_ASCII;                 break;
         }
     }
     
