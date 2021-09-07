@@ -184,14 +184,17 @@ void * ore_iconv_handle (encoding_t *encoding)
 {
     void *iconv_handle = NULL;
     
-    if (encoding != NULL)
+    if (encoding != NULL && ore_strnicmp(encoding->name, "native.enc", 10) != 0)
     {
-        if (ore_strnicmp(encoding->name, "native.enc", 10) == 0)
-            iconv_handle = Riconv_open("UTF-8", "");
+        char target[ORE_ENCODING_NAME_MAX_LEN];
+        if (encoding->r_enc == CE_NATIVE)
+            target[0] = '\0';
+        else if (encoding->r_enc == CE_LATIN1)
+            strcpy(target, "latin1");
         else
-            iconv_handle = Riconv_open("UTF-8", encoding->name);
+            strcpy(target, "UTF-8");
         
-        encoding->r_enc = CE_UTF8;
+        iconv_handle = Riconv_open(target, encoding->name);
     }
     
     return iconv_handle;
