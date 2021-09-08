@@ -2,15 +2,15 @@
 % Please edit documentation in R/ore.R
 \name{ore}
 \alias{ore}
-\alias{is.ore}
 \alias{is_ore}
+\alias{is.ore}
 \alias{print.ore}
 \title{Oniguruma regular expressions}
 \usage{
 ore(..., options = "", encoding = getOption("ore.encoding"),
   syntax = c("ruby", "fixed"))
 
-is.ore(x)
+is_ore(x)
 
 \method{print}{ore}(x, ...)
 }
@@ -51,7 +51,7 @@ The \code{ore} function returns the final pattern, with class
     \item{nGroups}{The number of groups in the pattern.}
     \item{groupNames}{Group names, if applicable.}
   }
-  The \code{is.ore} function returns a logical vector indicating whether
+  The \code{is_ore} function returns a logical vector indicating whether
   its argument represents an \code{"ore"} object.
 }
 \description{
@@ -71,5 +71,5 @@ For full details of supported syntax, please see
 \url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
 \code{\link[base]{regex}} page is also useful as a quick reference, since
 PCRE (used by base R) and Oniguruma (used by \code{ore}) have similar
-features. See \code{\link{ore.dict}} for details of the pattern dictionary.
+features. See \code{\link{ore_dict}} for details of the pattern dictionary.
 }

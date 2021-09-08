@@ -15,18 +15,18 @@
 #' 
 #' @examples
 #' # Literal strings are returned as-is
-#' ore.dict("protocol")
+#' ore_dict("protocol")
 #' 
 #' # Named arguments are added to the dictionary
-#' ore.dict(protocol="\\w+://")
+#' ore_dict(protocol="\\w+://")
 #' 
 #' # ... and can be retrieved by name
-#' ore.dict(protocol)
+#' ore_dict(protocol)
 #' 
 #' @seealso \code{\link{ore}}, which passes its arguments through this function
-#' @aliases ore_dict
+#' @aliases ore.dict
 #' @export ore.dict ore_dict
-ore.dict <- ore_dict <- function (..., enclos = parent.frame())
+ore_dict <- ore.dict <- function (..., enclos = parent.frame())
 {
     if (!exists("dictionary", .Workspace))
         .Workspace$dictionary <- list()

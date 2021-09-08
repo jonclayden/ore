@@ -25,7 +25,7 @@
 #' es("pi is \\#{pi}")
 #' es("The square-root of pi is approximately #{sqrt(pi)}", signif=4)
 #' es("1/(1+x) for x=3 is #{x <- 3; 1/(1+x)}")
-#' @seealso \code{\link{ore.subst}}
+#' @seealso \code{\link{ore_subst}}
 #' @export
 es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
 {
@@ -48,10 +48,10 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     }
     
     # Do the main substitution
-    results <- ore.subst("(?<!\\\\)\\#\\{([^\\}]+)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE)
+    results <- ore_subst("(?<!\\\\)\\#\\{([^\\}]+)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE)
     
     # Replace escaped '#' characters
-    results <- ore.subst(ore("\\#",syntax="fixed"), "#", results, all=TRUE)
+    results <- ore_subst(ore("\\#",syntax="fixed"), "#", results, all=TRUE)
     
     return (results)
 }

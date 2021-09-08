@@ -7,7 +7,7 @@
 #' @param regex A single character string or object of class \code{"ore"}. In
 #'   the former case, this will first be passed through \code{\link{ore}}.
 #' @param text A vector of strings to match against, or the result of a call to
-#'   \code{\link{ore.file}} to search in a file. In the latter case, match
+#'   \code{\link{ore_file}} to search in a file. In the latter case, match
 #'   offsets will be relative to the file's encoding.
 #' @param all If \code{TRUE}, then all matches within each element of
 #'   \code{text} will be found. Otherwise, the search will stop at the first
@@ -35,7 +35,7 @@
 #'   \code{NULL}, this defaults to the value of the standard \code{"width"}
 #'   option.
 #' @param ... Ignored.
-#' @return For \code{ore.search}, an \code{"orematch"} object, or a list of
+#' @return For \code{ore_search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
 #'   \describe{
 #'     \item{text}{A copy of the \code{text} element for the current match.}
@@ -65,7 +65,7 @@
 #' 
 #' @examples
 #' # Pick out pairs of consecutive word characters
-#' match <- ore.search("(\\w)(\\w)", "This is a test", all=TRUE)
+#' match <- ore_search("(\\w)(\\w)", "This is a test", all=TRUE)
 #' 
 #' # Find the second matched substring ("is", from "This")
 #' match[2]
@@ -75,9 +75,9 @@
 #' @seealso \code{\link{ore}} for creating regex objects; \code{\link{matches}}
 #' and \code{\link{groups}} for an alternative to indexing for extracting
 #' matching substrings.
-#' @aliases orematch ore_search
-#' @export ore.search ore_search
-ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE, incremental = !all)
+#' @aliases orematch orematches ore.search ore_match ore.match
+#' @export ore.search ore_search ore.match ore_match
+ore_search <- ore.search <- ore_match <- ore.match <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE, incremental = !all)
 {
     match <- .Call(C_ore_search_all, regex, text, as.logical(all), as.integer(start), as.logical(simplify), as.logical(incremental))
     
@@ -85,15 +85,15 @@ ore.search <- ore_search <- function (regex, text, all = FALSE, start = 1L, simp
     return (match)
 }
 
-#' @rdname ore.search
-#' @aliases is_orematch
+#' @rdname ore_search
+#' @aliases is.orematch
 #' @export is.orematch is_orematch
-is.orematch <- is_orematch <- function (x)
+is_orematch <- is.orematch <- function (x)
 {
     return ("orematch" %in% class(x))
 }
 
-#' @rdname ore.search
+#' @rdname ore_search
 #' @export
 "[.orematch" <- function (x, j, k, ...)
 {
@@ -103,7 +103,7 @@ is.orematch <- is_orematch <- function (x)
         return (x$groups$matches[j,k])
 }
 
-#' @rdname ore.search
+#' @rdname ore_search
 #' @export
 "[.orematches" <- function (x, i, j, k, ...)
 {
@@ -117,7 +117,7 @@ is.orematch <- is_orematch <- function (x)
         return (sapply(unclass(x)[i], function(match) { if (is.null(match)) NA_character_ else match[j,k,...] }, simplify="array"))
 }
 
-#' @rdname ore.search
+#' @rdname ore_search
 #' @export
 print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
 {
@@ -157,7 +157,7 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
     invisible(NULL)
 }
 
-#' @rdname ore.search
+#' @rdname ore_search
 #' @export
 print.orematches <- function (x, ...)
 {
@@ -179,12 +179,12 @@ print.orematches <- function (x, ...)
 #' 
 #' These functions extract entire matches, or just subgroup matches, from
 #' objects of class \code{"orematch"}. They can also be applied to lists of
-#' these objects, as returned by \code{\link{ore.search}} when more than one
+#' these objects, as returned by \code{\link{ore_search}} when more than one
 #' string is searched. For other objects they return \code{NA}.
 #' 
 #' @param object An R object. Methods are provided for generic lists and
 #'   \code{"orematch"} objects. If no object is provided (i.e. the method is
-#'   called with no arguments), the value of \code{\link{ore.lastmatch}} will
+#'   called with no arguments), the value of \code{\link{ore_lastmatch}} will
 #'   be used as a default.
 #' @param simplify For the list methods, should nonmatching elements be removed
 #'   from the result?
@@ -193,12 +193,12 @@ print.orematches <- function (x, ...)
 #'   matches or subgroups. If \code{simplify} is \code{TRUE}, the result may
 #'   have a \code{dropped} attribute, giving the indices of nonmatching
 #'   elements.
-#' @seealso \code{\link{ore.search}}
+#' @seealso \code{\link{ore_search}}
 #' @export
 matches <- function (object, ...)
 {
     if (missing(object))
-        matches(ore.lastmatch())
+        matches(ore_lastmatch())
     else
         UseMethod("matches", object)
 }
@@ -238,7 +238,7 @@ matches.default <- function (object, ...)
 groups <- function (object, ...)
 {
     if (missing(object))
-        groups(ore.lastmatch())
+        groups(ore_lastmatch())
     else
         UseMethod("groups", object)
 }
@@ -283,17 +283,17 @@ groups.default <- function (object, ...)
 #' Retrieve the last match
 #' 
 #' This function can be used to obtain the \code{"orematch"} object, or list,
-#' corresponding to the last call to \code{\link{ore.search}}. This can be
+#' corresponding to the last call to \code{\link{ore_search}}. This can be
 #' useful after performing a search implicitly, for example with \code{\%~\%}.
 #' 
 #' @param simplify If \code{TRUE} and the last match was against a single
 #'   string, then the \code{"orematch"} object will be returned, instead of a
 #'   list with one element.
-#' @return An \code{"orematch"} object or list. See \code{\link{ore.search}}
+#' @return An \code{"orematch"} object or list. See \code{\link{ore_search}}
 #'   for details.
-#' @aliases ore_lastmatch
+#' @aliases ore.lastmatch
 #' @export ore.lastmatch ore_lastmatch
-ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
+ore_lastmatch <- ore.lastmatch <- function (simplify = TRUE)
 {
     if (!exists("lastMatch", envir=.Workspace))
         return (NULL)
@@ -307,10 +307,10 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' 
 #' These functions test whether the elements of a character vector match a
 #' Oniguruma regular expression. The actual match can be retrieved using
-#' \code{\link{ore.lastmatch}}.
+#' \code{\link{ore_lastmatch}}.
 #' 
-#' The \code{\%~\%} infix shorthand corresponds to \code{ore.ismatch(..., 
-#' all=FALSE)}, while \code{\%~~\%} corresponds to \code{ore.ismatch(...,
+#' The \code{\%~\%} infix shorthand corresponds to \code{ore_ismatch(..., 
+#' all=FALSE)}, while \code{\%~~\%} corresponds to \code{ore_ismatch(...,
 #' all=TRUE)}. Either way, the first argument can be an \code{"ore"} object,
 #' in which case the second is the text to search, or a character vector, in
 #' which case the second argument is assumed to contain the regex. The
@@ -319,7 +319,7 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' 
 #' @param regex A single character string or object of class \code{"ore"}.
 #' @param text A character vector of strings to search.
-#' @param ... Further arguments to \code{\link{ore.search}}.
+#' @param ... Further arguments to \code{\link{ore_search}}.
 #' @param X A character vector or \code{"ore"} object. See Details.
 #' @param Y A character vector. See Details.
 #' @return A logical vector, indicating whether elements of \code{text} match
@@ -327,50 +327,50 @@ ore.lastmatch <- ore_lastmatch <- function (simplify = TRUE)
 #' 
 #' @examples
 #' # Test for the presence of a vowel
-#' ore.ismatch("[aeiou]", c("sky","lake"))  # => c(FALSE,TRUE)
+#' ore_ismatch("[aeiou]", c("sky","lake"))  # => c(FALSE,TRUE)
 #' 
 #' # The same thing, in shorter form
 #' c("sky","lake") %~% "[aeiou]"
 #' 
 #' # Same again: the first argument must be an "ore" object this way around
 #' ore("[aeiou]") %~% c("sky","lake")
-#' @seealso \code{\link{ore.search}}
-#' @aliases ore_ismatch
+#' @seealso \code{\link{ore_search}}
+#' @aliases ore.ismatch
 #' @export ore.ismatch ore_ismatch
-ore.ismatch <- ore_ismatch <- function (regex, text, ...)
+ore_ismatch <- ore.ismatch <- function (regex, text, ...)
 {
-    match <- ore.search(regex, text, simplify=FALSE, ...)
+    match <- ore_search(regex, text, simplify=FALSE, ...)
     return (!sapply(match, is.null))
 }
 
-#' @rdname ore.ismatch
+#' @rdname ore_ismatch
 #' @export
 "%~%" <- function (X, Y)
 {
     if (is.ore(X))
-        return (ore.ismatch(X, Y, all=FALSE))
+        return (ore_ismatch(X, Y, all=FALSE))
     else
-        return (ore.ismatch(Y, X, all=FALSE))
+        return (ore_ismatch(Y, X, all=FALSE))
 }
 
-#' @rdname ore.ismatch
+#' @rdname ore_ismatch
 #' @export
 "%~~%" <- function (X, Y)
 {
     if (is.ore(X))
-        return (ore.ismatch(X, Y, all=TRUE))
+        return (ore_ismatch(X, Y, all=TRUE))
     else
-        return (ore.ismatch(Y, X, all=TRUE))
+        return (ore_ismatch(Y, X, all=TRUE))
 }
 
-#' @rdname ore.ismatch
+#' @rdname ore_ismatch
 #' @export
 "%~|%" <- function (X, Y)
 {
     if (is.ore(X))
-        return (Y[ore.ismatch(X,Y)])
+        return (Y[ore_ismatch(X,Y)])
     else
-        return (X[ore.ismatch(Y,X)])
+        return (X[ore_ismatch(Y,X)])
 }
 
 #' Split strings using a regex
@@ -379,7 +379,7 @@ ore.ismatch <- ore_ismatch <- function (regex, text, ...)
 #' expression, removing those regions from the result. It is analogous to the
 #' \code{\link[base]{strsplit}} function in base R.
 #' 
-#' @inheritParams ore.search
+#' @inheritParams ore_search
 #' @param text A vector of strings to match against.
 #' @param simplify If \code{TRUE}, a character vector containing the pieces
 #'   will be returned if \code{text} is of length 1. Otherwise, a list of such
@@ -387,11 +387,11 @@ ore.ismatch <- ore_ismatch <- function (regex, text, ...)
 #' @return A character vector or list of substrings.
 #' 
 #' @examples
-#' ore.split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
-#' @seealso \code{\link{ore.search}}
-#' @aliases ore_split
+#' ore_split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
+#' @seealso \code{\link{ore_search}}
+#' @aliases ore.split
 #' @export ore.split ore_split
-ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
+ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
@@ -413,7 +413,7 @@ ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
 #' attribute can be easily obtained that way. The substitution function will be
 #' called once per element of \code{text}.
 #' 
-#' @inheritParams ore.search
+#' @inheritParams ore_search
 #' @param text A vector of strings to match against.
 #' @param replacement A single character string, or a function to be applied
 #'   to the matches.
@@ -422,17 +422,17 @@ ore.split <- ore_split <- function (regex, text, start = 1L, simplify = TRUE)
 #' 
 #' @examples
 #' # Simple text substitution (produces "no dogs")
-#' ore.subst("\\d+", "no", "2 dogs")
+#' ore_subst("\\d+", "no", "2 dogs")
 #' 
 #' # Back-referenced substitution (produces "22 dogs")
-#' ore.subst("(\\d+)", "\\1\\1", "2 dogs")
+#' ore_subst("(\\d+)", "\\1\\1", "2 dogs")
 #' 
 #' # Function-based substitution (produces "4 dogs")
-#' ore.subst("\\d+", function(i) as.numeric(i)^2, "2 dogs")
-#' @seealso \code{\link{ore.search}}
-#' @aliases ore_subst
+#' ore_subst("\\d+", function(i) as.numeric(i)^2, "2 dogs")
+#' @seealso \code{\link{ore_search}}
+#' @aliases ore.subst
 #' @export ore.subst ore_subst
-ore.subst <- ore_subst <- function (regex, replacement, text, ..., all = FALSE)
+ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE)
 {
     if (!is.character(text))
         text <- as.character(text)

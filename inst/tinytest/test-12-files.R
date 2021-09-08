@@ -2,7 +2,7 @@
 if ("SHIFT-JIS" %in% iconvlist())
 {
     # Four ways to search in a SHIFT-JIS-encoded file:
-    #   1. Use ore.file(), declaring the encoding, and use the internal
+    #   1. Use ore_file(), declaring the encoding, and use the internal
     #      file-handling code to read the file directly.
     #   2. Use readLines() to read in the file, declaring the encoding,
     #      which implicitly converts it to UTF-8 because R doesn't understand
@@ -15,14 +15,14 @@ if ("SHIFT-JIS" %in% iconvlist())
     #      UTF-8.
     #   4. Create a connection, declaring the encoding, and pass it directly
     #      to ore_search() - assuming connection support is available.
-    s1 <- ore.search("\\p{Katakana}+", ore.file("sjis.txt",encoding="SHIFT-JIS"))
+    s1 <- ore_search("\\p{Katakana}+", ore_file("sjis.txt",encoding="SHIFT-JIS"))
     con <- file("sjis.txt", encoding="SHIFT-JIS")
     text <- readLines(con)
-    s2 <- ore.search("\\p{Katakana}+", text)
-    s3 <- ore.search(ore("\\p{Katakana}+",encoding="SHIFT-JIS"), iconv(text,"UTF-8","SHIFT-JIS"))
+    s2 <- ore_search("\\p{Katakana}+", text)
+    s3 <- ore_search(ore("\\p{Katakana}+",encoding="SHIFT-JIS"), iconv(text,"UTF-8","SHIFT-JIS"))
     close(con)
     con <- file("sjis.txt", encoding="SHIFT-JIS")
-    s4 <- ore.search("\\p{Katakana}+", con)
+    s4 <- ore_search("\\p{Katakana}+", con)
     close(con)
     
     # Check the match was found in each case
@@ -34,5 +34,5 @@ if ("SHIFT-JIS" %in% iconvlist())
     expect_equal(sapply(results,"[[","byteOffsets"), c(18L,22L,18L,18L))
     
     # Binary search
-    expect_equal(matches(ore.search("\\w+",ore.file("hello.bin",binary=TRUE))), "Hello")
+    expect_equal(matches(ore_search("\\w+",ore_file("hello.bin",binary=TRUE))), "Hello")
 }

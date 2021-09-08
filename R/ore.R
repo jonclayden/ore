@@ -34,7 +34,7 @@
 #'     \item{nGroups}{The number of groups in the pattern.}
 #'     \item{groupNames}{Group names, if applicable.}
 #'   }
-#'   The \code{is.ore} function returns a logical vector indicating whether
+#'   The \code{is_ore} function returns a logical vector indicating whether
 #'   its argument represents an \code{"ore"} object.
 #' @examples
 #' # This matches a positive or negative integer
@@ -46,18 +46,18 @@
 #' \url{https://raw.githubusercontent.com/k-takata/Onigmo/master/doc/RE}. The
 #' \code{\link[base]{regex}} page is also useful as a quick reference, since
 #' PCRE (used by base R) and Oniguruma (used by \code{ore}) have similar
-#' features. See \code{\link{ore.dict}} for details of the pattern dictionary.
+#' features. See \code{\link{ore_dict}} for details of the pattern dictionary.
 #' @export
 ore <- function (..., options = "", encoding = getOption("ore.encoding"), syntax = c("ruby","fixed"))
 {
-    regex <- .Call(C_ore_build, ore.dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax))
+    regex <- .Call(C_ore_build, ore_dict(...,enclos=parent.frame()), as.character(options), as.character(encoding), match.arg(syntax))
     return (regex)
 }
 
 #' @rdname ore
-#' @aliases is_ore
+#' @aliases is.ore
 #' @export is.ore is_ore
-is.ore <- is_ore <- function (x)
+is_ore <- is.ore <- function (x)
 {
     return ("ore" %in% class(x))
 }
@@ -88,9 +88,9 @@ print.ore <- function (x, ...)
 #'   by prefixing them with a backslash.
 #' 
 #' @seealso \code{\link{ore}}
-#' @aliases ore_escape
+#' @aliases ore.escape
 #' @export ore.escape ore_escape
-ore.escape <- ore_escape <- function (text)
+ore_escape <- ore.escape <- function (text)
 {
     .Call(C_ore_escape, as.character(text))
 }

@@ -33,7 +33,7 @@ groups(object, ...)
 \arguments{
 \item{object}{An R object. Methods are provided for generic lists and
 \code{"orematch"} objects. If no object is provided (i.e. the method is
-called with no arguments), the value of \code{\link{ore.lastmatch}} will
+called with no arguments), the value of \code{\link{ore_lastmatch}} will
 be used as a default.}
 
 \item{...}{Further arguments to methods.}
@@ -50,9 +50,9 @@ A vector, matrix, array, or list of the same, containing full
 \description{
 These functions extract entire matches, or just subgroup matches, from
 objects of class \code{"orematch"}. They can also be applied to lists of
-these objects, as returned by \code{\link{ore.search}} when more than one
+these objects, as returned by \code{\link{ore_search}} when more than one
 string is searched. For other objects they return \code{NA}.
 }
 \seealso{
-\code{\link{ore.search}}
+\code{\link{ore_search}}
 }
