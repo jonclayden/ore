@@ -159,16 +159,18 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     
-    // Look for back-references in the replacement, if it's a string
-    backref_info_t *backref_info = NULL;
+    // Look for back-references in the replacement, if it's character-mode
+    backref_info_t **backref_info = NULL;
+    int replacement_len = 1;
     if (isString(replacement_))
     {
-        if (length(replacement_) < 1)
+        replacement_len = length(replacement_);
+        if (replacement_len < 1)
             error("No replacement has been given");
-        else if (length(replacement_) > 1)
-            warning("All replacement strings after the first will be ignored");
         
-        backref_info = ore_find_backrefs(CHAR(STRING_ELT(replacement_,0)), group_names);
+        backref_info = (backref_info_t **) R_alloc(replacement_len, sizeof(backref_info_t *));
+        for (int j=0; j<replacement_len; j++)
+            backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), group_names);
     }
     
     SEXP results = PROTECT(NEW_CHARACTER(text->length));
@@ -227,22 +229,23 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             else
             {
                 // If the replacement is a string, then we may need to do another level of substitutions, if there are back-references
-                const char *replacement_template = CHAR(STRING_ELT(replacement_, 0));
-                if (backref_info != NULL)
+                for (int j=0; j<raw_match->n_matches; j++)
                 {
-                    for (int j=0; j<raw_match->n_matches; j++)
+                    const int jj = j % replacement_len;
+                    const char *replacement_template = CHAR(STRING_ELT(replacement_, jj));
+                    if (backref_info[jj] != NULL)
                     {
-                        const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
-                        for (int k=0; k<backref_info->n; k++)
-                            backref_replacements[k] = raw_match->matches[j*raw_match->n_regions + backref_info->group_numbers[k]];
-                        replacements[j] = ore_substitute(replacement_template, backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
+                        const char **backref_replacements = (const char **) R_alloc(backref_info[jj]->n, sizeof(char *));
+                        for (int k=0; k<backref_info[jj]->n; k++)
+                            backref_replacements[k] = raw_match->matches[j*raw_match->n_regions + backref_info[jj]->group_numbers[k]];
+                        replacements[j] = ore_substitute(replacement_template, backref_info[jj]->n, backref_info[jj]->offsets, backref_info[jj]->lengths, backref_replacements);
                     }
-                }
-                else
-                {
-                    // If not, the replacements are just the literal replacement string, so we reuse its pointer
-                    for (int j=0; j<raw_match->n_matches; j++)
-                        replacements[j] = replacement_template;
+                    else
+                    {
+                        // If not, the replacements are just the literal replacement string, so we reuse its pointer
+                        for (int j=0; j<raw_match->n_matches; j++)
+                            replacements[j] = replacement_template;
+                    }
                 }
             }
             
