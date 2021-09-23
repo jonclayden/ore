@@ -173,10 +173,13 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         for (int j=0; j<replacement_len; j++)
         {
             backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), group_names);
-            for (int k=0; k<backref_info[j]->n; k++)
+            if (backref_info[j] != NULL)
             {
-                if (backref_info[j]->group_numbers[k] > n_groups)
-                    error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                for (int k=0; k<backref_info[j]->n; k++)
+                {
+                    if (backref_info[j]->group_numbers[k] > n_groups)
+                        error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                }
             }
         }
     }
