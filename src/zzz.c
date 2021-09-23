@@ -27,7 +27,7 @@ SEXP ore_init ()
     OnigErrorInfo einfo;
     
     // Create the group number regex, for substitutions
-    const char group_number_pattern[10] = "\\\\([1-9])";
+    const char group_number_pattern[8] = "\\\\(\\d+)";
     return_value = onig_new(&group_number_regex, (UChar *) group_number_pattern, (UChar *) group_number_pattern+strlen(group_number_pattern), ONIG_OPTION_NONE, ONIG_ENCODING_ASCII, ONIG_SYNTAX_RUBY, &einfo);
     if (return_value != ONIG_NORMAL)
     {
