@@ -231,6 +231,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 // If the replacement is a string, then we may need to do another level of substitutions, if there are back-references
                 for (int j=0; j<raw_match->n_matches; j++)
                 {
+                    // This subindex determines which replacement element is used for this match
                     const int jj = j % replacement_len;
                     const char *replacement_template = CHAR(STRING_ELT(replacement_, jj));
                     if (backref_info[jj] != NULL)
