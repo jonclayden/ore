@@ -441,3 +441,13 @@ ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE)
         
     return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), new.env(), pairlist(...)))
 }
+
+ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, simplify = TRUE)
+{
+    if (!is.character(text))
+        text <- as.character(text)
+    if (!is.character(replacement))
+        replacement <- match.fun(replacement)
+    
+    return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.logical(simplify), new.env(), pairlist(...)))
+}

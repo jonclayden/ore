@@ -16,4 +16,6 @@ backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names);
 
 SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args);
 
+SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP simplify_, SEXP environment, SEXP function_args);
+
 #endif
