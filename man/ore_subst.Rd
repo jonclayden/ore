@@ -3,16 +3,20 @@
 \name{ore_subst}
 \alias{ore_subst}
 \alias{ore.subst}
+\alias{ore.repl}
+\alias{ore_repl}
 \title{Replace matched substrings with new text}
 \usage{
 ore_subst(regex, replacement, text, ..., all = FALSE)
+
+ore_repl(regex, replacement, text, ..., all = FALSE, simplify = TRUE)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
 the former case, this will first be passed through \code{\link{ore}}.}
 
-\item{replacement}{A single character string, or a function to be applied
-to the matches.}
+\item{replacement}{A character vector, or a function to be applied to the
+matches.}
 
 \item{text}{A vector of strings to match against.}
 
@@ -21,23 +25,38 @@ to the matches.}
 \item{all}{If \code{TRUE}, then all matches within each element of
 \code{text} will be found. Otherwise, the search will stop at the first
 match.}
+
+\item{simplify}{For \code{ore_repl}, a character vector of modified strings
+will be returned if this is \code{TRUE} and \code{text} is of length 1.
+Otherwise, a list of such objects will always be returned.}
 }
 \value{
-A version of \code{text} with the substitutions made.
+Versions of \code{text} with the substitutions made.
 }
 \description{
-This function substitutes new text into strings in regions that match a
+These functions substitute new text into strings in regions that match a
 regular expression. The substitutions may be simple text, may include
 references to matched subgroups, or may be created by an R function.
 }
 \details{
+These functions differ in how they are vectorised. \code{ore_subst}
+vectorises over matches, and returns a vector of the same length as the
+\code{text} argument. If multiple replacements are given then they are
+applied to matches in turn. \code{ore_repl} vectorises over replacements,
+replicating the elements of \code{text} as needed, and (in general)
+returns a list the same length as \code{text}, whose elements are character
+vectors each of the same length as \code{replacement} (or its return value,
+if a function). Each string combines the first replacement for each match,
+the second, and so on.
+
 If \code{replacement} is a function, then it will be passed as its first
 argument an object of class \code{"orearg"}. This is a character vector
 containing as its elements the matched substrings, and with an attribute
 containing the matches for parenthesised subgroups, if there are any. A
 \code{\link{groups}} method is available for this class, so the groups
 attribute can be easily obtained that way. The substitution function will be
-called once per element of \code{text}.
+called once per element of \code{text} by \code{ore_subst}, and once per
+match by \code{ore_repl}.
 }
 \examples{
 # Simple text substitution (produces "no dogs")

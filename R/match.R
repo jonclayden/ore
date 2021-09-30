@@ -401,9 +401,19 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 
 #' Replace matched substrings with new text
 #' 
-#' This function substitutes new text into strings in regions that match a
+#' These functions substitute new text into strings in regions that match a
 #' regular expression. The substitutions may be simple text, may include
 #' references to matched subgroups, or may be created by an R function.
+#' 
+#' These functions differ in how they are vectorised. \code{ore_subst}
+#' vectorises over matches, and returns a vector of the same length as the
+#' \code{text} argument. If multiple replacements are given then they are
+#' applied to matches in turn. \code{ore_repl} vectorises over replacements,
+#' replicating the elements of \code{text} as needed, and (in general)
+#' returns a list the same length as \code{text}, whose elements are character
+#' vectors each of the same length as \code{replacement} (or its return value,
+#' if a function). Each string combines the first replacement for each match,
+#' the second, and so on.
 #' 
 #' If \code{replacement} is a function, then it will be passed as its first
 #' argument an object of class \code{"orearg"}. This is a character vector
@@ -411,14 +421,18 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' containing the matches for parenthesised subgroups, if there are any. A
 #' \code{\link{groups}} method is available for this class, so the groups
 #' attribute can be easily obtained that way. The substitution function will be
-#' called once per element of \code{text}.
+#' called once per element of \code{text} by \code{ore_subst}, and once per
+#' match by \code{ore_repl}.
 #' 
 #' @inheritParams ore_search
 #' @param text A vector of strings to match against.
-#' @param replacement A single character string, or a function to be applied
-#'   to the matches.
+#' @param replacement A character vector, or a function to be applied to the
+#'   matches.
 #' @param ... Further arguments to \code{replacement}, if it is a function.
-#' @return A version of \code{text} with the substitutions made.
+#' @param simplify For \code{ore_repl}, a character vector of modified strings
+#'   will be returned if this is \code{TRUE} and \code{text} is of length 1.
+#'   Otherwise, a list of such objects will always be returned.
+#' @return Versions of \code{text} with the substitutions made.
 #' 
 #' @examples
 #' # Simple text substitution (produces "no dogs")
@@ -430,7 +444,7 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' # Function-based substitution (produces "4 dogs")
 #' ore_subst("\\d+", function(i) as.numeric(i)^2, "2 dogs")
 #' @seealso \code{\link{ore_search}}
-#' @aliases ore.subst
+#' @aliases ore.subst ore.repl
 #' @export ore.subst ore_subst
 ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE)
 {
@@ -442,6 +456,8 @@ ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE)
     return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), new.env(), pairlist(...)))
 }
 
+#' @rdname ore_subst
+#' @export ore.repl ore_repl
 ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, simplify = TRUE)
 {
     if (!is.character(text))
