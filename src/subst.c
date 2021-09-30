@@ -336,13 +336,12 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         // Do the match
         rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, 0);
         
-        // If there's no match the return value is the original string
-        if (raw_match == NULL)
-            SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
-        else
+        // A 2D array of strings to hold literal replacements for each match
+        const char ***replacements = NULL;
+        
+        // If there are matches, process the replacements
+        if (raw_match != NULL)
         {
-            const char ***replacements = NULL;
-            
             if (isFunction(replacement_))
             {
                 SEXP parts = PROTECT(NEW_LIST(raw_match->n_matches));
@@ -405,9 +404,15 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                     }
                 }
             }
-            
-            SEXP result = PROTECT(NEW_CHARACTER(replacement_len));
-            for (int j=0; j<replacement_len; j++)
+        }
+        
+        SEXP result = PROTECT(NEW_CHARACTER(replacement_len));
+        for (int j=0; j<replacement_len; j++)
+        {
+            // If there is no match there is no replacement, so the return value is the original string
+            if (replacements == NULL || replacements[j] == NULL)
+                SET_STRING_ELT(result, j, ore_text_element_to_rchar(text_element));
+            else
             {
                 int *offsets = (int *) R_alloc(raw_match->n_matches, sizeof(int));
                 int *lengths = (int *) R_alloc(raw_match->n_matches, sizeof(int));
@@ -421,11 +426,11 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                 char *result_str = ore_substitute(text_element->start, raw_match->n_matches, offsets, lengths, replacements[j]);
                 SET_STRING_ELT(result, j, ore_string_to_rchar(result_str, text_element->encoding));
             }
-            
-            SET_ELEMENT(results, i, result);
-            
-            UNPROTECT(isFunction(replacement_) ? 2 : 1);
         }
+        
+        SET_ELEMENT(results, i, result);
+        
+        UNPROTECT(raw_match != NULL && isFunction(replacement_) ? 2 : 1);
     }
     
     ore_text_done(text);
