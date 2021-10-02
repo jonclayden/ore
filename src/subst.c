@@ -160,6 +160,8 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     
+    const char nul = '\0';
+    
     // Look for back-references in the replacement, if it's character-mode
     backref_info_t **backref_info = NULL;
     int replacement_len = 1;
@@ -233,7 +235,12 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 
                 // Extract the replacements as C strings, from the R character vector of results
                 for (int j=0; j<raw_match->n_matches; j++)
-                    replacements[j] = (const char *) CHAR(STRING_ELT(char_result, j % result_len));
+                {
+                    if (result_len == 0)
+                        replacements[j] = &nul;
+                    else
+                        replacements[j] = (const char *) CHAR(STRING_ELT(char_result, j % result_len));
+                }
                 
                 UNPROTECT(4);
             }
@@ -295,6 +302,8 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
+    
+    const char nul = '\0';
     
     // Look for back-references in the replacement, if it's character-mode
     backref_info_t **backref_info = NULL;
@@ -379,7 +388,10 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                     for (int l=0; l<raw_match->n_matches; l++)
                     {
                         SEXP element = VECTOR_ELT(parts, l);
-                        replacements[j][l] = CHAR(STRING_ELT(element, j % length(element)));
+                        if (length(element) == 0)
+                            replacements[j][l] = &nul;
+                        else
+                            replacements[j][l] = CHAR(STRING_ELT(element, j % length(element)));
                     }
                 }
             }
