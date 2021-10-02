@@ -11,4 +11,8 @@ expect_equal(ore_repl("\\d+",c("no","some"),c("2 dogs","3 cats")), list(c("no do
 expect_equal(ore_subst("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), "some dogs and some cats")
 expect_equal(ore_repl("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), c("no dogs and no cats","some dogs and some cats"))
 
+# Potentially pathological edge-cases
+expect_error(ore_subst("\\d+",character(0),"2 dogs"), "No replacement")
+expect_equal(ore_subst("\\d+",function(i) NULL,"2 dogs"), " dogs")
+
 expect_equal(ore_split("[\\s\\-()]+","(801) 234-5678"), c("","801","234","5678"))

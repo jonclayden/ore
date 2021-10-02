@@ -7,7 +7,8 @@
 #' back into the string. The literal string \code{"#{}"} can be obtained by
 #' escaping the hash character, viz. \code{"\\\\#{}"}. The block may contain
 #' multiple R expressions, separated by semicolons, but may not contain
-#' additional braces.
+#' additional braces. Its value will be coerced to character mode, and if the
+#' result has multiple elements then the source string will be duplicated.
 #' 
 #' @param text A vector of strings to substitute into.
 #' @param round \code{NULL} or a single integer, giving the number of decimal
@@ -37,21 +38,19 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     else
         rfun <- function(x) x
     
-    # Vectorised version of eval(), which also does rounding
+    # Wrapper around eval() that also does rounding
     veval <- function(x,e) {
-        sapply(x, function(xi) {
-            value <- eval(parse(text=xi),envir=e)
-            if (is.double(value))
-                value <- rfun(value)
-            return (value)
-        })
+        value <- eval(parse(text=x), envir=e)
+        if (is.double(value))
+            value <- rfun(value)
+        return (ifelse(is.na(value), "", as.character(value)))
     }
     
     # Do the main substitution
-    results <- ore_subst("(?<!\\\\)\\#\\{([^\\}]+)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE)
+    results <- ore_repl("(?<!\\\\)\\#\\{([^\\}]*)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE, simplify=FALSE)
     
     # Replace escaped '#' characters
-    results <- ore_subst(ore("\\#",syntax="fixed"), "#", results, all=TRUE)
+    results <- lapply(results, function(r) ore_subst(ore("\\#",syntax="fixed"), "#", r, all=TRUE))
     
-    return (results)
+    return (unlist(results))
 }
