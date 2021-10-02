@@ -157,6 +157,7 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
     // Propagate back from the R encoding if necessary, but R asserts very few encodings
     if (onig_enc == NULL && r_enc != NULL)
     {
+        final_r_enc = *r_enc;
         switch (*r_enc)
         {
             case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;                  break;

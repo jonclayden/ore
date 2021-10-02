@@ -11,6 +11,11 @@ expect_equal(ore_repl("\\d+",c("no","some"),c("2 dogs","3 cats")), list(c("no do
 expect_equal(ore_subst("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), "some dogs and some cats")
 expect_equal(ore_repl("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), c("no dogs and no cats","some dogs and some cats"))
 
+# Check that encodings are preserved
+text <- readLines("drink.txt", encoding="UTF-8")
+switched <- ore_subst("(\\w)(\\w)", "\\2\\1", text, all=TRUE)
+expect_equal(Encoding(switched), "UTF-8")
+
 # Potentially pathological edge-cases
 expect_error(ore_subst("\\d+",character(0),"2 dogs"), "No replacement")
 expect_equal(ore_subst("\\d+",function(i) NULL,"2 dogs"), " dogs")
