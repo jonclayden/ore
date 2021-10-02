@@ -212,20 +212,24 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
 }
 
 // Copy string data from groups into an R matrix
-void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const SEXP col_names, encoding_t *encoding)
+void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const int n_matches, const int index, const SEXP col_names, encoding_t *encoding)
 {
     void *iconv_handle = ore_iconv_handle(encoding);
     
     for (int i=0; i<n_matches; i++)
     {
+        if (index >= 0 && i != index)
+            continue;
+        
         for (int j=1; j<n_regions; j++)
         {
             // Missing groups are assigned NA
             const char *element = data[i*n_regions + j];
+            const int ii = index < 0 ? i : 0;
             if (element == NULL)
-                SET_STRING_ELT(mat, (j-1)*n_matches + i, NA_STRING);
+                SET_STRING_ELT(mat, (j-1)*n_matches + ii, NA_STRING);
             else
-                SET_STRING_ELT(mat, (j-1)*n_matches + i, mkCharCE(ore_iconv(iconv_handle,element), encoding->r_enc));
+                SET_STRING_ELT(mat, (j-1)*n_matches + ii, mkCharCE(ore_iconv(iconv_handle,element), encoding->r_enc));
         }
     }
     
@@ -383,7 +387,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
                 PROTECT(byte_lengths = allocMatrix(INTSXP, raw_match->n_matches, raw_match->n_regions-1));
                 ore_int_matrix(byte_lengths, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, group_names, 0);
                 PROTECT(matches = allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, text_element->encoding);
+                ore_char_matrix(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, -1, group_names, text_element->encoding);
                 
                 // Put everything in place
                 SET_ELEMENT(groups, 0, offsets);

@@ -218,7 +218,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 if (raw_match->n_regions > 1)
                 {
                     SEXP group_matches = PROTECT(allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, group_names, text_element->encoding);
+                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, -1, group_names, text_element->encoding);
                     setAttrib(matches, install("groups"), group_matches);
                     UNPROTECT(1);
                 }
@@ -353,7 +353,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                     if (raw_match->n_regions > 1)
                     {
                         SEXP group_matches = PROTECT(allocMatrix(STRSXP, 1, raw_match->n_regions-1));
-                        ore_char_matrix(group_matches, (const char **) &raw_match->matches[l], raw_match->n_regions, 1, group_names, text_element->encoding);
+                        ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, l, group_names, text_element->encoding);
                         setAttrib(match, install("groups"), group_matches);
                         UNPROTECT(1);
                     }
