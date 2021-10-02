@@ -40,3 +40,17 @@
 {
     .Call(C_ore_done)
 }
+
+#' Multilingual sample text
+#' 
+#' This dataset contains translations into many languages of the esoteric
+#' sentence "I can eat glass and it doesn't hurt me", UTF-8 encoded. Since
+#' this dataset uses characters from a range of scripts, it provides a useful
+#' test set for text handling and character encodings.
+#' 
+#' @format A named character vector, whose elements are translations of the
+#'   sentence, and are named for the appropriate language in each case.
+#' @source The translations were gathered by Frank da Cruz and written by a
+#'   large group of contributors. Notes, commentary and a full list of credits
+#'   are online at \url{https://kermitproject.org/utf8.html}.
+"glass"
