@@ -307,15 +307,15 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     
     // Look for back-references in the replacement, if it's character-mode
     backref_info_t **backref_info = NULL;
-    int replacement_len = 1;
+    int base_replacement_len = 1;
     if (isString(replacement_))
     {
-        replacement_len = length(replacement_);
-        if (replacement_len < 1)
+        base_replacement_len = length(replacement_);
+        if (base_replacement_len < 1)
             error("No replacement has been given");
         
-        backref_info = (backref_info_t **) R_alloc(replacement_len, sizeof(backref_info_t *));
-        for (int j=0; j<replacement_len; j++)
+        backref_info = (backref_info_t **) R_alloc(base_replacement_len, sizeof(backref_info_t *));
+        for (int j=0; j<base_replacement_len; j++)
         {
             backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), group_names);
             if (backref_info[j] != NULL)
@@ -344,6 +344,8 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         
         // Do the match
         rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, 0);
+        
+        int replacement_len = base_replacement_len;
         
         // A 2D array of strings to hold literal replacements for each match
         const char ***replacements = NULL;
