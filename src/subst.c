@@ -457,3 +457,97 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     else
         return results;
 }
+
+SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_name_)
+{
+    if (length(mappings_) == 0)
+        error("No mappings have been given");
+    if (!isString(mappings_))
+        error("Mappings should be character strings");
+    
+    text_t *text = ore_text(text_);
+    SEXP patterns = getAttrib(mappings_, R_NamesSymbol);
+    const char *options = CHAR(STRING_ELT(options_, 0));
+    const char *encoding_name = CHAR(STRING_ELT(encoding_name_, 0));
+    
+    encoding_t *encoding;
+    if (ore_strnicmp(encoding_name, "auto", 4) == 0)
+    {
+        cetype_t r_enc = getCharCE(STRING_ELT(patterns, 0));
+        encoding = ore_encoding(NULL, NULL, &r_enc);
+    }
+    else
+        encoding = ore_encoding(encoding_name, NULL, NULL);
+    
+    Rboolean *done = (Rboolean *) R_alloc(text->length, sizeof(Rboolean));
+    for (int i=0; i<text->length; i++)
+        done[i] = FALSE;
+    
+    SEXP results = PROTECT(NEW_CHARACTER(text->length));
+    for (int i=0; i<text->length; i++)
+        SET_STRING_ELT(results, i, NA_STRING);
+    
+    for (int j=0; j<length(mappings_); j++)
+    {
+        // Compile the regex
+        regex_t *regex = NULL;
+        backref_info_t *backref_info = NULL;
+        SEXP mapping = STRING_ELT(mappings_, j);
+        if (!isNull(patterns) && *CHAR(STRING_ELT(patterns, j)) != '\0')
+        {
+            regex = ore_compile(CHAR(STRING_ELT(patterns,j)), options, encoding, "ruby");
+            
+            const int n_groups = onig_number_of_captures(regex);
+            SEXP group_names = PROTECT(NEW_CHARACTER(n_groups));
+            
+            if (ore_group_name_vector(group_names, regex))
+                backref_info = ore_find_backrefs(CHAR(mapping), group_names);
+            else
+                backref_info = ore_find_backrefs(CHAR(mapping), R_NilValue);
+            
+            for (int k=0; k<backref_info->n; k++)
+            {
+                if (backref_info->group_numbers[k] > n_groups)
+                    error("Template %d references a group number (%d) that isn't captured", j+1, backref_info->group_numbers[k]);
+            }
+            
+            UNPROTECT(1);
+        }
+        
+        for (int i=0; i<text->length; i++)
+        {
+            if (done[i])
+                continue;
+            else if (regex == NULL)
+            {
+                SET_STRING_ELT(results, i, mapping);
+                done[i] = TRUE;
+            }
+            else
+            {
+                text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
+                if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+                    continue;
+                
+                // Do the match
+                rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, FALSE, 0);
+                
+                if (raw_match == NULL)
+                    continue;
+                
+                const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
+                for (int k=0; k<backref_info->n; k++)
+                    backref_replacements[k] = raw_match->matches[backref_info->group_numbers[k]];
+                char *result = ore_substitute(CHAR(mapping), backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
+                
+                SET_STRING_ELT(results, i, ore_string_to_rchar(result, text_element->encoding));
+                done[i] = TRUE;
+            }
+        }
+    }
+    
+    ore_text_done(text);
+    
+    UNPROTECT(1);
+    return results;
+}

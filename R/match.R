@@ -467,3 +467,11 @@ ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, si
     
     return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.logical(simplify), new.env(), pairlist(...)))
 }
+
+ore_switch <- ore.switch <- function (text, ..., options = "", encoding = getOption("ore.encoding"))
+{
+    if (!is.character(text))
+        text <- as.character(text)
+    
+    return (.Call(C_ore_switch_all, text, c(...), as.character(options), as.character(encoding)))
+}

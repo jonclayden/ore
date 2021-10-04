@@ -74,6 +74,7 @@ static R_CallMethodDef callMethods[] = {
     { "ore_split",          (DL_FUNC) &ore_split,           4 },
     { "ore_substitute_all", (DL_FUNC) &ore_substitute_all,  6 },
     { "ore_replace_all",    (DL_FUNC) &ore_replace_all,     7 },
+    { "ore_switch_all",     (DL_FUNC) &ore_switch_all,      4 },
     { "ore_init",           (DL_FUNC) &ore_init,            0 },
     { "ore_done",           (DL_FUNC) &ore_done,            0 },
     { NULL, NULL, 0 }
