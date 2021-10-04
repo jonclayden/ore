@@ -139,6 +139,24 @@ static char * ore_build_pattern (SEXP pattern_)
     return pattern;
 }
 
+Rboolean ore_group_name_vector (SEXP vec, regex_t *regex)
+{
+    const int n_groups = onig_number_of_captures(regex);
+    
+    for (int i=0; i<n_groups; i++)
+        SET_STRING_ELT(vec, i, NA_STRING);
+    
+    onig_foreach_name(regex, &ore_store_name, vec);
+    
+    for (int i=0; i<n_groups; i++)
+    {
+        if (STRING_ELT(vec, i) != NA_STRING)
+            return TRUE;
+    }
+    
+    return FALSE;
+}
+
 // R wrapper for ore_compile(): builds the regex and creates an R "ore" object
 SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_name_)
 {
@@ -163,7 +181,7 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     regex_t *regex = ore_compile(pattern, options, encoding, syntax_name);
     
     // Get and store number of captured groups
-    int n_groups = onig_number_of_captures(regex);
+    const int n_groups = onig_number_of_captures(regex);
     
     PROTECT(result = mkString(pattern));
     
@@ -180,27 +198,9 @@ SEXP ore_build (SEXP pattern_, SEXP options_, SEXP encoding_name_, SEXP syntax_n
     // Obtain group names, if available
     if (n_groups > 0)
     {
-        SEXP names;
-        Rboolean named = FALSE;
-        
-        PROTECT(names = NEW_CHARACTER(n_groups));
-        for (int i=0; i<n_groups; i++)
-            SET_STRING_ELT(names, i, NA_STRING);
-        
-        onig_foreach_name(regex, &ore_store_name, names);
-        
-        for (int i=0; i<n_groups; i++)
-        {
-            if (STRING_ELT(names, i) != NA_STRING)
-            {
-                named = TRUE;
-                break;
-            }
-        }
-        
-        if (named)
+        SEXP names = PROTECT(NEW_CHARACTER(n_groups));
+        if (ore_group_name_vector(names, regex))
             setAttrib(result, install("groupNames"), names);
-        
         UNPROTECT(1);
     }
     
