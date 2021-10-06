@@ -415,6 +415,11 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' if a function). Each string combines the first replacement for each match,
 #' the second, and so on.
 #' 
+#' If \code{replacement} is a character vector, its component strings may
+#' include back-references to captured substrings. \code{"\\\\0"} corresponds
+#' to the whole matching substring, \code{"\\\\1"} is the first captured
+#' group, and so on. Named groups may be referenced as \code{"\\\\k<name>"}.
+#' 
 #' If \code{replacement} is a function, then it will be passed as its first
 #' argument an object of class \code{"orearg"}. This is a character vector
 #' containing as its elements the matched substrings, and with an attribute
@@ -468,6 +473,30 @@ ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, si
     return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.logical(simplify), new.env(), pairlist(...)))
 }
 
+#' String multiplexing
+#' 
+#' This function maps one character vector to another, based on sequential
+#' matching to a series of regular expressions. The return value corresponding
+#' to each element in the source text is chosen based on the first matching
+#' regex: once matched, later options are ignored.
+#' 
+#' @inheritParams ore
+#' @param text A vector of strings to match against.
+#' @param ... One or more string arguments specifying a possible return value.
+#'   These are generally named with a regex, and the string is only used for a
+#'   given \code{text} element if the regex matches (and no previous one
+#'   matched). These strings may reference captured groups. Unnamed arguments
+#'   match unconditionally, and will always be taken literally.
+#' @return A character vector of the same length as \code{text}, containing the
+#'   multiplexed strings. If none of the regexes matched, the corresponding
+#'   element will be \code{NA}.
+#' 
+#' @examples
+#' # Extract digits where present; otherwise return zero
+#' ore_switch(c("2 dogs","no dogs"), "\\d+"="\\0", "0")
+#' @seealso \code{\link{ore_subst}} for details of back-reference syntax.
+#' @aliases ore.switch
+#' @export ore.switch ore_switch
 ore_switch <- ore.switch <- function (text, ..., options = "", encoding = getOption("ore.encoding"))
 {
     if (!is.character(text))

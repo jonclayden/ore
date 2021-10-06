@@ -49,6 +49,11 @@ vectors each of the same length as \code{replacement} (or its return value,
 if a function). Each string combines the first replacement for each match,
 the second, and so on.
 
+If \code{replacement} is a character vector, its component strings may
+include back-references to captured substrings. \code{"\\\\0"} corresponds
+to the whole matching substring, \code{"\\\\1"} is the first captured
+group, and so on. Named groups may be referenced as \code{"\\\\k<name>"}.
+
 If \code{replacement} is a function, then it will be passed as its first
 argument an object of class \code{"orearg"}. This is a character vector
 containing as its elements the matched substrings, and with an attribute
