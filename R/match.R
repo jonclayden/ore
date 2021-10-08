@@ -48,7 +48,7 @@
 #'       \code{regex}, in a series of matrices. If named groups are present in
 #'       the regex then \code{dimnames} will be set appropriately.}
 #'   }
-#'   For \code{is.orematch}, a logical vector indicating whether the specified
+#'   For \code{is_orematch}, a logical vector indicating whether the specified
 #'   object has class \code{"orematch"}. For extraction with one index, a
 #'   vector of matched substrings. For extraction with two indices, a vector
 #'   or matrix of substrings corresponding to captured groups.
@@ -351,7 +351,7 @@ ore_ismatch <- ore.ismatch <- function (regex, text, ...)
 #' @export
 "%~%" <- function (X, Y)
 {
-    if (is.ore(X))
+    if (is_ore(X))
         return (ore_ismatch(X, Y, all=FALSE))
     else
         return (ore_ismatch(Y, X, all=FALSE))
@@ -361,7 +361,7 @@ ore_ismatch <- ore.ismatch <- function (regex, text, ...)
 #' @export
 "%~~%" <- function (X, Y)
 {
-    if (is.ore(X))
+    if (is_ore(X))
         return (ore_ismatch(X, Y, all=TRUE))
     else
         return (ore_ismatch(Y, X, all=TRUE))
@@ -371,7 +371,7 @@ ore_ismatch <- ore.ismatch <- function (regex, text, ...)
 #' @export
 "%~|%" <- function (X, Y)
 {
-    if (is.ore(X))
+    if (is_ore(X))
         return (Y[ore_ismatch(X,Y)])
     else
         return (X[ore_ismatch(Y,X)])
