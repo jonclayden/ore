@@ -285,7 +285,12 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         
         // Retrieve the text element and check its encoding is compatible with the regex
         text_element = ore_text_element(text, i, incremental, text_element);
-        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        if (text_element == NULL)
+        {
+            SET_ELEMENT(results, i, R_NilValue);
+            continue;
+        }
+        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, R_NilValue);
@@ -416,6 +421,9 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             UNPROTECT(3);
         }
     }
+    
+    if (text->source == VECTOR_SOURCE)
+        setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_text_done(text);
     

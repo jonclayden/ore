@@ -34,7 +34,12 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     for (int i=0; i<text->length; i++)
     {
         text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
-        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        if (text_element == NULL)
+        {
+            SET_ELEMENT(results, i, ScalarString(NA_STRING));
+            continue;
+        }
+        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
@@ -83,6 +88,9 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
             UNPROTECT(1);
         }
     }
+    
+    if (text->source == VECTOR_SOURCE)
+        setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_text_done(text);
     

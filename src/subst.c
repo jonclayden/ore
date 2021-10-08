@@ -163,7 +163,12 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     for (int i=0; i<text->length; i++)
     {
         text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
-        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        if (text_element == NULL)
+        {
+            SET_STRING_ELT(results, i, NA_STRING);
+            continue;
+        }
+        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_STRING_ELT(results, i, ore_text_element_to_rchar(text_element));
@@ -254,6 +259,9 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         }
     }
     
+    if (text->source == VECTOR_SOURCE)
+        setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
+    
     ore_text_done(text);
     
     UNPROTECT(1);
@@ -306,7 +314,12 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     for (int i=0; i<text->length; i++)
     {
         text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
-        if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        if (text_element == NULL)
+        {
+            SET_ELEMENT(results, i, ScalarString(NA_STRING));
+            continue;
+        }
+        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
@@ -418,6 +431,9 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         UNPROTECT(raw_match != NULL && isFunction(replacement_) ? 2 : 1);
     }
     
+    if (text->source == VECTOR_SOURCE)
+        setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
+    
     ore_text_done(text);
     
     UNPROTECT(1);
@@ -491,7 +507,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             else
             {
                 text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
-                if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+                if (text_element == NULL || !ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
                     continue;
                 
                 // Do the match
@@ -510,6 +526,9 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             }
         }
     }
+    
+    if (text->source == VECTOR_SOURCE)
+        setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_text_done(text);
     

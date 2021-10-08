@@ -311,7 +311,10 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
     
     if (text->source == VECTOR_SOURCE)
     {
-        const char *string = CHAR(STRING_ELT(text->object, index));
+        SEXP str_element = STRING_ELT(text->object, index);
+        if (str_element == NA_STRING)
+            return NULL;
+        const char *string = CHAR(str_element);
         cetype_t encoding = getCharCE(STRING_ELT(text->object, index));
         element->start = string;
         element->end = string + strlen(string);
