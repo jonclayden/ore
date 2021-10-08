@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT([onigmo],[6.2.0])
 
-AC_CONFIG_HEADER(src/onig/config.h)
+AC_CONFIG_HEADERS([src/onig/config.h])
 
 dnl default value for STATISTICS
 STATISTICS=""
@@ -35,7 +35,6 @@ if test ! "${token_threaded_vm}" = yes; then
 fi
 
 dnl Checks for header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS(sys/time.h unistd.h sys/times.h stdint.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -45,7 +44,6 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF([void*])
 AC_CHECK_SIZEOF([long long])
 AC_C_CONST
-AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_FUNC_ALLOCA
