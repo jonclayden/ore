@@ -59,7 +59,7 @@ ore <- function (..., options = "", encoding = getOption("ore.encoding"), syntax
 #' @export is.ore is_ore
 is_ore <- is.ore <- function (x)
 {
-    return ("ore" %in% class(x))
+    return (inherits(x, "ore"))
 }
 
 #' @rdname ore

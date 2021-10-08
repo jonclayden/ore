@@ -90,7 +90,7 @@ ore_search <- ore.search <- ore_match <- ore.match <- function (regex, text, all
 #' @export is.orematch is_orematch
 is_orematch <- is.orematch <- function (x)
 {
-    return ("orematch" %in% class(x))
+    return (inherits(x, "orematch"))
 }
 
 #' @rdname ore_search
