@@ -16,5 +16,5 @@ expect_error(ore("(\\w+"))
 expect_equal(regexGenerator(), simpleRegex, check.attributes=FALSE)
 expect_equal(ore_escape("-?\\d+"), "-\\?\\\\d\\+")
 
-expect_stdout(print(simpleRegex), "0 group\\(s\\)")
-expect_stdout(print(ore("(?<numbers>\\d+)")), "1 group\\(s\\), 1 named")
+expect_stdout(print(simpleRegex), "0 groups")
+expect_stdout(print(ore("(?<numbers>\\d+)")), "1 group, 1 named")

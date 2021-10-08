@@ -16,7 +16,9 @@
 #'   searching. Will be recycled to the length of \code{text}.
 #' @param simplify If \code{TRUE}, an object of class \code{"orematch"} will
 #'   be returned if \code{text} is of length 1. Otherwise, a list of such
-#'   objects, with class \code{"orematches"}, will always be returned.
+#'   objects, with class \code{"orematches"}, will always be returned. When
+#'   printing \code{"orematches"} objects, this controls whether or not to omit
+#'   nonmatching elements from the output.
 #' @param incremental If \code{TRUE} and the \code{text} argument points to a
 #'   file, the file is read in increasingly large blocks. This can reduce
 #'   search time in large files.
@@ -25,15 +27,12 @@
 #'   number.
 #' @param j For indexing, the match number.
 #' @param k For indexing, the group number.
-#' @param lines The maximum number of lines to print. If \code{NULL}, this
-#'   defaults to the value of the \code{"ore.lines"} option, or 0 if that is
-#'   unset or invalid. Zero means no limit.
+#' @param lines The maximum number of lines to print. The default is zero,
+#'   meaning no limit. For \code{"orematches"} objects this is split evenly
+#'   between the elements printed.
 #' @param context The number of characters of context to include either side
-#'   of each match. If \code{NULL}, this defaults to the value of the
-#'   \code{"ore.context"} option, or 30 if that is unset or invalid.
-#' @param width The number of characters in each line of printed output. If
-#'   \code{NULL}, this defaults to the value of the standard \code{"width"}
-#'   option.
+#'   of each match.
+#' @param width The number of characters in each line of printed output.
 #' @param ... Ignored.
 #' @return For \code{ore_search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
@@ -119,25 +118,15 @@ is_orematch <- is.orematch <- function (x)
 
 #' @rdname ore_search
 #' @export
-print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
+print.orematch <- function (x, lines = getOption("ore.lines",0L), context = getOption("ore.context",30L), width = getOption("width",80L), ...)
 {
     # Generally x$nMatches should not be zero (because non-matches return NULL), but cover it anyway
     if (x$nMatches == 0)
         cat("<no match>\n")
     else if (is.null(x$text))
-        cat(es("<#{x$nMatches} #{ifelse(x$nMatches==1L,'match','matches')}>\n"))
+        cat(paste0("<", x$nMatches, " ", ifelse(x$nMatches==1L,"match","matches"), ">\n"))
     else
     {
-        getOptionWithDefault <- function (value, name, default)
-        {
-            if (is.numeric(value))
-                return (as.integer(value))
-            else if (is.numeric(getOption(name)))
-                return (as.integer(getOption(name)))
-            else
-                return (as.integer(default))
-        }
-        
         # Check the colour option; if unset, use the crayon package to check if the terminal supports colour
         if (!is.null(getOption("ore.colour")))
             usingColour <- isTRUE(getOption("ore.colour"))
@@ -145,11 +134,6 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
             usingColour <- isTRUE(getOption("ore.color"))
         else
             usingColour <- (system.file(package="crayon") != "" && crayon::has_color())
-        
-        # Other printing options
-        lines <- getOptionWithDefault(lines, "ore.lines", 0L)
-        context <- getOptionWithDefault(context, "ore.context", 30L)
-        width <- getOptionWithDefault(width, "width", 80L)
         
         .Call(C_ore_print_match, x, context, width, lines, usingColour)
     }
@@ -159,19 +143,39 @@ print.orematch <- function (x, lines = NULL, context = NULL, width = NULL, ...)
 
 #' @rdname ore_search
 #' @export
-print.orematches <- function (x, ...)
+print.orematches <- function (x, lines = getOption("ore.lines",0L), simplify = TRUE, ...)
 {
     if (length(x) == 0)
         cat("<no match>\n")
     else
     {
-        matchCount <- sum(sapply(x, function(match) {
-            if (is.null(match))
-                return (0L)
-            else
-                return (match$nMatches)
-        }))
-        cat(es("<#{matchCount} #{ifelse(matchCount==1L,'match','matches')} in #{length(x)} #{ifelse(length(x)==1L,'string','strings')}>\n"))
+        matching <- rep(!simplify, length(x))
+        matchCount <- 0L
+        for (i in seq_along(x))
+        {
+            if (!is.null(x[[i]]))
+            {
+                matching[i] <- TRUE
+                matchCount <- matchCount + x[[i]]$nMatches
+            }
+        }
+        
+        cat(paste0("<", matchCount, " ", ifelse(matchCount==1L,'match','matches'), " in ", length(x), " ", ifelse(length(x)==1L,'string','strings'), ">\n"))
+        
+        linesPerMatch <- ifelse(lines == 0, 0, floor((lines-2) / sum(matching) - 1))
+        names <- names(x)
+        if (lines == 0 || linesPerMatch > 0)
+        {
+            cat("\n")
+            for (i in which(matching))
+            {
+                if (!is.null(names) && names[i] != "")
+                    cat(paste0("$`", names[i], "`\n"))
+                else
+                    cat(paste0("[[", i, "]]\n"))
+                print(x[[i]], lines=linesPerMatch, ...)
+            }
+        }
     }
 }
 

@@ -68,13 +68,14 @@ print.ore <- function (x, ...)
 {
     cat(paste("Oniguruma regular expression: /", x, "/", paste(sort(unlist(strsplit(attr(x,"options"),""))),collapse=""), "\n", sep=""))
     
-    cat(paste(" - ", attr(x,"nGroups"), " group(s)", sep=""))
+    nGroups <- attr(x, "nGroups")
+    cat(paste0(" - ", nGroups, ifelse(nGroups==1," group"," groups")))
     if (!is.null(attr(x, "groupNames")))
-        cat(paste(", ", sum(!is.na(attr(x,"groupNames"))), " named", sep=""))
+        cat(paste0(", ", sum(!is.na(attr(x,"groupNames"))), " named"))
     cat("\n")
     
-    cat(paste(" - ", attr(x,"encoding"), " encoding\n", sep=""))
-    cat(paste(" - ", attr(x,"syntax"), " syntax\n", sep=""))
+    cat(paste0(" - ", attr(x,"encoding"), " encoding\n"))
+    cat(paste0(" - ", attr(x,"syntax"), " syntax\n"))
 }
 
 #' Escape regular expression special characters
