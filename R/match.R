@@ -323,6 +323,8 @@ ore_lastmatch <- ore.lastmatch <- function (simplify = TRUE)
 #' 
 #' @param regex A single character string or object of class \code{"ore"}.
 #' @param text A character vector of strings to search.
+#' @param keepNA If \code{TRUE}, \code{NA}s will be propagated from \code{text}
+#'   into the return value. Otherwise, they evaluate \code{FALSE}.
 #' @param ... Further arguments to \code{\link{ore_search}}.
 #' @param X A character vector or \code{"ore"} object. See Details.
 #' @param Y A character vector. See Details.
@@ -341,10 +343,13 @@ ore_lastmatch <- ore.lastmatch <- function (simplify = TRUE)
 #' @seealso \code{\link{ore_search}}
 #' @aliases ore.ismatch
 #' @export ore.ismatch ore_ismatch
-ore_ismatch <- ore.ismatch <- function (regex, text, ...)
+ore_ismatch <- ore.ismatch <- function (regex, text, keepNA = getOption("ore.keepNA",FALSE), ...)
 {
     match <- ore_search(regex, text, simplify=FALSE, ...)
-    return (!sapply(match, is.null))
+    result <- !sapply(match, is.null)
+    if (keepNA)
+        result[is.na(text)] <- NA
+    return (result)
 }
 
 #' @rdname ore_ismatch

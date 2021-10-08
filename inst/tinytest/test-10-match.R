@@ -34,7 +34,8 @@ expect_equal(matches(ore_search(ore("."),"1.7")), "1")
 expect_equal(matches(ore_search(ore(".",syntax="fixed"),"1.7")), ".")
 
 # Check boolean results
-expect_equal(ore_ismatch("[aeiou]",c("sky","lake")), c(FALSE,TRUE))
+expect_equal(ore_ismatch("[aeiou]",c("sky","lake",NA)), c(FALSE,TRUE,FALSE))
+expect_equal(ore_ismatch("[aeiou]",c("sky","lake",NA),keepNA=TRUE), c(FALSE,TRUE,NA))
 expect_true(ore_ismatch("^\\s*$",""))
 
 # Check infix syntax and implicit last match argument to matches() and groups()
