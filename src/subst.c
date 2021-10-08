@@ -54,7 +54,7 @@ static char * ore_substitute (const char *text, const int n_matches, const int *
 }
 
 // Find named or numbered back-references in a replacement string
-static backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_names)
+static backref_info_t * ore_find_backrefs (const char *replacement, regex_t *regex)
 {
     // Match against global regexes for each type of back-reference
     rawmatch_t *group_number_match = ore_search(group_number_regex, replacement, NULL, TRUE, 0);
@@ -100,19 +100,12 @@ static backref_info_t * ore_find_backrefs (const char *replacement, SEXP group_n
                 info->offsets[l] = group_name_match->byte_offsets[loc];
                 info->lengths[l] = group_name_match->byte_lengths[loc];
                 
-                // Look for the group name in the list of names specified
-                Rboolean found = FALSE;
-                for (int k=0; k<length(group_names); k++)
-                {
-                    if (strcmp(CHAR(STRING_ELT(group_names,k)), group_name_match->matches[loc+1]) == 0)
-                    {
-                        info->group_numbers[l] = k + 1;
-                        found = TRUE;
-                    }
-                }
+                const char *name = group_name_match->matches[loc+1];
+                int *numbers;
+                info->group_numbers[l] = onig_name_to_group_numbers(regex, (const UChar *) name, (const UChar *) name + strlen(name), &numbers);
                 
                 // If it's not found, raise an error
-                if (!found)
+                if (info->group_numbers[l] == ONIGERR_UNDEFINED_NAME_REFERENCE)
                     error("Back-reference does not match a named group");
                 
                 // Find the next name match, if there is one
@@ -152,7 +145,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         backref_info = (backref_info_t **) R_alloc(replacement_len, sizeof(backref_info_t *));
         for (int j=0; j<replacement_len; j++)
         {
-            backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), group_names);
+            backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), regex);
             if (backref_info[j] != NULL)
             {
                 for (int k=0; k<backref_info[j]->n; k++)
@@ -295,7 +288,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         backref_info = (backref_info_t **) R_alloc(base_replacement_len, sizeof(backref_info_t *));
         for (int j=0; j<base_replacement_len; j++)
         {
-            backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), group_names);
+            backref_info[j] = ore_find_backrefs(CHAR(STRING_ELT(replacement_,j)), regex);
             if (backref_info[j] != NULL)
             {
                 for (int k=0; k<backref_info[j]->n; k++)
@@ -476,13 +469,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             regex = ore_compile(CHAR(STRING_ELT(patterns,j)), options, encoding, "ruby");
             
             const int n_groups = onig_number_of_captures(regex);
-            SEXP group_names = PROTECT(NEW_CHARACTER(n_groups));
-            
-            if (ore_group_name_vector(group_names, regex))
-                backref_info = ore_find_backrefs(CHAR(mapping), group_names);
-            else
-                backref_info = ore_find_backrefs(CHAR(mapping), R_NilValue);
-            
+            backref_info = ore_find_backrefs(CHAR(mapping), regex);
             for (int k=0; k<backref_info->n; k++)
             {
                 if (backref_info->group_numbers[k] > n_groups)

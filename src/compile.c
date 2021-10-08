@@ -139,7 +139,7 @@ static char * ore_build_pattern (SEXP pattern_)
     return pattern;
 }
 
-Rboolean ore_group_name_vector (SEXP vec, regex_t *regex)
+static Rboolean ore_group_name_vector (SEXP vec, regex_t *regex)
 {
     const int n_groups = onig_number_of_captures(regex);
     
