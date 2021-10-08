@@ -1,3 +1,5 @@
+expect_error(ore_file("nonesuch.txt"))
+
 # Local iconv support for SHIFT-JIS is necessary for these tests
 if ("SHIFT-JIS" %in% iconvlist())
 {
