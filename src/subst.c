@@ -119,7 +119,7 @@ static backref_info_t * ore_find_backrefs (const char *replacement, regex_t *reg
 }
 
 // Substitution vectorised over matches, with replacement functions called once per string
-SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP environment, SEXP function_args)
+SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP start_, SEXP environment, SEXP function_args)
 {
     if (isNull(regex_))
         error("The specified regex object is not valid");
@@ -130,6 +130,11 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     const int n_groups = onig_number_of_captures(regex);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
+    int *start = INTEGER(start_);
+    
+    const int start_len = length(start_);
+    if (start_len < 1)
+        error("The vector of starting positions is empty");
     
     const char nul = '\0';
     
@@ -176,7 +181,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         }
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, 0);
+        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
@@ -269,7 +274,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
 }
 
 // Substitution vectorised over replacements, with replacement functions called once per match
-SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP simplify_, SEXP environment, SEXP function_args)
+SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP environment, SEXP function_args)
 {
     if (isNull(regex_))
         error("The specified regex object is not valid");
@@ -281,6 +286,11 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
+    int *start = INTEGER(start_);
+    
+    const int start_len = length(start_);
+    if (start_len < 1)
+        error("The vector of starting positions is empty");
     
     const char nul = '\0';
     
@@ -327,7 +337,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         }
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, 0);
+        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         int replacement_len = base_replacement_len;
         

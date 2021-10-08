@@ -451,26 +451,26 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' @seealso \code{\link{ore_search}}
 #' @aliases ore.subst ore.repl
 #' @export ore.subst ore_subst
-ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE)
+ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE, start = 1L)
 {
     if (!is.character(text))
         text <- as.character(text)
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
         
-    return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), new.env(), pairlist(...)))
+    return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), as.integer(start), new.env(), pairlist(...)))
 }
 
 #' @rdname ore_subst
 #' @export ore.repl ore_repl
-ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, simplify = TRUE)
+ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, start = 1L, simplify = TRUE)
 {
     if (!is.character(text))
         text <- as.character(text)
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
     
-    return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.logical(simplify), new.env(), pairlist(...)))
+    return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.integer(start), as.logical(simplify), new.env(), pairlist(...)))
 }
 
 #' String multiplexing
