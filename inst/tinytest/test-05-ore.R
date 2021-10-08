@@ -15,3 +15,5 @@ expect_equal(attr(regexWithSyntax,"syntax"), "fixed")
 expect_error(ore("(\\w+"))
 expect_equal(regexGenerator(), simpleRegex, check.attributes=FALSE)
 expect_equal(ore_escape("-?\\d+"), "-\\?\\\\d\\+")
+
+expect_stdout(print(simpleRegex), "0 group\\(s\\)")

@@ -1,5 +1,5 @@
 # For these purposes we treat ASCII as the default encoding
-options(ore.encoding="ASCII")
+options(ore.encoding="ASCII", ore.colour=FALSE)
 
 regex <- ore("\\b\\w{4}\\b")
 regexUtf8 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
@@ -10,6 +10,8 @@ expect_equal(ore_search(regex,text,all=TRUE)$offsets, 6L)
 expect_null(ore_search(regex,text,start=10L))
 expect_equal(ore_search(regexUtf8,text,all=TRUE)$offsets, c(6L,13L))
 expect_equal(ore_search(regexUtf8,text,start=10L)$offsets, 13L)
+
+expect_stdout(print(ore_search(regexUtf8,text,all=TRUE)), "1===")
 
 expect_identical(ore_search(regex,NULL), structure(list(),class="orematches"))
 
@@ -40,3 +42,4 @@ expect_equal(matches[1,2], "is")
 expect_equal(matches[1,2,2], "s")
 expect_equal(matches[,1], c("Th","is",NA,"te"))
 expect_equal(matches[,1,2], c("h","s",NA,"e"))
+expect_stdout(print(matches), "5 matches in 4 strings")
