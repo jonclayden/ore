@@ -24,9 +24,11 @@ is_orematch(x)
 
 \method{[}{orematches}(x, i, j, k, ...)
 
-\method{print}{orematch}(x, lines = NULL, context = NULL, width = NULL, ...)
+\method{print}{orematch}(x, lines = getOption("ore.lines", 0L),
+  context = getOption("ore.context", 30L), width = getOption("width", 80L),
+  ...)
 
-\method{print}{orematches}(x, ...)
+\method{print}{orematches}(x, lines = getOption("ore.lines", 0L), simplify = TRUE, ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -45,7 +47,9 @@ searching. Will be recycled to the length of \code{text}.}
 
 \item{simplify}{If \code{TRUE}, an object of class \code{"orematch"} will
 be returned if \code{text} is of length 1. Otherwise, a list of such
-objects, with class \code{"orematches"}, will always be returned.}
+objects, with class \code{"orematches"}, will always be returned. When
+printing \code{"orematches"} objects, this controls whether or not to omit
+nonmatching elements from the output.}
 
 \item{incremental}{If \code{TRUE} and the \code{text} argument points to a
 file, the file is read in increasingly large blocks. This can reduce
@@ -62,17 +66,14 @@ search time in large files.}
 \item{i}{For indexing into an \code{"orematches"} object only, the string
 number.}
 
-\item{lines}{The maximum number of lines to print. If \code{NULL}, this
-defaults to the value of the \code{"ore.lines"} option, or 0 if that is
-unset or invalid. Zero means no limit.}
+\item{lines}{The maximum number of lines to print. The default is zero,
+meaning no limit. For \code{"orematches"} objects this is split evenly
+between the elements printed.}
 
 \item{context}{The number of characters of context to include either side
-of each match. If \code{NULL}, this defaults to the value of the
-\code{"ore.context"} option, or 30 if that is unset or invalid.}
+of each match.}
 
-\item{width}{The number of characters in each line of printed output. If
-\code{NULL}, this defaults to the value of the standard \code{"width"}
-option.}
+\item{width}{The number of characters in each line of printed output.}
 }
 \value{
 For \code{ore_search}, an \code{"orematch"} object, or a list of
@@ -89,7 +90,7 @@ For \code{ore_search}, an \code{"orematch"} object, or a list of
       \code{regex}, in a series of matrices. If named groups are present in
       the regex then \code{dimnames} will be set appropriately.}
   }
-  For \code{is.orematch}, a logical vector indicating whether the specified
+  For \code{is_orematch}, a logical vector indicating whether the specified
   object has class \code{"orematch"}. For extraction with one index, a
   vector of matched substrings. For extraction with two indices, a vector
   or matrix of substrings corresponding to captured groups.

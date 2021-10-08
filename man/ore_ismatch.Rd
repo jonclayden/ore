@@ -8,7 +8,7 @@
 \alias{\%~|\%}
 \title{Does text match a regex?}
 \usage{
-ore_ismatch(regex, text, ...)
+ore_ismatch(regex, text, keepNA = getOption("ore.keepNA", FALSE), ...)
 
 X \%~\% Y
 
@@ -20,6 +20,9 @@ X \%~|\% Y
 \item{regex}{A single character string or object of class \code{"ore"}.}
 
 \item{text}{A character vector of strings to search.}
+
+\item{keepNA}{If \code{TRUE}, \code{NA}s will be propagated from \code{text}
+into the return value. Otherwise, they evaluate \code{FALSE}.}
 
 \item{...}{Further arguments to \code{\link{ore_search}}.}
 

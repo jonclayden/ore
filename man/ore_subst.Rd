@@ -7,9 +7,10 @@
 \alias{ore_repl}
 \title{Replace matched substrings with new text}
 \usage{
-ore_subst(regex, replacement, text, ..., all = FALSE)
+ore_subst(regex, replacement, text, ..., all = FALSE, start = 1L)
 
-ore_repl(regex, replacement, text, ..., all = FALSE, simplify = TRUE)
+ore_repl(regex, replacement, text, ..., all = FALSE, start = 1L,
+  simplify = TRUE)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In
@@ -25,6 +26,9 @@ matches.}
 \item{all}{If \code{TRUE}, then all matches within each element of
 \code{text} will be found. Otherwise, the search will stop at the first
 match.}
+
+\item{start}{An optional vector of offsets (in characters) at which to start
+searching. Will be recycled to the length of \code{text}.}
 
 \item{simplify}{For \code{ore_repl}, a character vector of modified strings
 will be returned if this is \code{TRUE} and \code{text} is of length 1.
