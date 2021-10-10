@@ -2,6 +2,49 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.0
+
+- The Onigmo library has been updated to version 6.2.0.
+- R connections are now supported as text sources, allowing URLs, gzipped files
+  and pipes (amongst others; see `?connections`) to be straightforwardly
+  interfaced with the package. The package's C backend has been substantially
+  refactored to support files and connections in all the core functions.
+- The new `ore_switch()` function selects between a number of possible outputs
+  by matching each element of its input against a series of regular
+  expressions. This can be a useful way to handle different possible forms of
+  the same information.
+- The new `ore_repl()` function is a relative of the existing `ore_subst()`,
+  but differs in how it is vectorised. Unlike `ore_subst()`, it will replicate
+  the source text if necessary to ensure that all specified replacements are
+  used. The `es()` function now uses `ore_repl()`, and so can produce output
+  vectors longer than its input.
+- `ore_subst()` gains a "start" argument, like `ore_search()`, and now accepts
+  multiple replacements, which will be applied in sequence to different
+  matches.
+- `ore_match()` is a new alias of `ore_search()`.
+- Substitution group references can now include "\\0" for the whole match
+  string, and allow for group numbers higher than 9. Group numbers that are out
+  of range should now produce an error, rather than potentially leading to a
+  segfault. Named group references should also be more robust.
+- A multilingual, multiscript dataset, "glass", is now included with the
+  package thanks to Frank da Cruz and many contributors.
+- Names and `NA` values are now propagated from text arguments that are
+  character vectors.
+- There is a new option (`ore.keepNA`) to propagate `NA`s in `ore_ismatch()`,
+  and the infix functions `%~%` and `%~~%`, rather than convert them
+  implicitly to `FALSE`. This is off by default for backwards compatibility.
+- Printing has been improved, and in particular "orematches" objects now show
+  (just) the elements that matched.
+- Underscore-separated names are now used in preference in the package
+  documentation, following the trend in other packages, but the period-
+  separated versions are still available.
+- Detection of the platform's native encoding has been improved, and this will
+  be asserted in regular expressions created by `ore()`, rather than them being
+  marked as being in "unknown" encoding by default as before. Handling of
+  encodings has been refined elsewhere too.
+
+===============================================================================
+
 VERSION 1.6.3
 
 - The ore.file() function now performs path expansion on its argument.
