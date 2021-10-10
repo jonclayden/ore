@@ -496,13 +496,14 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             
             const int n_groups = onig_number_of_captures(regex);
             backref_info = ore_find_backrefs(CHAR(mapping), regex);
-            for (int k=0; k<backref_info->n; k++)
+            if (backref_info != NULL)
             {
-                if (backref_info->group_numbers[k] > n_groups)
-                    error("Template %d references a group number (%d) that isn't captured", j+1, backref_info->group_numbers[k]);
+                for (int k=0; k<backref_info->n; k++)
+                {
+                    if (backref_info->group_numbers[k] > n_groups)
+                        error("Template %d references a group number (%d) that isn't captured", j+1, backref_info->group_numbers[k]);
+                }
             }
-            
-            UNPROTECT(1);
         }
         
         for (int i=0; i<text->length; i++)
@@ -525,11 +526,23 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
                 
                 if (raw_match == NULL)
                     continue;
+                else if (mapping == NA_STRING)
+                {
+                    SET_STRING_ELT(results, i, NA_STRING);
+                    done[i] = TRUE;
+                    continue;
+                }
                 
-                const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
-                for (int k=0; k<backref_info->n; k++)
-                    backref_replacements[k] = raw_match->matches[backref_info->group_numbers[k]];
-                char *result = ore_substitute(CHAR(mapping), backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
+                const char *result;
+                if (backref_info == NULL)
+                    result = CHAR(mapping);
+                else
+                {
+                    const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
+                    for (int k=0; k<backref_info->n; k++)
+                        backref_replacements[k] = raw_match->matches[backref_info->group_numbers[k]];
+                    result = ore_substitute(CHAR(mapping), backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
+                }
                 
                 SET_STRING_ELT(results, i, ore_string_to_rchar(result, text_element->encoding));
                 done[i] = TRUE;
