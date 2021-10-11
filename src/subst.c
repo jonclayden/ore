@@ -102,11 +102,13 @@ static backref_info_t * ore_find_backrefs (const char *replacement, regex_t *reg
                 
                 const char *name = group_name_match->matches[loc+1];
                 int *numbers;
-                info->group_numbers[l] = onig_name_to_group_numbers(regex, (const UChar *) name, (const UChar *) name + strlen(name), &numbers);
+                const int n_matched = onig_name_to_group_numbers(regex, (const UChar *) name, (const UChar *) name + strlen(name), &numbers);
                 
                 // If it's not found, raise an error
-                if (info->group_numbers[l] == ONIGERR_UNDEFINED_NAME_REFERENCE)
+                if (n_matched == ONIGERR_UNDEFINED_NAME_REFERENCE)
                     error("Back-reference does not match a named group");
+                else if (n_matched > 0)
+                    info->group_numbers[l] = *numbers;
                 
                 // Find the next name match, if there is one
                 j++;
