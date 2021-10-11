@@ -144,30 +144,19 @@ Both R and Oniguruma support alternative character encodings for strings, and th
 
 
 ```r
-re1 <- ore("\\b\\w{4}\\b")
+re1 <- ore("\\b\\w{4}\\b", encoding="ASCII")
 re2 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
 text <- enc2utf8("I'll have a piña colada")
 ore_search(re1, text, all=TRUE)
-##   match:      have   piña       
-## context: I'll      a      colada
-##  number:      1===   2===
+##   match:      have              
+## context: I'll      a piña colada
 ore_search(re2, text, all=TRUE)
 ##   match:      have   piña       
 ## context: I'll      a      colada
 ##  number:      1===   2===
 ```
 
-Note that, without a declared encoding, only ASCII word characters are matched to the `\w` character class. Since "ñ" is not directly representable in ASCII, the word "piña" is not considered a match.
-
-If `ore_search()` is called with a string rather than an `ore` object for the regular expression, then the encoding of the text will also be associated with the regex. This this should generally produce the most sensible result.
-
-
-```r
-ore_search("\\b\\w{4}\\b", text, all=TRUE)
-##   match:      have   piña       
-## context: I'll      a      colada
-##  number:      1===   2===
-```
+Note that, in a basic ASCII encoding, only ASCII word characters are matched to the `\w` character class. Since "ñ" is not directly representable in ASCII, the word "piña" is not considered a match.
 
 Notice that base R's regular expression functions will not find the second match:
 
@@ -198,19 +187,29 @@ ore_search(ore(".",syntax="fixed"), "1.7")
 
 In the first case the period has the usual regular expression interpretation of "any character", so it matches the first available character, the 1. In the second case the period has no special meaning, and it only matches a literal period in the search string.
 
-## Substitutions
-
-The `ore_subst()` function can be used to substitute regex matches with new text. Matched subgroups may be referred to using numerical or named back-references.
+Alternatively, the `ore_escape()` function can be used to help escape substrings that would otherwise have special meaning in the default syntax:
 
 
 ```r
-re <- ore("\\b(\\w)(\\w)(\\w)(\\w)\\b", encoding="utf8")
+ore_search(ore_escape("."), "1.7")
+##   match:  . 
+## context: 1 7
+```
+
+## Substitutions
+
+The `ore_subst()` function can be used to substitute regex matches with new text. Matched subgroups may be referred to using numerical or named back-references: `\1`, `\2`, etc.
+
+
+```r
+re <- ore("\\b(\\w)(\\w)(\\w)(\\w)\\b")
 text <- enc2utf8("I'll have a piña colada")
 ore_subst(re, "\\3\\1\\2\\4", text, all=TRUE)
 ## [1] "I'll vhae a ñpia colada"
-re <- ore("\\b(?<first>\\w)(?<second>\\w)(?<third>\\w)(?<fourth>\\w)\\b", encoding="utf8")
+
+re <- ore("\\b(?<first>\\w)(?<second>\\w)(?<third>\\w)(?<fourth>\\w)\\b")
 ore_subst(re, "\\k<third>\\k<first>\\k<second>\\k<fourth>", text, all=TRUE)
-## [1] "I'll hhhh a pppp colada"
+## [1] "I'll vhae a ñpia colada"
 ```
 
 A function may also be provided, which will be used to generate replacement strings. For example, we could make all four-letter words uppercase:
@@ -223,7 +222,7 @@ ore_subst(re, toupper, text, all=TRUE)
 ## [1] "I HAVE 2 DOGS, 3 CATS and 4 hamsters"
 ```
 
-There is also a variant called `ore_repl()`, which will replicate the source text to use multiple different replacements if needed. This is in turn used by `es()`, which does expression substitution: evaluating R code (within each `"#{}"` construct) and inserting the results into a string.
+There is also a variant called `ore_repl()`, which will replicate the source text to use multiple different replacements if needed. This is in turn used by `es()`, which does expression substitution (a.k.a. [string interpolation](https://en.wikipedia.org/wiki/String_interpolation)): evaluating R code (within each `"#{}"` construct) and inserting the results into a string.
 
 
 ```r
@@ -245,7 +244,7 @@ This finds all matches to the pattern, discards them, and then returns the remai
 
 ## String multiplexing
 
-Sometimes we may want to classify the elements of a vector according to whether they match one or more regular expressions, or extract some information that may be in one of a number of formats. The `ore_switch()` is designed for this purpose, taking any number of strings as arguments, named for the regular expressions used to select them. It works a little like the base R function `ifelse()`.
+Sometimes we may want to classify the elements of a vector according to whether they match one or more regular expressions, or extract some information that may be in one of a number of formats. The `ore_switch()` function is designed for this purpose, taking any number of strings as arguments, named for the regular expressions used to select them. It works a little like the base R function `ifelse()`.
 
 
 ```r
@@ -253,7 +252,9 @@ ore_switch(c("2 dogs","some dogs","no dogs"), "-?\\d+"="number", "no number")
 ## [1] "number"    "no number" "no number"
 ```
 
-This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.html) to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
+Notice that the text to be matched comes first in this case. The second argument is named with the regular expression that selects it, and the third is unnamed and so will catch all strings that haven't already been matched, unconditionally.
+
+This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.html), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
 
 
 ```r
@@ -261,6 +262,8 @@ strings <- c('Is it good?', 'Is it bad?', 'Is it "ugly"?')
 ore_switch(strings, "\"\\b\\w{4}\\b\""=NA, "\\b\\w{4}\\b"="\\0")
 ## [1] "good" NA     NA
 ```
+
+Here there is no catch-all case, so strings with no four-letter words in them will map to `NA` by default.
 
 ## The pattern dictionary
 
@@ -356,7 +359,7 @@ match[1,3]
 
 Since version 1.3.0 of the package, it has been possible to search directly within files, using their native encoding if it is supported by Onigmo (which supports many more encodings than R does internally). Binary files may also be searched, but in that case the regex is fixed to use ASCII encoding, and the file is examined byte-by-byte.
 
-For example, using a test file [provided with the package source](https://github.com/jonclayden/ore/blob/master/tests/testthat/sjis.txt), and if your local `iconv` supports the [Shift JIS encoding](https://en.wikipedia.org/wiki/Shift_JIS), you can try
+For example, using a test file provided with the package source, and if your local `iconv` supports the [Shift JIS encoding](https://en.wikipedia.org/wiki/Shift_JIS), you can try
 
 
 ```r
@@ -391,10 +394,10 @@ ore_search("\\bi[A-Z]\\w+", url("https://www.apple.com"))
 
 ## Related packages
 
-As noted at the beginning of this README, base R provides some regular expressions functions, although they are less varied, flexible and fast than those in the `ore` package. There are other related and alternative packages available:
+As noted at the beginning of this README, base R provides some regular expression functions, although they are less varied, flexible and fast than those in the `ore` package. There are other related and alternative packages available:
 
 - [`rematch2`](https://github.com/r-lib/rematch2) provides a convenient wrapper around base R's functions.
 - The [`stringi` package](https://stringi.gagolewski.com/) provides an extensive set of string-processing facilities, wrapping the ICU library. [`stringr`](http://stringr.tidyverse.org/) offers an alternative interface.
 - [`re2`](https://github.com/girishji/re2) provides an interface to RE2, another regular expression library.
-- The [`glue` package](https://glue.tidyverse.org/) provides string interpolation similar to `es()`.
+- The [`glue` package](https://glue.tidyverse.org/) provides string interpolation, similar to `es()`.
 - Various packages aim to provide a friendlier interface to regular expressions or related functionality, including [`rex`](https://github.com/kevinushey/rex), [`nc`](https://github.com/tdhock/nc), [`rebus`](https://cran.r-project.org/package=rebus) and [`RVerbalExpressions`](https://github.com/tyluRp/RVerbalExpressions).
