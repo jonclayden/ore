@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
+[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
 
 # Oniguruma Regular Expressions (for R)
 
@@ -397,7 +397,7 @@ ore_search("\\bi[A-Z]\\w+", url("https://www.apple.com"))
 As noted at the beginning of this README, base R provides some regular expression functions, although they are less varied, flexible and fast than those in the `ore` package. There are other related and alternative packages available:
 
 - [`rematch2`](https://github.com/r-lib/rematch2) provides a convenient wrapper around base R's functions.
-- The [`stringi` package](https://stringi.gagolewski.com/) provides an extensive set of string-processing facilities, wrapping the ICU library. [`stringr`](http://stringr.tidyverse.org/) offers an alternative interface.
+- The [`stringi` package](https://stringi.gagolewski.com/) provides an extensive set of string-processing facilities, wrapping the ICU library. [`stringr`](https://stringr.tidyverse.org/) offers an alternative interface.
 - [`re2`](https://github.com/girishji/re2) provides an interface to RE2, another regular expression library.
 - The [`glue` package](https://glue.tidyverse.org/) provides string interpolation, similar to `es()`.
-- Various packages aim to provide a friendlier interface to regular expressions or related functionality, including [`rex`](https://github.com/kevinushey/rex), [`nc`](https://github.com/tdhock/nc), [`rebus`](https://cran.r-project.org/package=rebus) and [`RVerbalExpressions`](https://github.com/tyluRp/RVerbalExpressions).
+- Various packages aim to provide a friendlier interface to regular expressions or related functionality, including [`rex`](https://github.com/kevinushey/rex), [`nc`](https://github.com/tdhock/nc), [`rebus`](https://cran.r-project.org/package=rebus) and [`RVerbalExpressions`](https://github.com/VerbalExpressions/RVerbalExpressions).
