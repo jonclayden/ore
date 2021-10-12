@@ -40,7 +40,7 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     
     # Wrapper around eval() that also does rounding
     veval <- function(x,e) {
-        value <- eval(parse(text=x), envir=e)
+        value <- eval(parse(text=x,keep.source=FALSE), envir=e)
         if (is.double(value))
             value <- rfun(value)
         return (ifelse(is.na(value), "", as.character(value)))
