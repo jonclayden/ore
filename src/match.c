@@ -263,6 +263,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     if (!using_file)
         PROTECT(text_ = AS_CHARACTER(text_));
     
+    // Check whether we're searching in a binary file
+    SEXP binary_attr = getAttrib(text_, install("binary"));
+    const Rboolean binary = inherits(text_, "orefile") && !isNull(binary_attr) && asLogical(binary_attr) == TRUE;
+    
     // Retrieve the text and the regex
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
@@ -339,8 +343,13 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_STRING_ELT(result_names, 6, mkChar("matches"));
             
             // Convert elements of the raw match data to R vectors
-            // Note that the text can't easily be returned from a file because offsets and lengths may be wrong after translation between encodings
-            if (using_file)
+            // NB: Binary sources can't reasonably be interpreted overall as strings, may contain nuls, etc. Hence the "text" component is NULL if the source is marked as binary. A better alternative might be to create a raw vector, viz.
+            //   result_text = PROTECT(NEW_RAW(text_element->end - text_element->start));
+            //   memcpy(RAW(result_text), text_element->start, text_element->end - text_element->start);
+            // In this case, though, the print functions would need updating to handle raw vectors
+            if (binary)
+                result_text = R_NilValue;
+            else if (using_file)
                 PROTECT(result_text = ScalarString(ore_text_element_to_rchar(text_element)));
             else
                 PROTECT(result_text = ScalarString(STRING_ELT(text_,i)));
@@ -366,7 +375,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_ELEMENT(result, 6, matches);
             
             // Unprotect everything back to "result_text"
-            UNPROTECT(7);
+            UNPROTECT(binary ? 6 : 7);
             
             // If there are groups present, extract them
             if (raw_match->n_regions > 1)

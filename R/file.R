@@ -9,6 +9,8 @@
 #'   \code{\link{ore_search}}.
 #' @param binary A logical value: if \code{TRUE}, the file will be search
 #'   bytewise, and \code{encoding} will be fixed to be \code{"ASCII"}.
+#' @return A string of class \code{"orefile"}, with the \code{encoding} and
+#'   \code{binary} arguments stored as attributes.
 #' 
 #' @seealso \code{\link{ore_search}} for actually searching through the file.
 #' @aliases orefile ore.file
@@ -19,5 +21,5 @@ ore_file <- ore.file <- function (path, encoding = getOption("ore.encoding"), bi
     if (!file.exists(path))
         stop(paste0("\"", path, "\": file not found"))
     else
-        return (structure(path, encoding=ifelse(binary,"ASCII",encoding), class="orefile"))
+        return (structure(path, encoding=ifelse(binary,"ASCII",encoding), binary=binary, class="orefile"))
 }

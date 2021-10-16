@@ -18,6 +18,10 @@ should match the encoding of the regular expression used in a call to
 \item{binary}{A logical value: if \code{TRUE}, the file will be search
 bytewise, and \code{encoding} will be fixed to be \code{"ASCII"}.}
 }
+\value{
+A string of class \code{"orefile"}, with the \code{encoding} and
+  \code{binary} arguments stored as attributes.
+}
 \description{
 Identify a file path to be used as a text source for a subsequent call to
 \code{\link{ore_search}}.
