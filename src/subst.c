@@ -465,7 +465,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
         error("Mappings should be character strings");
     
     text_t *text = ore_text(text_);
-    SEXP patterns = getAttrib(mappings_, R_NamesSymbol);
+    SEXP patterns = PROTECT(getAttrib(mappings_, R_NamesSymbol));
     const char *options = CHAR(STRING_ELT(options_, 0));
     const char *encoding_name = CHAR(STRING_ELT(encoding_name_, 0));
     
@@ -557,6 +557,6 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
     
     ore_text_done(text);
     
-    UNPROTECT(1);
+    UNPROTECT(2);
     return results;
 }
