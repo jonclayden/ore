@@ -34,9 +34,9 @@ is_orematch(x)
 \item{regex}{A single character string or object of class \code{"ore"}. In
 the former case, this will first be passed through \code{\link{ore}}.}
 
-\item{text}{A vector of strings to match against, or the result of a call to
-\code{\link{ore_file}} to search in a file. In the latter case, match
-offsets will be relative to the file's encoding.}
+\item{text}{A vector of strings to match against, or a connection, or the
+result of a call to \code{\link{ore_file}} to search in a file. In the
+latter case, match offsets will be relative to the file's encoding.}
 
 \item{all}{If \code{TRUE}, then all matches within each element of
 \code{text} will be found. Otherwise, the search will stop at the first
@@ -61,7 +61,8 @@ search time in large files.}
 
 \item{k}{For indexing, the group number.}
 
-\item{...}{Ignored.}
+\item{...}{For \code{print.orematches}, additional arguments to be passed
+through to \code{print.orematch}.}
 
 \item{i}{For indexing into an \code{"orematches"} object only, the string
 number.}
@@ -79,7 +80,11 @@ of each match.}
 For \code{ore_search}, an \code{"orematch"} object, or a list of
   the same, each with elements
   \describe{
-    \item{text}{A copy of the \code{text} element for the current match.}
+    \item{text}{A copy of the \code{text} element for the current match, if
+      it was a character vector; otherwise a single string with the content
+      retrieved from the file or connection. If the source was a binary file
+      (from \code{ore_file(..., binary=TRUE)}) then this element will be
+      \code{NULL}.}
     \item{nMatches}{The number of matches found.}
     \item{offsets}{The offsets (in characters) of each match.}
     \item{byteOffsets}{The offsets (in bytes) of each match.}
@@ -96,9 +101,10 @@ For \code{ore_search}, an \code{"orematch"} object, or a list of
   or matrix of substrings corresponding to captured groups.
 }
 \description{
-Search a character vector for one or more matches to an Oniguruma-compatible
-regular expression. The result is of class \code{"orematches"}, for which
-printing and indexing methods are available.
+Search a character vector, or the content of a file or connection, for one
+or more matches to an Oniguruma-compatible regular expression. Printing and
+indexing methods are available for the results. \code{ore_match} is an alias
+for \code{ore_search}.
 }
 \note{
 Only named *or* unnamed groups will currently be captured, not both. If

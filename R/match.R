@@ -1,14 +1,15 @@
 #' Search for matches to a regular expression
 #' 
-#' Search a character vector for one or more matches to an Oniguruma-compatible
-#' regular expression. The result is of class \code{"orematches"}, for which
-#' printing and indexing methods are available.
+#' Search a character vector, or the content of a file or connection, for one
+#' or more matches to an Oniguruma-compatible regular expression. Printing and
+#' indexing methods are available for the results. \code{ore_match} is an alias
+#' for \code{ore_search}.
 #' 
 #' @param regex A single character string or object of class \code{"ore"}. In
 #'   the former case, this will first be passed through \code{\link{ore}}.
-#' @param text A vector of strings to match against, or the result of a call to
-#'   \code{\link{ore_file}} to search in a file. In the latter case, match
-#'   offsets will be relative to the file's encoding.
+#' @param text A vector of strings to match against, or a connection, or the
+#'   result of a call to \code{\link{ore_file}} to search in a file. In the
+#'   latter case, match offsets will be relative to the file's encoding.
 #' @param all If \code{TRUE}, then all matches within each element of
 #'   \code{text} will be found. Otherwise, the search will stop at the first
 #'   match.
@@ -33,11 +34,16 @@
 #' @param context The number of characters of context to include either side
 #'   of each match.
 #' @param width The number of characters in each line of printed output.
-#' @param ... Ignored.
+#' @param ... For \code{print.orematches}, additional arguments to be passed
+#'   through to \code{print.orematch}.
 #' @return For \code{ore_search}, an \code{"orematch"} object, or a list of
 #'   the same, each with elements
 #'   \describe{
-#'     \item{text}{A copy of the \code{text} element for the current match.}
+#'     \item{text}{A copy of the \code{text} element for the current match, if
+#'       it was a character vector; otherwise a single string with the content
+#'       retrieved from the file or connection. If the source was a binary file
+#'       (from \code{ore_file(..., binary=TRUE)}) then this element will be
+#'       \code{NULL}.}
 #'     \item{nMatches}{The number of matches found.}
 #'     \item{offsets}{The offsets (in characters) of each match.}
 #'     \item{byteOffsets}{The offsets (in bytes) of each match.}
