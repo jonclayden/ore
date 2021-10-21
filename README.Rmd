@@ -16,7 +16,7 @@ Welcome to the `ore` package for R. This package provides an alternative to R's 
 - Performance is [substantially better](https://github.com/jonclayden/regex-performance), especially when matching against long strings.
 - Text can be easily drawn from a URL or other "connection", and matches early in large files can be found efficiently with incremental search.
 - Substitutions can be functions, as well as literal or back-referenced strings, and different replacements can be used for different matches.
-- Wider support for character encodings.
+- There is wider support for character encodings.
 - Common subexpressions can be easily stored in and retrieved from a dictionary.
 - Matches can be efficiently obtained over only part of a text.
 - The core functions have more consistent names.
