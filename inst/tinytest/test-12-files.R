@@ -23,17 +23,18 @@ if ("SHIFT-JIS" %in% iconvlist())
     s2 <- ore_search("\\p{Katakana}+", text)
     s3 <- ore_search(ore("\\p{Katakana}+",encoding="SHIFT-JIS"), iconv(text,"UTF-8","SHIFT-JIS"))
     close(con)
-    con <- file("sjis.txt", encoding="SHIFT-JIS")
-    s4 <- ore_search("\\p{Katakana}+", con)
-    close(con)
+    # con <- file("sjis.txt", encoding="SHIFT-JIS")
+    # s4 <- ore_search("\\p{Katakana}+", con)
+    # close(con)
     
     # Check the match was found in each case
-    results <- list(s1, s2, s3, s4)
+    # results <- list(s1, s2, s3, s4)
+    results <- list(s1, s2, s3)
     expect_false(any(sapply(results, is.null)))
     
     # Same character offsets but different byte offsets
-    expect_equal(sapply(results,"[[","offsets"), c(14L,14L,14L,14L))
-    expect_equal(sapply(results,"[[","byteOffsets"), c(18L,22L,18L,18L))
+    expect_equal(sapply(results,"[[","offsets"), c(14L,14L,14L))
+    expect_equal(sapply(results,"[[","byteOffsets"), c(18L,22L,18L))
     
     # Binary search
     expect_equal(matches(ore_search("\\w+",ore_file("hello.bin",binary=TRUE))), "Hello")
