@@ -10,7 +10,6 @@ Description: Provides an alternative to R's built-in functionality for handling
     compiled regex objects, partial matching and function-based substitutions,
     amongst other features.
 Encoding: UTF-8
-LazyData: true
 Biarch: true
 License: BSD_3_clause + file LICENCE
 Collate: workspace.R file.R dict.R ore.R match.R es.R zzz.R
