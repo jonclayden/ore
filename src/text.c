@@ -9,7 +9,7 @@
 #include "text.h"
 
 // If R is recent enough for R_GetConnection() to be available, and the connections API is the expected version, support reading from connections
-#if defined(R_VERSION) && R_VERSION >= R_Version(3,3,0) && defined(R_CONNECTIONS_VERSION) && R_CONNECTIONS_VERSION == 1
+#if !defined(DISABLE_CONNECTIONS) && defined(R_VERSION) && R_VERSION >= R_Version(3,3,0) && defined(R_CONNECTIONS_VERSION) && R_CONNECTIONS_VERSION == 1
 #define USING_CONNECTIONS
 #endif
 
