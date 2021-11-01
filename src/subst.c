@@ -136,7 +136,10 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     
     const int start_len = length(start_);
     if (start_len < 1)
+    {
+        ore_free(regex, regex_);
         error("The vector of starting positions is empty");
+    }
     
     const char nul = '\0';
     
@@ -147,7 +150,10 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     {
         replacement_len = length(replacement_);
         if (replacement_len < 1)
+        {
+            ore_free(regex, regex_);
             error("No replacement has been given");
+        }
         
         backref_info = (backref_info_t **) R_alloc(replacement_len, sizeof(backref_info_t *));
         for (int j=0; j<replacement_len; j++)
@@ -158,7 +164,10 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 for (int k=0; k<backref_info[j]->n; k++)
                 {
                     if (backref_info[j]->group_numbers[k] > n_groups)
+                    {
+                        ore_free(regex, regex_);
                         error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                    }
                 }
             }
         }
@@ -269,6 +278,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     if (text->source == VECTOR_SOURCE)
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
+    ore_free(regex, regex_);
     ore_text_done(text);
     
     UNPROTECT(1);
@@ -292,7 +302,10 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     
     const int start_len = length(start_);
     if (start_len < 1)
+    {
+        ore_free(regex, regex_);
         error("The vector of starting positions is empty");
+    }
     
     const char nul = '\0';
     
@@ -303,7 +316,10 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     {
         base_replacement_len = length(replacement_);
         if (base_replacement_len < 1)
+        {
+            ore_free(regex, regex_);
             error("No replacement has been given");
+        }
         
         backref_info = (backref_info_t **) R_alloc(base_replacement_len, sizeof(backref_info_t *));
         for (int j=0; j<base_replacement_len; j++)
@@ -314,7 +330,10 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                 for (int k=0; k<backref_info[j]->n; k++)
                 {
                     if (backref_info[j]->group_numbers[k] > n_groups)
+                    {
+                        ore_free(regex, regex_);
                         error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                    }
                 }
             }
         }
@@ -446,6 +465,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     if (text->source == VECTOR_SOURCE)
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
+    ore_free(regex, regex_);
     ore_text_done(text);
     
     UNPROTECT(1);
@@ -503,7 +523,10 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
                 for (int k=0; k<backref_info->n; k++)
                 {
                     if (backref_info->group_numbers[k] > n_groups)
+                    {
+                        onig_free(regex);
                         error("Template %d references a group number (%d) that isn't captured", j+1, backref_info->group_numbers[k]);
+                    }
                 }
             }
         }
@@ -550,6 +573,8 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
                 done[i] = TRUE;
             }
         }
+        
+        onig_free(regex);
     }
     
     if (text->source == VECTOR_SOURCE)

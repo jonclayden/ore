@@ -98,6 +98,17 @@ regex_t * ore_retrieve (SEXP regex_, encoding_t *encoding)
     return regex;
 }
 
+// Free the specified regex object, unless it was retrieved from an external pointer that owns the memory
+void ore_free (regex_t *regex, SEXP source)
+{
+    if (regex == NULL)
+        return;
+    else if (source == NULL || !inherits(source, "ore"))
+        onig_free(regex);
+    else if (R_ExternalPtrAddr(getAttrib(source, install(".compiled"))) == NULL)
+        onig_free(regex);
+}
+
 // Create a pattern string by concatenating the elements of the supplied vector, parenthesising named elements
 static char * ore_build_pattern (SEXP pattern_)
 {
