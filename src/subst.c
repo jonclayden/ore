@@ -104,9 +104,9 @@ static backref_info_t * ore_find_backrefs (const char *replacement, regex_t *reg
                 int *numbers;
                 const int n_matched = onig_name_to_group_numbers(regex, (const UChar *) name, (const UChar *) name + strlen(name), &numbers);
                 
-                // If it's not found, raise an error
+                // If it's not found, store the error code
                 if (n_matched == ONIGERR_UNDEFINED_NAME_REFERENCE)
-                    error("Back-reference does not match a named group");
+                    info->group_numbers[l] = ONIGERR_UNDEFINED_NAME_REFERENCE;
                 else if (n_matched > 0)
                     info->group_numbers[l] = *numbers;
                 
@@ -167,6 +167,11 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                     {
                         ore_free(regex, regex_);
                         error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                    }
+                    else if (backref_info[j]->group_numbers[k] == ONIGERR_UNDEFINED_NAME_REFERENCE)
+                    {
+                        ore_free(regex, regex_);
+                        error("Replacement %d references an undefined group name", j+1);
                     }
                 }
             }
@@ -333,6 +338,11 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                     {
                         ore_free(regex, regex_);
                         error("Replacement %d references a group number (%d) that isn't captured", j+1, backref_info[j]->group_numbers[k]);
+                    }
+                    else if (backref_info[j]->group_numbers[k] == ONIGERR_UNDEFINED_NAME_REFERENCE)
+                    {
+                        ore_free(regex, regex_);
+                        error("Replacement %d references an undefined group name", j+1);
                     }
                 }
             }
@@ -524,8 +534,13 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
                 {
                     if (backref_info->group_numbers[k] > n_groups)
                     {
-                        onig_free(regex);
+                        ore_free(regex, NULL);
                         error("Template %d references a group number (%d) that isn't captured", j+1, backref_info->group_numbers[k]);
+                    }
+                    else if (backref_info->group_numbers[k] == ONIGERR_UNDEFINED_NAME_REFERENCE)
+                    {
+                        ore_free(regex, NULL);
+                        error("Template %d references an undefined group name", j+1);
                     }
                 }
             }
@@ -574,7 +589,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             }
         }
         
-        onig_free(regex);
+        ore_free(regex, NULL);
     }
     
     if (text->source == VECTOR_SOURCE)
