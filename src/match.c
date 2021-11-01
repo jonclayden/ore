@@ -276,7 +276,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     
     // Check for sensible input
     if (start_len < 1)
+    {
+        ore_free(regex, regex_);
         error("The vector of starting positions is empty");
+    }
     
     SEXP results;
     PROTECT(results = NEW_LIST(text->length));
@@ -434,6 +437,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     if (text->source == VECTOR_SOURCE)
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
+    ore_free(regex, regex_);
     ore_text_done(text);
     
     UNPROTECT(using_file ? 1 : 2);

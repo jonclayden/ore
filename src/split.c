@@ -26,7 +26,10 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     
     // Check for sensible input
     if (start_len < 1)
+    {
+        ore_free(regex, regex_);
         error("The vector of starting positions is empty");
+    }
     
     SEXP results = PROTECT(NEW_LIST(text->length));
     
@@ -92,6 +95,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     if (text->source == VECTOR_SOURCE)
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
+    ore_free(regex, regex_);
     ore_text_done(text);
     
     UNPROTECT(1);
