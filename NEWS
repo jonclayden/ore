@@ -2,6 +2,14 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.2
+
+- A handful of small memory leaks have been plugged.
+- The `README` has been updated to detail the current divergence between CRAN
+  and mainline versions of the package.
+
+===============================================================================
+
 VERSION 1.7.1
 
 - The `binary` argument to `ore_file()` is now stored in an attribute in its
