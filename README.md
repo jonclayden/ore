@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
+[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
 
 # Oniguruma Regular Expressions (for R)
 
@@ -41,13 +41,15 @@ If you prefer the more verbose but also more friendly approach to creating regul
 
 ## Installation
 
-The package is available [via CRAN](https://cran.r-project.org/package=ore), or the latest development version can be installed directly from GitHub using the `remotes` package.
+The package is available [from CRAN](https://cran.r-project.org/package=ore). The latest development version can be installed from [r-universe](https://jonclayden.r-universe.dev) or directly from GitHub using the `remotes` package.
 
 
 ```r
 # install.packages("remotes")
 remotes::install_github("jonclayden/ore")
 ```
+
+As of package version 1.7.1, two notable features are missing from the CRAN release, relative to the development version: the "I can eat glass" dataset, and [connection support](#searching-in-files). These are both due to specific restrictions on what CRAN will accept, and neither currently has any known workaround.
 
 ## Function mapping
 
