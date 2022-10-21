@@ -100,14 +100,14 @@
 
 */
 
-#ifdef NOT_RUBY
-#include "regint.h"
-#include "st.h"
-#else
+#ifdef RUBY
 #include "internal.h"
 #include "internal/bits.h"
 #include "internal/hash.h"
 #include "internal/sanitizers.h"
+#else
+#include "regint.h"
+#include "st.h"
 #endif
 
 #include <stdio.h>
@@ -342,7 +342,7 @@ get_power2(st_index_t size)
     unsigned int n = ST_INDEX_BITS - nlz_intptr(size);
     if (n <= MAX_POWER2)
         return n < MINIMAL_POWER2 ? MINIMAL_POWER2 : n;
-#ifndef NOT_RUBY
+#ifdef RUBY
     /* Ran out of the table entries */
     rb_raise(rb_eRuntimeError, "st_table too big");
 #endif
