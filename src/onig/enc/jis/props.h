@@ -133,9 +133,7 @@ inline
 __inline
 #endif
 static unsigned int
-onig_jis_property_hash (str, len)
-     register const char *str;
-     register unsigned int len;
+onig_jis_property_hash (const char *str, unsigned int len)
 {
   static const unsigned char asso_values[] =
     {
@@ -182,9 +180,7 @@ __attribute__ ((__gnu_inline__))
 #endif
 #endif
 const struct enc_property *
-onig_jis_property (str, len)
-     register const char *str;
-     register unsigned int len;
+onig_jis_property (const char *str, unsigned int len)
 {
   static const struct enc_property wordlist[] =
     {

@@ -33387,9 +33387,7 @@ inline
 __inline
 #endif
 static unsigned int
-uniname2ctype_hash (str, len)
-     register const char *str;
-     register unsigned int len;
+uniname2ctype_hash (const char *str, unsigned int len)
 {
 #ifndef USE_UNICODE_PROPERTIES
   static const unsigned char asso_values[] =
@@ -35104,9 +35102,7 @@ __attribute__ ((__gnu_inline__))
 #endif
 #endif
 const struct uniname2ctype_struct *
-uniname2ctype_p (str, len)
-     register const char *str;
-     register unsigned int len;
+uniname2ctype_p (const char *str, unsigned int len)
 {
   static const struct uniname2ctype_struct wordlist[] =
     {
