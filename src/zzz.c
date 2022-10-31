@@ -19,7 +19,7 @@ extern regex_t *group_name_regex;
 extern OnigSyntaxType *modified_ruby_syntax;
 
 // R wrapper function for onig_init(); called when the package is loaded
-SEXP ore_init ()
+SEXP ore_init (void)
 {
     onig_init();
     
@@ -55,7 +55,7 @@ SEXP ore_init ()
 }
 
 // R wrapper function for onig_end(); called when the package is unloaded
-SEXP ore_done ()
+SEXP ore_done (void)
 {
     onig_free(group_number_regex);
     onig_free(group_name_regex);
