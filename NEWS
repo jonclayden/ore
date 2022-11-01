@@ -2,6 +2,14 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.2.1
+
+- C prototype-related warnings have been resolved, as required for CRAN. In
+  order to facilitate this, an updated version of the embedded hash table
+  library has been imported from the Ruby source tree.
+
+===============================================================================
+
 VERSION 1.7.2
 
 - A handful of small memory leaks have been plugged.
