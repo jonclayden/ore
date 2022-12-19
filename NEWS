@@ -2,6 +2,14 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.3
+
+- The package will now properly detect a plain locale like "UTF-8" on start-up.
+- C prototype warnings have been resolved, and the problematic `sprintf()`
+  function is now avoided.
+
+===============================================================================
+
 VERSION 1.7.2
 
 - A handful of small memory leaks have been plugged.
