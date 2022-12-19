@@ -222,7 +222,7 @@ static void ore_switch_state (printstate_t *state, Rboolean match)
         // Find current match number and convert to string
         state->current_match++;
         if (state->current_match < 100000)
-            sprintf(state->current_match_string, "%d", state->current_match);
+            snprintf(state->current_match_string, 6, "%d", state->current_match);
         else
             state->current_match_string[0] = '\0';
         state->current_match_loc = state->current_match_string;
