@@ -21,8 +21,8 @@ typedef struct {
     int         n_matches;
     
     Rboolean    in_match;
-    int         loc;
-    int         current_match;
+    unsigned    loc;
+    unsigned    current_match;
     char        current_match_string[12];
     char       *current_match_loc;
     
@@ -221,10 +221,7 @@ static void ore_switch_state (printstate_t *state, Rboolean match)
         
         // Find current match number and convert to string
         state->current_match++;
-        if (state->current_match < 100000)
-            snprintf(state->current_match_string, 6, "%d", state->current_match);
-        else
-            state->current_match_string[0] = '\0';
+        snprintf(state->current_match_string, 6, "%u", state->current_match % 100000);
         state->current_match_loc = state->current_match_string;
         
         state->in_match = TRUE;
