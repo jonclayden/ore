@@ -2,6 +2,13 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.3.1
+
+- A potential mismatch between the C compiler configured for R and the one used
+  by the configure script has been resolved.
+
+===============================================================================
+
 VERSION 1.7.3
 
 - The package will now properly detect a plain locale like "UTF-8" on start-up.
