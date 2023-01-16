@@ -3,7 +3,7 @@
 {
     .Call(C_ore_init)
     
-    match <- ore_search("^([A-Z_ ]+)\\.([\\w\\-.:]+)$", toupper(Sys.getlocale("LC_CTYPE")))
+    match <- ore_search("^(([A-Z_ ]+)\\.)?([\\w\\-.:]+)$", toupper(Sys.getlocale("LC_CTYPE")))
     if (is.null(match))
     {
         .Workspace$message <- "ore: Cannot determine native encoding - you may want to set the \"ore.encoding\" option manually"
@@ -11,7 +11,7 @@
     }
     else
     {
-        needle <- match[,2]
+        needle <- match[,3]
         haystack <- toupper(iconvlist())
         if (isTRUE(needle %in% haystack))
             encoding <- needle
