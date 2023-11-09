@@ -58,3 +58,9 @@ expect_equal(results[,1,2], c("h","s",NA,"e"))
 expect_equal(unlist(matches(results)), c("Th","is","is","te","st"))
 expect_equal(groups(results)[[1]], matrix(c("T","h","i","s"),ncol=2,byrow=TRUE))
 expect_stdout(print(results), "5 matches in 4 strings")
+
+# Check named groups
+regexString <- "(?<numbers>\\d+)"
+regex <- ore(regexString)
+expect_equal(dimnames(groups(ore_search(regex, "1.7"))), list(NULL,"numbers"))
+expect_equal(dimnames(groups(ore_search(regexString, "1.7"))), list(NULL,"numbers"))
