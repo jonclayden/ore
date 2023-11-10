@@ -252,7 +252,6 @@ void ore_char_matrix (SEXP mat, const char **data, const int n_regions, const in
 SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simplify_, SEXP incremental_)
 {
     // Convert R objects to C types
-    SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     const Rboolean incremental = (asLogical(incremental_) == TRUE) && !all;
@@ -270,6 +269,26 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     // Retrieve the text and the regex
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
+    
+    SEXP group_names = R_NilValue;
+    Rboolean group_names_protected = FALSE;
+    if (inherits(regex_, "ore"))
+        group_names = getAttrib(regex_, install("groupNames"));
+    else
+    {
+        const int n_groups = onig_number_of_captures(regex);
+        if (n_groups > 0)
+        {
+            PROTECT(group_names = NEW_CHARACTER(n_groups));
+            if (ore_group_name_vector(group_names, regex))
+                group_names_protected = TRUE;
+            else
+            {
+                UNPROTECT(1);
+                group_names = R_NilValue;
+            }
+        }
+    }
     
     // Obtain the length of the start vector (which will be recycled if necessary)
     const int start_len = length(start_);
@@ -440,7 +459,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     ore_free(regex, regex_);
     ore_text_done(text);
     
-    UNPROTECT(using_file ? 1 : 2);
+    UNPROTECT(2 + group_names_protected - using_file);
     
     // Return just the first (and only) element of the full list, if requested
     if (simplify && text->length == 1)

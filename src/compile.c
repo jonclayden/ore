@@ -150,7 +150,8 @@ static char * ore_build_pattern (SEXP pattern_)
     return pattern;
 }
 
-static Rboolean ore_group_name_vector (SEXP vec, regex_t *regex)
+// Insert group names into an R character vector of appropriate size
+Rboolean ore_group_name_vector (SEXP vec, regex_t *regex)
 {
     const int n_groups = onig_number_of_captures(regex);
     
