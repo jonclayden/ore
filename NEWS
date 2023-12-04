@@ -2,6 +2,15 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.4
+
+- Named groups would not be propagated to match matrices unless the regex was
+  pre-compiled using `ore()`. This has been corrected.
+- A compiler warning about a `printf`-type format specification has been
+  resolved.
+
+===============================================================================
+
 VERSION 1.7.3
 
 - The package will now properly detect a plain locale like "UTF-8" on start-up.
