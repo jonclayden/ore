@@ -3,6 +3,15 @@ AC_INIT([onigmo],[6.2.0])
 
 AC_CONFIG_HEADERS([src/onig/config.h])
 
+: ${R_HOME=`R RHOME`}
+if test -z "${R_HOME}"; then
+	echo "could not determine R_HOME"
+	exit 1
+fi
+CC=`"${R_HOME}/bin/R" CMD config CC`
+CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
+
 dnl default value for STATISTICS
 STATISTICS=""
 AC_ARG_WITH(statistics,
