@@ -318,7 +318,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         }
         else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
         {
-            warning("Encoding of text element %d does not match the regex", i+1);
+            warning("Encoding of text element %lu does not match the regex", (unsigned long) i+1);
             SET_ELEMENT(results, i, R_NilValue);
             continue;
         }
