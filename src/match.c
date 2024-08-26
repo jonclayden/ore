@@ -83,6 +83,12 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
     else
         start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
     
+    // Keep track of the location of the last zero-length match (if any) - to avoid infinite loops multiple zero-length matches must not start in the same place
+    OnigPosition zerolen_offset = -1;
+    
+    // Store the option flags as we may temporarily modify them
+    const OnigOptionType options = regex->options;
+    
     // The offset (in chars) corresponding to start_ptr
     int start_offset = (int) start;
     
@@ -91,6 +97,22 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
     {
         // Call the API to do the search
         return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
+        
+        // If the result is zero-length, and there was already a zero-length match in the same place, disallow it and try again
+        if (region->end[0] == region->beg[0] && zerolen_offset == region->beg[0])
+        {
+            // Temporarily modify the regex options, because using the final argument to onig_search() doesn't override them
+            regex->options = options | ONIG_OPTION_FIND_NOT_EMPTY;
+            return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
+            regex->options = options;
+            
+            // If there's no non-empty match, advance the starting point by one character and re-enable empty matches
+            if (return_value == ONIG_MISMATCH)
+            {
+                start_ptr += onigenc_mbclen_approximate(start_ptr, end_ptr, regex->enc);
+                return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
+            }
+        }
         
         // If there are no more matches, stop
         if (return_value == ONIG_MISMATCH)
@@ -126,10 +148,14 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
                 }
                 
                 // Set missing groups (which must be optional) to NULL; otherwise store match text
-                if (length == 0)
+                if (length == 0 && i > 0)
                     result->matches[loc] = NULL;
                 else
+                {
                     ore_rawmatch_store_string(result, loc, text+region->beg[i], length);
+                    if (length == 0)
+                        zerolen_offset = region->beg[0];
+                }
             }
             
             // Advance the starting point beyond the current match
