@@ -86,8 +86,8 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
     // The offset (in chars) corresponding to start_ptr
     int start_offset = (int) start;
     
-    // The loop is broken when there are no more matches, or max matches have been obtained
-    while (TRUE)
+    // If "all" is true, loop until there are no more matches; otherwise run once
+    do
     {
         // Call the API to do the search
         return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
@@ -148,11 +148,8 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
         
         // Tidy up
         onig_region_free(region, 0);
-        
-        // If "all" is not true, the loop is only ever completed once
-        if (!all)
-            break;
     }
+    while (all);
     
     // Store the number of matches
     if (result != NULL)
