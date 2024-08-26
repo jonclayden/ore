@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
+[![CRAN version](https://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.app/badge/ore)](https://cran.r-project.org/package=ore)
 
 # Oniguruma Regular Expressions (for R)
 
@@ -44,7 +44,7 @@ If you prefer the more verbose but also more friendly approach to creating regul
 The package is available [from CRAN](https://cran.r-project.org/package=ore). The latest development version can be installed from [r-universe](https://jonclayden.r-universe.dev) or directly from GitHub using the `remotes` package.
 
 
-```r
+``` r
 # install.packages("remotes")
 remotes::install_github("jonclayden/ore")
 ```
@@ -71,7 +71,7 @@ The table below gives the approximate equivalence between the package's core fun
 Let's consider a very simple example: a regular expression for matching a single decimal integer, either positive or negative. We create this regex as follows:
 
 
-```r
+``` r
 library(ore)
 re <- ore("-?\\d+")
 ```
@@ -79,9 +79,12 @@ re <- ore("-?\\d+")
 This syntax matches an optional minus sign, followed by one or more digits. Here we immediately introduce one of the differences between the regular expression capabilities of base R and the `ore` package: in the latter, regular expressions have class `ore`, rather than just being standard strings (although plain strings are also accepted by package functions). We can find the class of the regex object, and print it:
 
 
-```r
+``` r
 class(re)
 ## [1] "ore"
+```
+
+``` r
 re
 ## Oniguruma regular expression: /-?\d+/
 ##  - 0 groups
@@ -94,10 +97,13 @@ The `ore()` function compiles the regex string, retaining the compiled version f
 We can now search another string for matches:
 
 
-```r
+``` r
 match <- ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters")
 class(match)
 ## [1] "orematch"
+```
+
+``` r
 match
 ##   match:        2                            
 ## context: I have   dogs, 3 cats and 4 hamsters
@@ -108,10 +114,13 @@ The result of the search is an object of class `orematch`. This contains element
 The `start` parameter to `ore_search()` can be used to indicate where in the text the search should begin. All matches (after the starting point) will be returned with `all=TRUE`:
 
 
-```r
+``` r
 ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters", start=10)
 ##   match:                3                    
 ## context: I have 2 dogs,   cats and 4 hamsters
+```
+
+``` r
 ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters", all=TRUE)
 ##   match:        2       3          4         
 ## context: I have   dogs,   cats and   hamsters
@@ -121,7 +130,7 @@ ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters", all=TRUE)
 The text to be searched for matches can be a vector, in which case the return value will be a list of `orematch` objects:
 
 
-```r
+``` r
 ore_search(re, c("2 dogs","3 cats","4 hamsters"))
 ## <3 matches in 3 strings>
 ## 
@@ -145,13 +154,16 @@ If there is no match the return value will be `NULL`, or a list with `NULL` for 
 Both R and Oniguruma support alternative character encodings for strings, and this can affect matches. Consider the regular expression `\b\w{4}\b`, which matches words of exactly four letters. It behaves differently depending on the encoding that it is declared with:
 
 
-```r
+``` r
 re1 <- ore("\\b\\w{4}\\b", encoding="ASCII")
 re2 <- ore("\\b\\w{4}\\b", encoding="UTF-8")
 text <- enc2utf8("I'll have a piña colada")
 ore_search(re1, text, all=TRUE)
 ##   match:      have              
 ## context: I'll      a piña colada
+```
+
+``` r
 ore_search(re2, text, all=TRUE)
 ##   match:      have   piña       
 ## context: I'll      a      colada
@@ -163,7 +175,7 @@ Note that, in a basic ASCII encoding, only ASCII word characters are matched to 
 Notice that base R's regular expression functions will not find the second match:
 
 
-```r
+``` r
 gregexpr("\\b\\w{4}\\b", text, perl=TRUE)
 ## [[1]]
 ## [1] 6
@@ -178,10 +190,13 @@ By default, Oniguruma and `ore` use Ruby's regular expression syntax, which is v
 Notice the difference in interpretation of a period in the following example:
 
 
-```r
+``` r
 ore_search(ore("."), "1.7")
 ##   match: 1  
 ## context:  .7
+```
+
+``` r
 ore_search(ore(".",syntax="fixed"), "1.7")
 ##   match:  . 
 ## context: 1 7
@@ -192,7 +207,7 @@ In the first case the period has the usual regular expression interpretation of 
 Alternatively, the `ore_escape()` function can be used to help escape substrings that would otherwise have special meaning in the default syntax:
 
 
-```r
+``` r
 ore_search(ore_escape("."), "1.7")
 ##   match:  . 
 ## context: 1 7
@@ -203,11 +218,14 @@ ore_search(ore_escape("."), "1.7")
 The `ore_subst()` function can be used to substitute regex matches with new text. Matched subgroups may be referred to using numerical or named back-references: `\1`, `\2`, etc.
 
 
-```r
+``` r
 re <- ore("\\b(\\w)(\\w)(\\w)(\\w)\\b")
 text <- enc2utf8("I'll have a piña colada")
 ore_subst(re, "\\3\\1\\2\\4", text, all=TRUE)
 ## [1] "I'll vhae a ñpia colada"
+```
+
+``` r
 
 re <- ore("\\b(?<first>\\w)(?<second>\\w)(?<third>\\w)(?<fourth>\\w)\\b")
 ore_subst(re, "\\k<third>\\k<first>\\k<second>\\k<fourth>", text, all=TRUE)
@@ -217,7 +235,7 @@ ore_subst(re, "\\k<third>\\k<first>\\k<second>\\k<fourth>", text, all=TRUE)
 A function may also be provided, which will be used to generate replacement strings. For example, we could make all four-letter words uppercase:
 
 
-```r
+``` r
 re <- ore("\\b\\w{4}\\b")
 text <- "I have 2 dogs, 3 cats and 4 hamsters"
 ore_subst(re, toupper, text, all=TRUE)
@@ -227,7 +245,7 @@ ore_subst(re, toupper, text, all=TRUE)
 There is also a variant called `ore_repl()`, which will replicate the source text to use multiple different replacements if needed. This is in turn used by `es()`, which does expression substitution (a.k.a. [string interpolation](https://en.wikipedia.org/wiki/String_interpolation)): evaluating R code (within each `"#{}"` construct) and inserting the results into a string.
 
 
-```r
+``` r
 es("Test #{1:2}")
 ## [1] "Test 1" "Test 2"
 ```
@@ -237,7 +255,7 @@ es("Test #{1:2}")
 Strings can be split into parts using the `ore_split()` function.
 
 
-```r
+``` r
 ore_split("-?\\d+", "I have 2 dogs, 3 cats and 4 hamsters")
 ## [1] "I have "    " dogs, "    " cats and " " hamsters"
 ```
@@ -249,7 +267,7 @@ This finds all matches to the pattern, discards them, and then returns the remai
 Sometimes we may want to classify the elements of a vector according to whether they match one or more regular expressions, or extract some information that may be in one of a number of formats. The `ore_switch()` function is designed for this purpose, taking any number of strings as arguments, named for the regular expressions used to select them. It works a little like the base R function `ifelse()`.
 
 
-```r
+``` r
 ore_switch(c("2 dogs","some dogs","no dogs"), "-?\\d+"="number", "no number")
 ## [1] "number"    "no number" "no number"
 ```
@@ -259,7 +277,7 @@ Notice that the text to be matched comes first in this case. The second argument
 This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.html), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
 
 
-```r
+``` r
 strings <- c('Is it good?', 'Is it bad?', 'Is it "ugly"?')
 ore_switch(strings, "\"\\b\\w{4}\\b\""=NA, "\\b\\w{4}\\b"="\\0")
 ## [1] "good" NA     NA
@@ -274,7 +292,7 @@ It's not unusual to reuse parts of a regular expression many times. Perhaps, onc
 To take a simple example, let's just consider a pattern for digits. We can add it to the dictionary using the `ore_dict()` function.
 
 
-```r
+``` r
 ore_dict(digits="\\d+")
 ## digits 
 ## "\\d+"
@@ -283,7 +301,7 @@ ore_dict(digits="\\d+")
 Now, we can create a regex using this pattern by naming it in a call to `ore()`.
 
 
-```r
+``` r
 ore(digits)
 ## Oniguruma regular expression: /(\d+)/
 ##  - 1 group
@@ -294,7 +312,7 @@ ore(digits)
 Notice the lack of quotation marks around the name, which distinguishes it from a normal pattern string. We can also reuse it multiple times, and add other regex syntax around it. Say, for example, that we want to find two sets of digits separated by word characters and/or space.
 
 
-```r
+``` r
 re <- ore(digits, "[\\w\\s]+", digits)
 re
 ## Oniguruma regular expression: /(\d+)[\w\s]+(\d+)/
@@ -306,7 +324,7 @@ re
 Notice that `ore()` constructs a full regex from the parts, wrapping each dictionary element in parentheses to make it a group. Now we can match it against our text.
 
 
-```r
+``` r
 ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters")
 ##   match:                3 cats and 4         
 ## context: I have 2 dogs,              hamsters
@@ -315,7 +333,7 @@ ore_search(re, "I have 2 dogs, 3 cats and 4 hamsters")
 The package comes with a small dictionary of fairly robust regexes for matching common elements like numbers or email addresses. These can be used "out of the box". For example,
 
 
-```r
+``` r
 ore_search(ore(number), "Numbers in various formats: -23, 0xbead5, .409 and 1.4e-5", all=TRUE)
 ##   match:                             -23  0xbead5  .409     1.4e-5
 ## context: Numbers in various formats:    ,        ,      and       
@@ -329,7 +347,7 @@ Notice that, when using the dictionary, the `ore()` function must be called expl
 The `ore_ismatch` function will return a logical vector indicating whether or not a match is present in each element of a character vector. The infix notation `%~%` is a shorthand way to achieve the same thing. Either way, the full match data can be obtained without repeating the search, using the `ore_lastmatch()` function.
 
 
-```r
+``` r
 if ("I have 2 dogs, 3 cats and 4 hamsters" %~% "-?\\d+")
   print(ore_lastmatch())
 ##   match:        2                            
@@ -341,18 +359,27 @@ The `%~~%` operator works likewise, except that all matches will be found (i.e. 
 Text matching the entire regex, or parenthesised groups, can be extracted using the `matches()` and `groups()` convenience functions, or even more concisely using indexing.
 
 
-```r
+``` r
 # An example from ?regexpr
 re <- "^(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)"
 text <- "http://stat.umn.edu:80/xyz"
 match <- ore_search(re, text)
 matches(match)
 ## [1] "http://stat.umn.edu:80/xyz"
+```
+
+``` r
 match[1]
 ## [1] "http://stat.umn.edu:80/xyz"
+```
+
+``` r
 groups(match)
 ##      [,1]      [,2]   [,3]           [,4]  [,5] [,6]  
 ## [1,] "http://" "http" "stat.umn.edu" ":80" "80" "/xyz"
+```
+
+``` r
 match[1,3]
 ## [1] "stat.umn.edu"
 ```
@@ -364,7 +391,7 @@ Since version 1.3.0 of the package, it has been possible to search directly with
 For example, using a test file provided with the package source, and if your local `iconv` supports the [Shift JIS encoding](https://en.wikipedia.org/wiki/Shift_JIS), you can try
 
 
-```r
+``` r
 path <- system.file("tinytest", "sjis.txt", package="ore")
 match <- ore_search("\\p{Katakana}+", ore_file(path,encoding="SHIFT_JIS"), all=TRUE)
 matches(match)
@@ -374,10 +401,13 @@ matches(match)
 Note that if you read the file using R's `readLines` function, it will be re-encoded to UTF-8. The same matches will be found, but the byte offsets are different:
 
 
-```r
+``` r
 match <- ore_search("\\p{Katakana}+", ore_file(path,encoding="SHIFT_JIS"), all=TRUE)
 match$byteOffsets
 ## [1] 18 22 44
+```
+
+``` r
 match <- ore_search("\\p{Katakana}+", readLines(file(path,encoding="SHIFT_JIS")), all=TRUE)
 match$byteOffsets
 ## [1] 22 28 61
@@ -388,7 +418,7 @@ Hence, if you want to know where in a file the match can be found, the first of 
 Version 1.7.0 of the package added support for R connections, which allows gzipped files, URLs and other sources to be used directly. For example, let's look for the first mention of an iDevice on Apple's home page:
 
 
-```r
+``` r
 ore_search("\\bi[A-Z]\\w+", url("https://www.apple.com"))
 ##   match:                                  iPhone                                 
 ## context: ... of Apple and shop everything       , iPad, Apple Watch, Mac, and ...

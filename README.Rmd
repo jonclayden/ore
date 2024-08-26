@@ -3,7 +3,7 @@ options(width=120L)
 knitr::opts_chunk$set(collapse=TRUE)
 ```
 
-[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
+[![CRAN version](https://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.app/badge/ore)](https://cran.r-project.org/package=ore)
 
 # Oniguruma Regular Expressions (for R)
 
