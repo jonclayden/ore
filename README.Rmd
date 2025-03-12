@@ -197,7 +197,7 @@ ore_switch(c("2 dogs","some dogs","no dogs"), "-?\\d+"="number", "no number")
 
 Notice that the text to be matched comes first in this case. The second argument is named with the regular expression that selects it, and the third is unnamed and so will catch all strings that haven't already been matched, unconditionally.
 
-This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.html), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
+This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.php), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
 
 ```{r}
 strings <- c('Is it good?', 'Is it bad?', 'Is it "ugly"?')
