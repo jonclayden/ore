@@ -2,6 +2,18 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.5
+
+- There is now special handling of repeated zero-length matches to avoid
+  infinite loops. Specifically, a zero-length match is no longer allowed at the
+  same offset in the string as the last zero-length match; if there is no
+  non-empty match available, the starting offset is first advanced by one
+  character.
+- The CRAN build now re-enables connection support and the "glass" dataset,
+  bringing it into line with the mainline release.
+
+===============================================================================
+
 VERSION 1.7.4
 
 - Named groups would not be propagated to match matrices unless the regex was

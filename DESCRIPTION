@@ -1,9 +1,10 @@
 Package: ore
-Version: 1.7.4
-Date: 2023-12-04
+Version: 1.7.5
+Date: 2025-03-12
 Title: An R Interface to the Onigmo Regular Expression Library
-Author: Jon Clayden, based on Onigmo by K. Kosako and K. Takata
-Maintainer: Jon Clayden <code@clayden.org>
+Authors@R: c(person("Jon", "Clayden", role=c("cre","aut"), email="code@clayden.org", comment=c(ORCID="0000-0002-6608-0619")),
+             person("K", "Kosako", role="aut"),
+             person("K", "Takata", role="aut"))
 Suggests: crayon, rex, tinytest, covr
 Description: Provides an alternative to R's built-in functionality for handling
     regular expressions, based on the Onigmo library. Offers first-class
