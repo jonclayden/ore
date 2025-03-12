@@ -4,3 +4,4 @@
 /config.*
 /src/onig/config.h
 /Rprof.out
+/compile_commands.json

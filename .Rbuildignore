@@ -1,5 +1,6 @@
 ^\.travis\.yml$
 ^\.covrignore$
 ^\.github$
+^compile_commands\.json$
 ^README\.Rmd$
 \.o$
