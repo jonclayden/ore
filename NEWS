@@ -2,6 +2,12 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.7.5.1
+
+- The CRAN build now reinstates the "glass" dataset from the mainline build.
+
+===============================================================================
+
 VERSION 1.7.5
 
 - There is now special handling of repeated zero-length matches to avoid
