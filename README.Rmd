@@ -3,7 +3,7 @@ options(width=120L)
 knitr::opts_chunk$set(collapse=TRUE)
 ```
 
-[![CRAN version](http://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.com/badge/ore)](https://cran.r-project.org/package=ore)
+[![CRAN version](https://www.r-pkg.org/badges/version/ore)](https://cran.r-project.org/package=ore) [![r-universe version](https://jonclayden.r-universe.dev/badges/ore)](https://jonclayden.r-universe.dev) [![CI](https://github.com/jonclayden/ore/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/ore/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/ore/branch/master/graph/badge.svg?token=F3jq1JeLV8)](https://app.codecov.io/gh/jonclayden/ore) [![Dependencies](https://tinyverse.netlify.app/badge/ore)](https://cran.r-project.org/package=ore)
 
 # Oniguruma Regular Expressions (for R)
 
@@ -197,7 +197,7 @@ ore_switch(c("2 dogs","some dogs","no dogs"), "-?\\d+"="number", "no number")
 
 Notice that the text to be matched comes first in this case. The second argument is named with the regular expression that selects it, and the third is unnamed and so will catch all strings that haven't already been matched, unconditionally.
 
-This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.html), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
+This can also be used to achieve similar results to the [alternation trick](https://www.rexegg.com/regex-best-trick.php), to exclude more specific matches and retain less specific ones. For example, we can identify four-letter words, unless they are quoted:
 
 ```{r}
 strings <- c('Is it good?', 'Is it bad?', 'Is it "ugly"?')

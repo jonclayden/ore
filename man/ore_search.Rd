@@ -28,7 +28,8 @@ is_orematch(x)
   context = getOption("ore.context", 30L), width = getOption("width", 80L),
   ...)
 
-\method{print}{orematches}(x, lines = getOption("ore.lines", 0L), simplify = TRUE, ...)
+\method{print}{orematches}(x, lines = getOption("ore.lines", 0L),
+  simplify = TRUE, ...)
 }
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}. In

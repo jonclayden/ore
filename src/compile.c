@@ -4,7 +4,6 @@
 #include <Rdefines.h>
 #include <Rversion.h>
 #include <Rinternals.h>
-#include <R_ext/Connections.h>
 
 #include "text.h"
 #include "compile.h"
