@@ -11,6 +11,9 @@
 #include "print.h"
 #include "wcwidth.h"
 
+// Space kept free at the end of each line buffer, for colour escape codes and the terminating nul
+#define ORE_PRINT_MARGIN    16
+
 typedef struct {
     Rboolean    use_colour;
     int         width;
@@ -19,6 +22,7 @@ typedef struct {
     int         n_matches;
     
     Rboolean    in_match;
+    Rboolean    pending;
     unsigned    loc;
     unsigned    current_match;
     char        current_match_string[12];
@@ -26,8 +30,10 @@ typedef struct {
     
     char       *match;
     char       *match_start;
+    size_t      match_size;
     char       *context;
     char       *context_start;
+    size_t      context_size;
     char       *number;
     char       *number_start;
 } printstate_t;
@@ -68,27 +74,32 @@ static printstate_t * ore_printstate (const int context, const int width, const 
     
     // Initialisations
     state->in_match = FALSE;
+    state->pending = FALSE;
     state->loc = 0;
     state->current_match = 0;
     state->lines_done = 0;
     
     // If we're using colour we need to allocate enough space for the nine control bytes either side of each match
+    // Zero-width characters use space without taking up width, so lines may also be ended early if a buffer fills up (see ore_have_space)
     if (use_colour)
     {
-        state->match = R_alloc((max_enc_len+9)*width, 1);
+        state->match_size = (max_enc_len+9)*width + 2*ORE_PRINT_MARGIN;
+        state->match = R_alloc(state->match_size, 1);
+        state->context_size = 0;
         state->context = NULL;
     }
     else
     {
-        state->match = R_alloc(max_enc_len*width, 1);
-        state->context = R_alloc(max_enc_len*width, 1);
+        state->match_size = state->context_size = max_enc_len*width + 2*ORE_PRINT_MARGIN;
+        state->match = R_alloc(state->match_size, 1);
+        state->context = R_alloc(state->context_size, 1);
     }
     
     // If there is more than one match, allocate memory for the number line
     if (n_matches == 1)
         state->number = NULL;
     else
-        state->number = R_alloc(width, 1);
+        state->number = R_alloc(width + ORE_PRINT_MARGIN, 1);
     
     // Pointers to the start of each line
     state->match_start = state->match;
@@ -104,48 +115,67 @@ static Rboolean ore_more_lines (printstate_t *state)
     return (state->max_lines == 0 || state->lines_done < state->max_lines);
 }
 
+// Check whether the buffers have room for a character of the specified number of bytes, plus the margin
+static Rboolean ore_have_space (const printstate_t *state, const size_t bytes)
+{
+    const size_t needed = bytes + ORE_PRINT_MARGIN;
+    if ((size_t) (state->match - state->match_start) + needed > state->match_size)
+        return FALSE;
+    if (state->context != NULL && (size_t) (state->context - state->context_start) + needed > state->context_size)
+        return FALSE;
+    return TRUE;
+}
+
 // This function actually prints a line of buffered text, with annotations, to the terminal
 static void ore_print_line (printstate_t *state)
 {
-    // Forget it if the buffer is empty, or we're already printed as many lines as are allowed
-    if (state->loc == 0 || !ore_more_lines(state))
+    // Forget it if nothing has been buffered since the last line
+    if (!state->pending)
         return;
     
-    // Switch off colour printing temporarily if we're in the middle of a match
-    if (state->use_colour && state->in_match)
+    // Print the line, unless we've already printed as many lines as are allowed, in which case its content is dropped
+    if (ore_more_lines(state))
     {
-        memcpy(state->match, "\x1b[0m", 4);
-        state->match += 4;
+        // Switch off colour printing temporarily if we're in the middle of a match
+        if (state->use_colour && state->in_match)
+        {
+            memcpy(state->match, "\x1b[0m", 4);
+            state->match += 4;
+        }
+        *state->match = '\0';
+        
+        // Print out the match string, alone or with a label
+        if (state->use_colour && state->n_matches == 1)
+            Rprintf("%s\n", state->match_start);
+        else
+            Rprintf("  match: %s\n", state->match_start);
+        
+        // Print the context, if it's a separate line (i.e. if we're not using colour)
+        if (!state->use_colour)
+        {
+            *state->context = '\0';
+            Rprintf("context: %s\n", state->context_start);
+        }
+        
+        // Print numbers if there is more than one match
+        if (state->n_matches > 1)
+        {
+            *state->number = '\0';
+            Rprintf(" number: %s\n", state->number_start);
+        }
+        
+        Rprintf("\n");
+        
+        // Keep count of lines done
+        state->lines_done++;
     }
-    *state->match = '\0';
-    
-    // Print out the match string, alone or with a label
-    if (state->use_colour && state->n_matches == 1)
-        Rprintf("%s\n", state->match_start);
-    else
-        Rprintf("  match: %s\n", state->match_start);
-    
-    // Print the context, if it's a separate line (i.e. if we're not using colour)
-    if (!state->use_colour)
-    {
-        *state->context = '\0';
-        Rprintf("context: %s\n", state->context_start);
-    }
-    
-    // Print numbers if there is more than one match
-    if (state->n_matches > 1)
-    {
-        *state->number = '\0';
-        Rprintf(" number: %s\n", state->number_start);
-    }
-    
-    Rprintf("\n");
     
     // Reset
     state->match = state->match_start;
     state->context = state->context_start;
     state->number = state->number_start;
     state->loc = 0;
+    state->pending = FALSE;
     
     // Turn colour back on if we were mid-match
     if (state->use_colour && state->in_match)
@@ -153,14 +183,13 @@ static void ore_print_line (printstate_t *state)
         memcpy(state->match, "\x1b[36m", 5);
         state->match += 5;
     }
-    
-    // Keep count of lines done
-    state->lines_done++;
 }
 
 // Add a byte to the match (or context), updating other lines appropriately
 static void ore_do_push_byte (printstate_t *state, const char byte, const int width)
 {
+    state->pending = TRUE;
+    
     if (state->in_match || state->use_colour)
     {
         *(state->match++) = byte;
@@ -208,6 +237,10 @@ static void ore_do_push_byte (printstate_t *state, const char byte, const int wi
 // Switch from inside to outside match state, or vice versa
 static void ore_switch_state (printstate_t *state, Rboolean match)
 {
+    // Colour escape codes take space, so many empty matches in a row could otherwise fill the buffer
+    if (!ore_have_space(state, 0))
+        ore_print_line(state);
+    
     if (match && !state->in_match)
     {
         // Append the colour escape code, if appropriate
@@ -272,6 +305,12 @@ static UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncod
     {
         int char_len = ONIGENC_MBC_ENC_LEN(encoding, ptr, ptr+encoding->max_enc_len);
         int width;
+        
+        // Start a new line if the buffers are full, which can happen before the line's width is used up if there are zero-width characters
+        // The extra two bytes allow for tabs and newlines, which are printed as escapes
+        if (!ore_have_space(state, char_len + 2))
+            ore_print_line(state);
+        
         wchar_t wc;
         mbtowc(&wc, (const char *) ptr, char_len);
         width = mk_wcwidth(wc);

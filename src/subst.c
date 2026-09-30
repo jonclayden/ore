@@ -19,6 +19,13 @@ typedef struct {
     int   * group_numbers;
 } backref_info_t;
 
+// Retrieve the text of a match or group, which is stored as NULL if the group did not take part in the match or matched an empty string
+static const char * ore_group_text (const rawmatch_t *match, const int match_index, const int group)
+{
+    const char *text = match->matches[match_index * match->n_regions + group];
+    return (text == NULL) ? "" : text;
+}
+
 // Replace substrings at the specified (byte) offsets with the literal replacements given
 static char * ore_substitute (const char *text, const int n_matches, const int *offsets, const int *lengths, const char **replacements)
 {
@@ -253,14 +260,13 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                     {
                         const char **backref_replacements = (const char **) R_alloc(backref_info[jj]->n, sizeof(char *));
                         for (int k=0; k<backref_info[jj]->n; k++)
-                            backref_replacements[k] = raw_match->matches[j*raw_match->n_regions + backref_info[jj]->group_numbers[k]];
+                            backref_replacements[k] = ore_group_text(raw_match, j, backref_info[jj]->group_numbers[k]);
                         replacements[j] = ore_substitute(replacement_template, backref_info[jj]->n, backref_info[jj]->offsets, backref_info[jj]->lengths, backref_replacements);
                     }
                     else
                     {
-                        // If not, the replacements are just the literal replacement string, so we reuse its pointer
-                        for (int j=0; j<raw_match->n_matches; j++)
-                            replacements[j] = replacement_template;
+                        // If not, the replacement is just the literal replacement string, so we reuse its pointer
+                        replacements[j] = replacement_template;
                     }
                 }
             }
@@ -435,7 +441,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                         {
                             const char **backref_replacements = (const char **) R_alloc(backref_info[j]->n, sizeof(char *));
                             for (int k=0; k<backref_info[j]->n; k++)
-                                backref_replacements[k] = raw_match->matches[l*raw_match->n_regions + backref_info[j]->group_numbers[k]];
+                                backref_replacements[k] = ore_group_text(raw_match, l, backref_info[j]->group_numbers[k]);
                             replacements[j][l] = ore_substitute(replacement_template, backref_info[j]->n, backref_info[j]->offsets, backref_info[j]->lengths, backref_replacements);
                         }
                         else
@@ -580,7 +586,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
                 {
                     const char **backref_replacements = (const char **) R_alloc(backref_info->n, sizeof(char *));
                     for (int k=0; k<backref_info->n; k++)
-                        backref_replacements[k] = raw_match->matches[backref_info->group_numbers[k]];
+                        backref_replacements[k] = ore_group_text(raw_match, 0, backref_info->group_numbers[k]);
                     result = ore_substitute(CHAR(mapping), backref_info->n, backref_info->offsets, backref_info->lengths, backref_replacements);
                 }
                 

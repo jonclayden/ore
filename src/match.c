@@ -100,7 +100,8 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
         return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
         
         // If the result is zero-length, and there was already a zero-length match in the same place, disallow it and try again
-        if (region->end[0] == region->beg[0] && zerolen_offset == region->beg[0])
+        // NB: After a failed search the region's offsets are ONIG_REGION_NOTPOS, which must not be mistaken for a zero-length match
+        if (return_value >= 0 && region->end[0] == region->beg[0] && zerolen_offset == region->beg[0])
         {
             // Temporarily modify the regex options, because using the final argument to onig_search() doesn't override them
             regex->options = options | ONIG_OPTION_FIND_NOT_EMPTY;

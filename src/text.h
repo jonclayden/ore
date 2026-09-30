@@ -16,6 +16,7 @@ typedef struct {
     char            name[ORE_ENCODING_NAME_MAX_LEN];
     OnigEncoding    onig_enc;
     cetype_t        r_enc;
+    Rboolean        convert;
 } encoding_t;
 
 typedef struct {

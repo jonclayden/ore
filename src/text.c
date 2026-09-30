@@ -64,94 +64,108 @@ char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len,
     }
 }
 
+// Known encoding names, in a normalised form (upper case, without separators), with their Oniguruma equivalents
+typedef struct {
+    const char    * name;
+    OnigEncoding    onig_enc;
+} encoding_alias_t;
+
+static const encoding_alias_t encoding_aliases[] = {
+    { "ASCII",          ONIG_ENCODING_ASCII },
+    { "USASCII",        ONIG_ENCODING_ASCII },
+    { "UTF8",           ONIG_ENCODING_UTF8 },
+    { "ISO88591",       ONIG_ENCODING_ISO_8859_1 },
+    { "LATIN1",         ONIG_ENCODING_ISO_8859_1 },
+    { "ISO88592",       ONIG_ENCODING_ISO_8859_2 },
+    { "LATIN2",         ONIG_ENCODING_ISO_8859_2 },
+    { "ISO88593",       ONIG_ENCODING_ISO_8859_3 },
+    { "LATIN3",         ONIG_ENCODING_ISO_8859_3 },
+    { "ISO88594",       ONIG_ENCODING_ISO_8859_4 },
+    { "LATIN4",         ONIG_ENCODING_ISO_8859_4 },
+    { "ISO88595",       ONIG_ENCODING_ISO_8859_5 },
+    { "ISO88596",       ONIG_ENCODING_ISO_8859_6 },
+    { "ISO88597",       ONIG_ENCODING_ISO_8859_7 },
+    { "ISO88598",       ONIG_ENCODING_ISO_8859_8 },
+    { "ISO88599",       ONIG_ENCODING_ISO_8859_9 },
+    { "LATIN5",         ONIG_ENCODING_ISO_8859_9 },
+    { "ISO885910",      ONIG_ENCODING_ISO_8859_10 },
+    { "LATIN6",         ONIG_ENCODING_ISO_8859_10 },
+    { "ISO885911",      ONIG_ENCODING_ISO_8859_11 },
+    { "ISO885913",      ONIG_ENCODING_ISO_8859_13 },
+    { "LATIN7",         ONIG_ENCODING_ISO_8859_13 },
+    { "ISO885914",      ONIG_ENCODING_ISO_8859_14 },
+    { "LATIN8",         ONIG_ENCODING_ISO_8859_14 },
+    { "ISO885915",      ONIG_ENCODING_ISO_8859_15 },
+    { "LATIN9",         ONIG_ENCODING_ISO_8859_15 },
+    { "ISO885916",      ONIG_ENCODING_ISO_8859_16 },
+    { "LATIN10",        ONIG_ENCODING_ISO_8859_16 },
+    { "UTF16BE",        ONIG_ENCODING_UTF16_BE },
+    { "UTF16LE",        ONIG_ENCODING_UTF16_LE },
+    { "UTF32BE",        ONIG_ENCODING_UTF32_BE },
+    { "UTF32LE",        ONIG_ENCODING_UTF32_LE },
+    { "BIG5",           ONIG_ENCODING_BIG5 },
+    { "BIGFIVE",        ONIG_ENCODING_BIG5 },
+    { "CP932",          ONIG_ENCODING_CP932 },
+    { "WINDOWS31J",     ONIG_ENCODING_CP932 },
+    { "CP1250",         ONIG_ENCODING_WINDOWS_1250 },
+    { "WINDOWS1250",    ONIG_ENCODING_WINDOWS_1250 },
+    { "CP1251",         ONIG_ENCODING_WINDOWS_1251 },
+    { "WINDOWS1251",    ONIG_ENCODING_WINDOWS_1251 },
+    { "CP1252",         ONIG_ENCODING_WINDOWS_1252 },
+    { "WINDOWS1252",    ONIG_ENCODING_WINDOWS_1252 },
+    { "CP1253",         ONIG_ENCODING_WINDOWS_1253 },
+    { "WINDOWS1253",    ONIG_ENCODING_WINDOWS_1253 },
+    { "CP1254",         ONIG_ENCODING_WINDOWS_1254 },
+    { "WINDOWS1254",    ONIG_ENCODING_WINDOWS_1254 },
+    { "CP1257",         ONIG_ENCODING_WINDOWS_1257 },
+    { "WINDOWS1257",    ONIG_ENCODING_WINDOWS_1257 },
+    { "EUCJP",          ONIG_ENCODING_EUC_JP },
+    { "EUCKR",          ONIG_ENCODING_EUC_KR },
+    { "EUCTW",          ONIG_ENCODING_EUC_TW },
+    { "GB18030",        ONIG_ENCODING_GB18030 },
+    { "KOI8R",          ONIG_ENCODING_KOI8_R },
+    { "KOI8U",          ONIG_ENCODING_KOI8_U },
+    { "SHIFTJIS",       ONIG_ENCODING_SJIS },
+    { "SJIS",           ONIG_ENCODING_SJIS },
+    { NULL,             NULL }
+};
+
 // Convert an encoding string to its Oniguruma equivalent
+// Names are matched in full, ignoring case and the separators '-', '_' and ' ', so "ISO-8859-15" and "iso8859_15" are equivalent
 static OnigEncoding ore_name_to_onig_enc (const char *enc)
 {
-    if (ore_strnicmp(enc, "native.enc", 10) == 0)
+    if (ore_strnicmp(enc, "native.enc", 11) == 0)
     {
         SEXP native_encoding = GetOption1(install("ore.encoding"));
-        if (!isString(native_encoding))
+        if (!isString(native_encoding) || ore_strnicmp(CHAR(STRING_ELT(native_encoding,0)), "native.enc", 11) == 0)
             return ONIG_ENCODING_ASCII;
         else
             return ore_name_to_onig_enc(CHAR(STRING_ELT(native_encoding, 0)));
     }
-    else if (ore_strnicmp(enc,"ASCII",5) == 0 || ore_strnicmp(enc,"US-ASCII",8) == 0)
-        return ONIG_ENCODING_ASCII;
-    else if (ore_strnicmp(enc,"UTF-8",5) == 0 || ore_strnicmp(enc,"UTF8",4) == 0)
-        return ONIG_ENCODING_UTF8;
-    else if (ore_strnicmp(enc,"ISO_8859-1",10) == 0 || ore_strnicmp(enc,"ISO-8859-1",10) == 0 || ore_strnicmp(enc,"ISO8859-1",9) == 0 || ore_strnicmp(enc,"LATIN1",6) == 0)
-        return ONIG_ENCODING_ISO_8859_1;
-    else if (ore_strnicmp(enc,"ISO_8859-2",10) == 0 || ore_strnicmp(enc,"ISO-8859-2",10) == 0 || ore_strnicmp(enc,"ISO8859-2",9) == 0 || ore_strnicmp(enc,"LATIN2",6) == 0)
-        return ONIG_ENCODING_ISO_8859_2;
-    else if (ore_strnicmp(enc,"ISO_8859-3",10) == 0 || ore_strnicmp(enc,"ISO-8859-3",10) == 0 || ore_strnicmp(enc,"ISO8859-3",9) == 0 || ore_strnicmp(enc,"LATIN3",6) == 0)
-        return ONIG_ENCODING_ISO_8859_3;
-    else if (ore_strnicmp(enc,"ISO_8859-4",10) == 0 || ore_strnicmp(enc,"ISO-8859-4",10) == 0 || ore_strnicmp(enc,"ISO8859-4",9) == 0 || ore_strnicmp(enc,"LATIN4",6) == 0)
-        return ONIG_ENCODING_ISO_8859_4;
-    else if (ore_strnicmp(enc,"ISO_8859-5",10) == 0 || ore_strnicmp(enc,"ISO-8859-5",10) == 0 || ore_strnicmp(enc,"ISO8859-5",9) == 0 || ore_strnicmp(enc,"LATIN5",6) == 0)
-        return ONIG_ENCODING_ISO_8859_5;
-    else if (ore_strnicmp(enc,"ISO_8859-6",10) == 0 || ore_strnicmp(enc,"ISO-8859-6",10) == 0 || ore_strnicmp(enc,"ISO8859-6",9) == 0 || ore_strnicmp(enc,"LATIN6",6) == 0)
-        return ONIG_ENCODING_ISO_8859_6;
-    else if (ore_strnicmp(enc,"ISO_8859-7",10) == 0 || ore_strnicmp(enc,"ISO-8859-7",10) == 0 || ore_strnicmp(enc,"ISO8859-7",9) == 0 || ore_strnicmp(enc,"LATIN7",6) == 0)
-        return ONIG_ENCODING_ISO_8859_7;
-    else if (ore_strnicmp(enc,"ISO_8859-8",10) == 0 || ore_strnicmp(enc,"ISO-8859-8",10) == 0 || ore_strnicmp(enc,"ISO8859-8",9) == 0 || ore_strnicmp(enc,"LATIN8",6) == 0)
-        return ONIG_ENCODING_ISO_8859_8;
-    else if (ore_strnicmp(enc,"ISO_8859-9",10) == 0 || ore_strnicmp(enc,"ISO-8859-9",10) == 0 || ore_strnicmp(enc,"ISO8859-9",9) == 0 || ore_strnicmp(enc,"LATIN9",6) == 0)
-        return ONIG_ENCODING_ISO_8859_9;
-    else if (ore_strnicmp(enc,"ISO_8859-10",11) == 0 || ore_strnicmp(enc,"ISO-8859-10",11) == 0 || ore_strnicmp(enc,"ISO8859-10",10) == 0 || ore_strnicmp(enc,"LATIN10",7) == 0)
-        return ONIG_ENCODING_ISO_8859_10;
-    else if (ore_strnicmp(enc,"ISO_8859-11",11) == 0 || ore_strnicmp(enc,"ISO-8859-11",11) == 0 || ore_strnicmp(enc,"ISO8859-11",10) == 0 || ore_strnicmp(enc,"LATIN11",7) == 0)
-        return ONIG_ENCODING_ISO_8859_11;
-    else if (ore_strnicmp(enc,"ISO_8859-13",11) == 0 || ore_strnicmp(enc,"ISO-8859-13",11) == 0 || ore_strnicmp(enc,"ISO8859-13",10) == 0 || ore_strnicmp(enc,"LATIN13",7) == 0)
-        return ONIG_ENCODING_ISO_8859_13;
-    else if (ore_strnicmp(enc,"ISO_8859-14",11) == 0 || ore_strnicmp(enc,"ISO-8859-14",11) == 0 || ore_strnicmp(enc,"ISO8859-14",10) == 0 || ore_strnicmp(enc,"LATIN14",7) == 0)
-        return ONIG_ENCODING_ISO_8859_14;
-    else if (ore_strnicmp(enc,"ISO_8859-15",11) == 0 || ore_strnicmp(enc,"ISO-8859-15",11) == 0 || ore_strnicmp(enc,"ISO8859-15",10) == 0 || ore_strnicmp(enc,"LATIN15",7) == 0)
-        return ONIG_ENCODING_ISO_8859_15;
-    else if (ore_strnicmp(enc,"ISO_8859-16",11) == 0 || ore_strnicmp(enc,"ISO-8859-16",11) == 0 || ore_strnicmp(enc,"ISO8859-16",10) == 0 || ore_strnicmp(enc,"LATIN16",7) == 0)
-        return ONIG_ENCODING_ISO_8859_16;
-    else if (ore_strnicmp(enc,"UTF-16BE",8) == 0)
-        return ONIG_ENCODING_UTF16_BE;
-    else if (ore_strnicmp(enc,"UTF-16LE",8) == 0)
-        return ONIG_ENCODING_UTF16_LE;
-    else if (ore_strnicmp(enc,"UTF-32BE",8) == 0)
-        return ONIG_ENCODING_UTF32_BE;
-    else if (ore_strnicmp(enc,"UTF-32LE",8) == 0)
-        return ONIG_ENCODING_UTF32_LE;
-    else if (ore_strnicmp(enc,"BIG5",4) == 0 || ore_strnicmp(enc,"BIG-5",5) == 0 || ore_strnicmp(enc,"BIGFIVE",7) == 0 || ore_strnicmp(enc,"BIG-FIVE",8) == 0)
-        return ONIG_ENCODING_BIG5;
-    else if (ore_strnicmp(enc,"CP932",5) == 0)
-        return ONIG_ENCODING_CP932;
-    else if (ore_strnicmp(enc,"CP1250",6) == 0 || ore_strnicmp(enc,"WINDOWS-1250",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1250;
-    else if (ore_strnicmp(enc,"CP1251",6) == 0 || ore_strnicmp(enc,"WINDOWS-1251",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1251;
-    else if (ore_strnicmp(enc,"CP1252",6) == 0 || ore_strnicmp(enc,"WINDOWS-1252",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1252;
-    else if (ore_strnicmp(enc,"CP1253",6) == 0 || ore_strnicmp(enc,"WINDOWS-1253",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1253;
-    else if (ore_strnicmp(enc,"CP1254",6) == 0 || ore_strnicmp(enc,"WINDOWS-1254",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1254;
-    else if (ore_strnicmp(enc,"CP1257",6) == 0 || ore_strnicmp(enc,"WINDOWS-1257",12) == 0)
-        return ONIG_ENCODING_WINDOWS_1257;
-    else if (ore_strnicmp(enc,"EUC-JP",6) == 0 || ore_strnicmp(enc,"EUCJP",5) == 0)
-        return ONIG_ENCODING_EUC_JP;
-    else if (ore_strnicmp(enc,"EUC-KR",6) == 0 || ore_strnicmp(enc,"EUCKR",5) == 0)
-        return ONIG_ENCODING_EUC_KR;
-    else if (ore_strnicmp(enc,"EUC-TW",6) == 0 || ore_strnicmp(enc,"EUCTW",5) == 0)
-        return ONIG_ENCODING_EUC_TW;
-    else if (ore_strnicmp(enc,"GB18030",7) == 0)
-        return ONIG_ENCODING_GB18030;
-    else if (ore_strnicmp(enc,"KOI8-R",6) == 0)
-        return ONIG_ENCODING_KOI8_R;
-    else if (ore_strnicmp(enc,"KOI8-U",4) == 0)
-        return ONIG_ENCODING_KOI8_U;
-    else if (ore_strnicmp(enc,"SHIFT_JIS",9) == 0 || ore_strnicmp(enc,"SHIFT-JIS",9) == 0 || ore_strnicmp(enc,"SJIS",4) == 0)
-        return ONIG_ENCODING_SJIS;
-    else
+    
+    // Normalise the name; anything too long to fit cannot be a known encoding
+    char normalised[ORE_ENCODING_NAME_MAX_LEN];
+    size_t len = 0;
+    const char *ptr;
+    for (ptr = enc; *ptr != '\0' && len < ORE_ENCODING_NAME_MAX_LEN - 1; ptr++)
     {
-        warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
-        return ONIG_ENCODING_ASCII;
+        if (*ptr == '-' || *ptr == '_' || *ptr == ' ')
+            continue;
+        normalised[len++] = (*ptr >= 'a' && *ptr <= 'z') ? *ptr - 'a' + 'A' : *ptr;
     }
+    normalised[len] = '\0';
+    
+    if (*ptr == '\0')
+    {
+        for (const encoding_alias_t *alias = encoding_aliases; alias->name != NULL; alias++)
+        {
+            if (strcmp(normalised, alias->name) == 0)
+                return alias->onig_enc;
+        }
+    }
+    
+    warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
+    return ONIG_ENCODING_ASCII;
 }
 
 // Create a consistent encoding structure from an existing type, propagating as closely as possible
@@ -159,18 +173,26 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
 {
     // The fallback R encoding, where nothing else is marked
     cetype_t final_r_enc = CE_NATIVE;
+    Rboolean convert = FALSE;
     
     // If there's no Oniguruma encoding, work from a name, if available
-    if (name != NULL && strlen(name) > 0 && onig_enc == NULL)
+    const Rboolean have_name = (name != NULL && strlen(name) > 0);
+    if (have_name && onig_enc == NULL)
         onig_enc = ore_name_to_onig_enc(name);
     
     // If there's no R encoding, take it from the Oniguruma one
+    // R can only mark strings as UTF-8 or Latin-1 (or native), so text in any other named encoding is converted to UTF-8 when it is returned to R
     if (r_enc == NULL)
     {
         if (onig_enc == ONIG_ENCODING_UTF8)
             final_r_enc = CE_UTF8;
         else if (onig_enc == ONIG_ENCODING_ISO_8859_1)
             final_r_enc = CE_LATIN1;
+        else if (have_name && onig_enc != ONIG_ENCODING_ASCII && ore_strnicmp(name, "native.enc", 11) != 0)
+        {
+            final_r_enc = CE_UTF8;
+            convert = TRUE;
+        }
         else
             final_r_enc = CE_NATIVE;
     }
@@ -198,6 +220,7 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
         encoding->name[0] = '\0';
     encoding->onig_enc = onig_enc;
     encoding->r_enc = final_r_enc;
+    encoding->convert = convert;
     
     return encoding;
 }
@@ -209,37 +232,48 @@ Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second)
     return (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII);
 }
 
-// Obtain a handle for converting to an encoding R understands
+// Obtain a handle for converting text to UTF-8, if that is needed (otherwise NULL)
+// NB: The caller should read encoding->r_enc after calling this function, since it is changed if conversion turns out to be impossible
 void * ore_iconv_handle (encoding_t *encoding)
 {
-    void *iconv_handle = NULL;
+    if (encoding == NULL || !encoding->convert)
+        return NULL;
     
-    if (encoding != NULL && ore_strnicmp(encoding->name, "native.enc", 10) != 0)
+    void *iconv_handle = Riconv_open("UTF-8", encoding->name);
+    if (iconv_handle == (void *) -1)
     {
-        char target[ORE_ENCODING_NAME_MAX_LEN];
-        if (encoding->r_enc == CE_NATIVE)
-            target[0] = '\0';
-        else if (encoding->r_enc == CE_LATIN1)
-            strcpy(target, "latin1");
-        else
-            strcpy(target, "UTF-8");
-        
-        iconv_handle = Riconv_open(target, encoding->name);
+        // Fall back to returning the text as-is, and don't try again for this encoding object
+        warning("Text in encoding \"%s\" cannot be converted to UTF-8, and will be returned unmodified", encoding->name);
+        encoding->convert = FALSE;
+        encoding->r_enc = CE_NATIVE;
+        return NULL;
     }
     
     return iconv_handle;
 }
 
 // Wrapper around Riconv, to convert between encodings
+// Any bytes that are invalid in the source encoding are replaced with '?'
 const char * ore_iconv (void *iconv_handle, const char *old)
 {
     if (iconv_handle != NULL)
     {
         size_t old_size = strlen(old);
-        size_t new_size = old_size * 6;
+        // Each input byte produces at most one character, and a UTF-8 character is at most four bytes
+        size_t new_size = old_size * 4;
         char *buffer = R_alloc(new_size+1, 1);
         char *buffer_start = buffer;
-        Riconv(iconv_handle, &old, &old_size, &buffer, &new_size);
+        while (old_size > 0)
+        {
+            if (Riconv(iconv_handle, &old, &old_size, &buffer, &new_size) != (size_t) -1 || new_size == 0)
+                break;
+            
+            // Conversion stopped at an invalid or incomplete sequence, so substitute for one byte and carry on
+            *(buffer++) = '?';
+            new_size--;
+            old++;
+            old_size--;
+        }
         *buffer = '\0';
         return buffer_start;
     }
