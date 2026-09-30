@@ -3910,7 +3910,11 @@ fetch_token(OnigToken* tok, UChar** src, UChar* end, ScanEnv* env)
 
 	  if (c == 'R' || c == '0') {
 	    PINC;   /* skip 'R' / '0' */
-	    if (!PPEEK_IS(')')) return ONIGERR_INVALID_GROUP_NAME;
+	    if (!PPEEK_IS(')')) {
+	      r = ONIGERR_INVALID_GROUP_NAME;
+	      onig_scan_env_set_error_string(env, r, p - 1, p + 1);
+	      return r;
+	    }
 	    PINC;   /* skip ')' */
 	    name_end = name = p;
 	    gnum = 0;
@@ -5961,6 +5965,10 @@ node_extended_grapheme_cluster(Node** np, ScanEnv* env)
         if (ONIGENC_MBC_MINLEN(env->enc) > 1) { /* UTF-16/UTF-32 */
           BBuf *inverted_buf = NULL;
 
+          /* TODO: fix false warning */
+          const int dup_not_warned = env->warnings_flag | ~ONIG_SYN_WARN_CC_DUP;
+          env->warnings_flag |= ONIG_SYN_WARN_CC_DUP;
+
           /* Start with a positive buffer and invert at the end.
            * Otherwise, adding single-character ranges work the wrong way. */
           R_ERR(add_property_to_cc(cc, "Grapheme_Cluster_Break=Control", 0, env));
@@ -5968,6 +5976,8 @@ node_extended_grapheme_cluster(Node** np, ScanEnv* env)
           R_ERR(add_code_range(&(cc->mbuf), env, 0x000D, 0x000D)); /* LF */
           R_ERR(not_code_range_buf(env->enc, cc->mbuf, &inverted_buf, env));
           cc->mbuf = inverted_buf; /* TODO: check what to do with buffer before inversion */
+
+          env->warnings_flag &= dup_not_warned; /* TODO: fix false warning */
         }
         else {
           R_ERR(add_property_to_cc(cc, "Grapheme_Cluster_Break=Control", 1, env));
@@ -6111,10 +6121,13 @@ parse_exp(Node** np, OnigToken* tok, int term,
   int r, len, group = 0;
   Node* qn;
   Node** targetp;
+  unsigned int parse_depth;
 
   *np = NULL;
   if (tok->type == (enum TokenSyms )term)
     goto end_of_token;
+
+  parse_depth = env->parse_depth;
 
   switch (tok->type) {
   case TK_ALT:
@@ -6425,6 +6438,10 @@ parse_exp(Node** np, OnigToken* tok, int term,
     if (r == TK_OP_REPEAT || r == TK_INTERVAL) {
       if (is_invalid_quantifier_target(*targetp))
 	return ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID;
+
+      parse_depth++;
+      if (parse_depth > ParseDepthLimit)
+	return ONIGERR_PARSE_DEPTH_LIMIT_OVER;
 
       qn = node_new_quantifier(tok->u.repeat.lower, tok->u.repeat.upper,
 			       (r == TK_INTERVAL ? 1 : 0));

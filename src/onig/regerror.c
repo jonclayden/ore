@@ -173,8 +173,10 @@ onig_error_code_to_format(OnigPosition code)
     p = "multiplex definition name <%n> call"; break;
   case ONIGERR_NEVER_ENDING_RECURSION:
     p = "never ending recursion"; break;
+#ifdef USE_CAPTURE_HISTORY
   case ONIGERR_GROUP_NUMBER_OVER_FOR_CAPTURE_HISTORY:
     p = "group number is too big for capture history"; break;
+#endif
   case ONIGERR_INVALID_CHAR_PROPERTY_NAME:
     p = "invalid character property name {%n}"; break;
   case ONIGERR_TOO_MANY_CAPTURE_GROUPS:
@@ -368,7 +370,8 @@ onig_vsnprintf_with_pattern(UChar buf[], int bufsize, OnigEncoding enc,
 	*s++ = *p++;
       }
       else if (!ONIGENC_IS_CODE_PRINT(enc, *p) &&
-	       !ONIGENC_IS_CODE_SPACE(enc, *p)) {
+	       (!ONIGENC_IS_CODE_SPACE(enc, *p) ||
+                ONIGENC_IS_CODE_CNTRL(enc, *p))) {
 	sprint_byte_with_x((char* )bs, (unsigned int )(*p++));
 	len = onigenc_str_bytelen_null(ONIG_ENCODING_ASCII, bs);
         bp = bs;
