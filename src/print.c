@@ -10,7 +10,7 @@
 #include "text.h"
 #include "match.h"
 #include "print.h"
-#include "wcwidth.h"
+#include "width.h"
 
 // Space kept free at the end of each line buffer, for colour escape codes and the terminating nul
 #define ORE_PRINT_MARGIN    16
@@ -316,14 +316,14 @@ static int ore_char_width (printstate_t *state, const UChar *ptr, const int char
     if (state->unicode)
     {
         // For UTF-8 and Latin-1 text, the code point is the Unicode one
-        width = mk_wcwidth((wchar_t) ONIGENC_MBC_TO_CODE(state->onig_enc, ptr, ptr+char_len));
+        width = ore_code_width(ONIGENC_MBC_TO_CODE(state->onig_enc, ptr, ptr+char_len));
     }
     else
     {
         // Otherwise the text is in the native encoding, so the C library can interpret it
         wchar_t wc;
         if (mbtowc(&wc, (const char *) ptr, char_len) > 0)
-            width = mk_wcwidth(wc);
+            width = ore_code_width((OnigCodePoint) wc);
         else
             width = 1;
     }
