@@ -11,8 +11,6 @@
 #include "print.h"
 #include "wcwidth.h"
 
-extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
-
 typedef struct {
     Rboolean    use_colour;
     int         width;
@@ -341,7 +339,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         else
             precontext_len = offsets[i] - start;
         
-        ptr = onigenc_step(encoding->onig_enc, text, end, offsets[i] - precontext_len);
+        ptr = ore_step(encoding->onig_enc, text, end, offsets[i] - precontext_len);
         
         // Push precontext, switch to match mode, print matched text, and then switch back
         ptr = ore_push_chars(state, ptr, precontext_len, encoding->onig_enc);

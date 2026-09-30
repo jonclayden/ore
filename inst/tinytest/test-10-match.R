@@ -71,3 +71,16 @@ expect_equal(ore_search(ore("x*",encoding="UTF-8"), "ab", all=TRUE)$offsets, 1:3
 expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$offsets, 1:3)
 expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$byteOffsets, c(1L,3L,4L))
 expect_equal(ore_search(ore("x*|b",encoding="UTF-8"), "ébé", all=TRUE)$offsets, 1:4)
+
+# Starting points at or beyond the end of the text
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éab", start=4L)$offsets, 4L)
+expect_null(ore_search(ore("x*",encoding="UTF-8"), "éab", start=5L))
+expect_null(ore_search(ore("x*",encoding="UTF-8"), "éab", start=10L, all=TRUE))
+expect_equal(ore_search(ore("x*",encoding="ASCII"), "abc", start=4L)$offsets, 4L)
+expect_null(ore_search(ore("x*",encoding="ASCII"), "abc", start=5L))
+
+# Encoding names are matched case-insensitively
+expect_equal(attr(ore("a",encoding="utf-8"),"encoding"), "utf-8")
+expect_true("é" %~% ore("\\w",encoding="utf8"))
+expect_true(iconv("é","UTF-8","latin1") %~% ore("\\w",encoding="Latin1"))
+expect_false("é" %~% ore("\\w",encoding="ascii"))

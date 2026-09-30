@@ -8,9 +8,6 @@
 #include "text.h"
 #include "match.h"
 
-// Not strictly part of the API, but needed for implementing the "start" argument
-extern UChar * onigenc_step (OnigEncoding enc, const UChar *p, const UChar *end, int n);
-
 // Block size for match data; memory is allocated in chunks this big
 #define MATCH_BLOCK_SIZE    128
 
@@ -61,9 +58,6 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
     int return_value, length;
     rawmatch_t *result = NULL;
     
-    // Create region object to capture match data
-    OnigRegion *region = onig_region_new();
-    
     // The number of matches found so far
     int match_number = 0;
     
@@ -75,13 +69,20 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
         end_ptr = (UChar *) text + strlen(text);
     
     // If we're not starting at the beginning, step forward the required number of characters
+    // A starting point at the very end of the text is valid (there may be an empty match there), but beyond it there can be no match
     UChar *start_ptr;
     if (start == 0)
         start_ptr = (UChar *) text;
     else if (regex->enc->max_enc_len == 1)
-        start_ptr = (UChar *) text + start;
+        start_ptr = (start <= (size_t) (end_ptr - (UChar *) text)) ? (UChar *) text + start : NULL;
     else
-        start_ptr = onigenc_step(regex->enc, (UChar *) text, end_ptr, (int) start);
+        start_ptr = ore_step(regex->enc, (UChar *) text, end_ptr, start);
+    
+    if (start_ptr == NULL)
+        return NULL;
+    
+    // Create region object to capture match data
+    OnigRegion *region = onig_region_new();
     
     // Keep track of the location of the last zero-length match (if any) - to avoid infinite loops multiple zero-length matches must not start in the same place
     OnigPosition zerolen_offset = -1;

@@ -16,12 +16,33 @@
 // Initial buffer size when reading from a file; scales exponentially
 #define FILE_BUFFER_SIZE    1024
 
-// Not strictly part of the API, but useful for case-insensitive string comparison
-extern int onigenc_with_ascii_strnicmp (OnigEncoding enc, const UChar *p, const UChar *end, const UChar *sascii, int n);
-
+// Case-insensitive comparison of (at most) the first "num" characters of two strings, considering only ASCII letters
+// NB: tolower() is not used because its behaviour depends on the locale
 int ore_strnicmp (const char *str1, const char *str2, size_t num)
 {
-    return onigenc_with_ascii_strnicmp(ONIG_ENCODING_ASCII, (const UChar *) str1, (const UChar *) str1 + num, (const UChar *) str2, num);
+    for (size_t i=0; i<num; i++)
+    {
+        const int c1 = (str1[i] >= 'A' && str1[i] <= 'Z') ? str1[i] - 'A' + 'a' : str1[i];
+        const int c2 = (str2[i] >= 'A' && str2[i] <= 'Z') ? str2[i] - 'A' + 'a' : str2[i];
+        if (c1 != c2)
+            return c1 - c2;
+        else if (c1 == '\0')
+            break;
+    }
+    
+    return 0;
+}
+
+// Step forward "n" characters from "p", returning NULL if the text ends first
+UChar * ore_step (OnigEncoding enc, const UChar *p, const UChar *end, size_t n)
+{
+    while (n > 0 && p < end)
+    {
+        p += ONIGENC_MBC_ENC_LEN(enc, p, end);
+        n--;
+    }
+    
+    return (n == 0) ? (UChar *) p : NULL;
 }
 
 // Extend a vector to hold more values

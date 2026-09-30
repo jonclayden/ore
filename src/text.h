@@ -35,6 +35,8 @@ typedef struct {
 
 int ore_strnicmp (const char *str1, const char *str2, size_t num);
 
+UChar * ore_step (OnigEncoding enc, const UChar *p, const UChar *end, size_t n);
+
 char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len, const int element_size);
 
 encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_enc);
