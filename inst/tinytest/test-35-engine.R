@@ -49,3 +49,18 @@ if (at_home())
 # Nested repeats whose expanded size would overflow must not be unrolled
 expect_null(ore_search("(?:.{90000,}){90000}", strrep("x",10)))
 expect_null(ore_search("(?:.{46341,}){46341}", strrep("x",10)))
+
+# Extended grapheme clusters, which previously crashed in UTF-8 because of outdated Unicode tables
+clusters <- function (text) ore_search(ore("\\X",encoding="UTF-8"), enc2utf8(text), all=TRUE)$matches
+expect_equal(clusters("éa"), c("é","a"))
+expect_equal(clusters("a\r\nb"), c("a","\r\n","b"))
+expect_equal(clusters("각x"), c("각","x"))
+expect_equal(clusters("\U0001F1EC\U0001F1E7\U0001F1EF\U0001F1F5"), c("\U0001F1EC\U0001F1E7","\U0001F1EF\U0001F1F5"))
+expect_equal(clusters("\U0001F468‍\U0001F469‍\U0001F467!"), c("\U0001F468‍\U0001F469‍\U0001F467","!"))
+expect_equal(clusters("क्षि"), "क्षि")
+expect_equal(clusters("க்ஷ"), c("க்","ஷ"))
+expect_equal(ore_search(ore("\\X",encoding="latin1"), "ab", all=TRUE)$matches, c("a","b"))
+
+# Properties from recent Unicode versions
+expect_true("\U00010D50" %~% "\\p{Garay}")
+expect_true("ა" %~% ore("Ა", options="i"))
