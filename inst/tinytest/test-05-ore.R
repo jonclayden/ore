@@ -26,3 +26,13 @@ expect_false("\xa8" %~% ore("\\w", encoding="ISO-8859-1"))
 expect_true("\xa8" %~% ore("\\w", encoding="LATIN9"))
 expect_true("\xfd" %~% ore("\\w", encoding="LATIN5"))
 expect_warning(ore("a", encoding="UTF-8-ish"), "not supported")
+
+# Regexes that have been saved and reloaded keep their settings
+path <- tempfile()
+saveRDS(list(ore("abc",options="i"), ore("a.c",syntax="fixed"), ore("(?<first>a)b(?<second>c)")), path)
+regexes <- readRDS(path)
+unlink(path)
+expect_true("ABC" %~% regexes[[1]])
+expect_true("a.c" %~% regexes[[2]])
+expect_false("abc" %~% regexes[[2]])
+expect_equal(groups(ore_search(regexes[[3]], "abc")), groups(ore_search(ore("(?<first>a)b(?<second>c)"), "abc")))

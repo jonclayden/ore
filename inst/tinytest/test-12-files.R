@@ -50,3 +50,20 @@ writeLines("abc", path)
 expect_warning(result <- ore_search("b", ore_file(path,encoding="nonesuch")), "not supported")
 expect_equal(matches(result), "b")
 unlink(path)
+
+# Files in UTF-16 or UTF-32, which are not ASCII-compatible
+if (all(c("UTF-16LE","UTF-32BE") %in% iconvlist()))
+{
+    for (encoding in c("UTF-16LE","UTF-32BE"))
+    {
+        path <- tempfile()
+        writeBin(iconv("abc d\u00e9f", "UTF-8", encoding, toRaw=TRUE)[[1]], path)
+        match <- ore_search(ore("(?<word>d\\w+)",encoding=encoding), ore_file(path,encoding=encoding))
+        expect_equal(matches(match), "d\u00e9f", info=encoding)
+        expect_equal(match$offsets, 5L, info=encoding)
+        expect_equal(colnames(groups(match)), "word", info=encoding)
+        expect_equal(matches(ore_search("\\w+", ore_file(path,encoding=encoding), all=TRUE)), c("abc","d\u00e9f"), info=encoding)
+        unlink(path)
+    }
+}
+expect_warning(ore_search(ore("a",encoding="UTF-16LE"), "abc"), "does not match")

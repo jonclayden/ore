@@ -130,17 +130,21 @@ static const encoding_alias_t encoding_aliases[] = {
     { NULL,             NULL }
 };
 
-// Convert an encoding string to its Oniguruma equivalent
+// Look up an encoding name, returning NULL if it isn't known
 // Names are matched in full, ignoring case and the separators '-', '_' and ' ', so "ISO-8859-15" and "iso8859_15" are equivalent
-static OnigEncoding ore_name_to_onig_enc (const char *enc)
+static OnigEncoding ore_lookup_onig_enc (const char *enc)
 {
     if (ore_strnicmp(enc, "native.enc", 11) == 0)
     {
+        // The "ore.encoding" option gives the native encoding; if it is unset, or itself refers to the native encoding, we fall back to ASCII
         SEXP native_encoding = GetOption1(install("ore.encoding"));
-        if (!isString(native_encoding) || ore_strnicmp(CHAR(STRING_ELT(native_encoding,0)), "native.enc", 11) == 0)
+        if (!isString(native_encoding) || length(native_encoding) < 1 || ore_strnicmp(CHAR(STRING_ELT(native_encoding,0)), "native.enc", 11) == 0)
             return ONIG_ENCODING_ASCII;
         else
-            return ore_name_to_onig_enc(CHAR(STRING_ELT(native_encoding, 0)));
+        {
+            OnigEncoding onig_enc = ore_lookup_onig_enc(CHAR(STRING_ELT(native_encoding, 0)));
+            return (onig_enc == NULL) ? ONIG_ENCODING_ASCII : onig_enc;
+        }
     }
     
     // Normalise the name; anything too long to fit cannot be a known encoding
@@ -164,8 +168,32 @@ static OnigEncoding ore_name_to_onig_enc (const char *enc)
         }
     }
     
-    warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
-    return ONIG_ENCODING_ASCII;
+    return NULL;
+}
+
+// Convert an encoding string to its Oniguruma equivalent, falling back to ASCII (with a warning) if it isn't known
+static OnigEncoding ore_name_to_onig_enc (const char *enc)
+{
+    OnigEncoding onig_enc = ore_lookup_onig_enc(enc);
+    if (onig_enc == NULL)
+    {
+        warning("Encoding \"%s\" is not supported by Oniguruma - using ASCII", enc);
+        onig_enc = ONIG_ENCODING_ASCII;
+    }
+    
+    return onig_enc;
+}
+
+// Check whether a string consists entirely of ASCII characters
+static Rboolean ore_is_ascii (const char *string)
+{
+    for (const unsigned char *ptr = (const unsigned char *) string; *ptr != '\0'; ptr++)
+    {
+        if (*ptr > 0x7f)
+            return FALSE;
+    }
+    
+    return TRUE;
 }
 
 // Create a consistent encoding structure from an existing type, propagating as closely as possible
@@ -198,14 +226,19 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
     }
     
     // Propagate back from the R encoding if necessary, but R asserts very few encodings
-    if (onig_enc == NULL && r_enc != NULL)
+    // Strings in the native encoding are taken to be in the encoding given by the "ore.encoding" option
+    if (r_enc != NULL)
     {
         final_r_enc = *r_enc;
-        switch (*r_enc)
+        if (onig_enc == NULL)
         {
-            case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;                  break;
-            case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;            break;
-            default:        onig_enc = ONIG_ENCODING_ASCII;                 break;
+            switch (*r_enc)
+            {
+                case CE_UTF8:   onig_enc = ONIG_ENCODING_UTF8;                  break;
+                case CE_LATIN1: onig_enc = ONIG_ENCODING_ISO_8859_1;            break;
+                case CE_NATIVE: onig_enc = ore_lookup_onig_enc("native.enc");   break;
+                default:        onig_enc = ONIG_ENCODING_ASCII;                 break;
+            }
         }
     }
     
@@ -221,15 +254,41 @@ encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_
     encoding->onig_enc = onig_enc;
     encoding->r_enc = final_r_enc;
     encoding->convert = convert;
+    encoding->assumed = FALSE;
     
     return encoding;
 }
 
-// Check whether the two specified encodings are consistent with one another
-Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second)
+// Create an encoding structure for an R string (CHARSXP), based on its declared encoding and content
+// Strings containing only ASCII characters are treated as ASCII, since they are valid in any ASCII-compatible encoding
+// Other strings without a declared encoding are assumed to be in the native encoding (given by the "ore.encoding" option), but may be in another encoding if the regex says so
+encoding_t * ore_string_encoding (SEXP string)
 {
-    // ASCII is used as an "unknown" or default encoding, so it is considered consistent with everything
-    return (first == second || first == ONIG_ENCODING_ASCII || second == ONIG_ENCODING_ASCII);
+    cetype_t r_enc = getCharCE(string);
+    if (r_enc == CE_BYTES || ore_is_ascii(CHAR(string)))
+        return ore_encoding(NULL, ONIG_ENCODING_ASCII, &r_enc);
+    else
+    {
+        encoding_t *encoding = ore_encoding(NULL, NULL, &r_enc);
+        encoding->assumed = (r_enc == CE_NATIVE);
+        return encoding;
+    }
+}
+
+// Check whether a text encoding is consistent with a regex encoding
+Rboolean ore_consistent_encodings (encoding_t *text_encoding, OnigEncoding regex_enc)
+{
+    const OnigEncoding text_enc = text_encoding->onig_enc;
+    
+    // ASCII is used as an "unknown" or default encoding, and native strings may be in any encoding, so they are considered consistent with any regex encoding that is ASCII-compatible (i.e. not UTF-16 or UTF-32)
+    if (text_enc == regex_enc)
+        return TRUE;
+    else if (text_enc == ONIG_ENCODING_ASCII || text_encoding->assumed)
+        return (ONIGENC_MBC_MINLEN(regex_enc) == 1);
+    else if (regex_enc == ONIG_ENCODING_ASCII)
+        return (ONIGENC_MBC_MINLEN(text_enc) == 1);
+    else
+        return FALSE;
 }
 
 // Obtain a handle for converting text to UTF-8, if that is needed (otherwise NULL)
@@ -253,12 +312,13 @@ void * ore_iconv_handle (encoding_t *encoding)
 }
 
 // Wrapper around Riconv, to convert between encodings
+// The input has the specified length (which may include nul bytes, as in UTF-16), and the result is nul-terminated with its length stored in "new_len"
 // Any bytes that are invalid in the source encoding are replaced with '?'
-const char * ore_iconv (void *iconv_handle, const char *old)
+const char * ore_iconv (void *iconv_handle, const char *old, const size_t old_len, size_t *new_len)
 {
     if (iconv_handle != NULL)
     {
-        size_t old_size = strlen(old);
+        size_t old_size = old_len;
         // Each input byte produces at most one character, and a UTF-8 character is at most four bytes
         size_t new_size = old_size * 4;
         char *buffer = R_alloc(new_size+1, 1);
@@ -275,10 +335,14 @@ const char * ore_iconv (void *iconv_handle, const char *old)
             old_size--;
         }
         *buffer = '\0';
+        *new_len = (size_t) (buffer - buffer_start);
         return buffer_start;
     }
     else
+    {
+        *new_len = old_len;
         return old;
+    }
 }
 
 // Close the specified handle
@@ -336,17 +400,22 @@ text_t * ore_text (SEXP text_)
         text->source = VECTOR_SOURCE;
         text->handle = NULL;
         
-        cetype_t encoding = CE_NATIVE;
+        // The overall encoding (used for compiling regexes given as strings) is that of the first element that isn't pure ASCII, if any
+        text->encoding = NULL;
         for (size_t i=0; i<text->length; i++)
         {
-            const cetype_t current_encoding = getCharCE(STRING_ELT(text_, i));
-            if (current_encoding == CE_UTF8 || current_encoding == CE_LATIN1)
+            SEXP element = STRING_ELT(text_, i);
+            if (element != NA_STRING && !ore_is_ascii(CHAR(element)))
             {
-                encoding = current_encoding;
+                text->encoding = ore_string_encoding(element);
                 break;
             }
         }
-        text->encoding = ore_encoding(NULL, NULL, &encoding);
+        if (text->encoding == NULL)
+        {
+            cetype_t encoding = CE_NATIVE;
+            text->encoding = ore_encoding(NULL, ONIG_ENCODING_ASCII, &encoding);
+        }
     }
     else
         error("The specified object cannot be used as a text source");
@@ -370,10 +439,9 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
         if (str_element == NA_STRING)
             return NULL;
         const char *string = CHAR(str_element);
-        cetype_t encoding = getCharCE(STRING_ELT(text->object, index));
         element->start = string;
         element->end = string + strlen(string);
-        element->encoding = ore_encoding(NULL, NULL, &encoding);
+        element->encoding = ore_string_encoding(str_element);
     }
     else
     {
@@ -406,10 +474,9 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
             const Rboolean done = bytes_read < buffer_size;
             if (done)
             {
-                // Append a nul so that string functions will not continue beyond EOF
+                // Append a nul, as a safeguard against string functions continuing beyond EOF, but don't include it in the text
                 // There will always be space since the number of bytes read is strictly less than the buffer size
                 *ptr = '\0';
-                ptr++;
                 break;
             }
             else if (incremental)
@@ -437,18 +504,38 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
 // Convert a text element to a CHARSXP (single string)
 SEXP ore_text_element_to_rchar (text_element_t *element)
 {
-    return ore_string_to_rchar(element->start, element->encoding);
+    return ore_bytes_to_rchar(element->start, (size_t) (element->end - element->start), element->encoding);
 }
 
 // Convert a C string to a CHARSXP, changing encoding if necessary
 SEXP ore_string_to_rchar (const char *string, encoding_t *encoding)
 {
+    return ore_bytes_to_rchar(string, strlen(string), encoding);
+}
+
+// Convert a sequence of bytes of known length to a CHARSXP, changing encoding if necessary
+SEXP ore_bytes_to_rchar (const char *bytes, const size_t length, encoding_t *encoding)
+{
     void *iconv_handle = ore_iconv_handle(encoding);
-    SEXP result = PROTECT(mkCharCE(ore_iconv(iconv_handle, string), encoding->r_enc));
+    SEXP result = PROTECT(ore_convert_bytes(iconv_handle, bytes, length, encoding->r_enc));
     ore_iconv_done(iconv_handle);
     
     UNPROTECT(1);
     return result;
+}
+
+// Convert a sequence of bytes of known length to a CHARSXP, using an existing iconv handle (which may be NULL if no conversion is needed)
+// NB: R strings cannot contain nul bytes, so the result is truncated at the first one, if any (after any conversion)
+SEXP ore_convert_bytes (void *iconv_handle, const char *bytes, const size_t length, const cetype_t r_enc)
+{
+    size_t new_length;
+    const char *converted = ore_iconv(iconv_handle, bytes, length, &new_length);
+    
+    const char *nul = memchr(converted, '\0', new_length);
+    if (nul != NULL)
+        new_length = (size_t) (nul - converted);
+    
+    return mkCharLenCE(converted, (int) new_length, r_enc);
 }
 
 // Tidy up a text object, where needed

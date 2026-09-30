@@ -196,7 +196,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             SET_STRING_ELT(results, i, NA_STRING);
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_STRING_ELT(results, i, ore_text_element_to_rchar(text_element));
@@ -218,13 +218,13 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             {
                 // Create an R character vector containing the matches
                 SEXP matches = PROTECT(NEW_CHARACTER(raw_match->n_matches));
-                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, text_element->encoding);
+                ore_char_vector(matches, (const char **) raw_match->matches, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, text_element->encoding);
                 
                 // If there are groups, extract them and put them in an attribute
                 if (raw_match->n_regions > 1)
                 {
                     SEXP group_matches = PROTECT(allocMatrix(STRSXP, raw_match->n_matches, raw_match->n_regions-1));
-                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, -1, group_names, text_element->encoding);
+                    ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, -1, group_names, text_element->encoding);
                     setAttrib(matches, install("groups"), group_matches);
                     UNPROTECT(1);
                 }
@@ -366,7 +366,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
             SET_ELEMENT(results, i, ScalarString(NA_STRING));
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
@@ -390,12 +390,12 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                 for (int l=0; l<raw_match->n_matches; l++)
                 {
                     SEXP match = PROTECT(NEW_CHARACTER(1));
-                    ore_char_vector(match, (const char **) &raw_match->matches[l], raw_match->n_regions, 1, text_element->encoding);
+                    ore_char_vector(match, (const char **) &raw_match->matches[l*raw_match->n_regions], &raw_match->byte_lengths[l*raw_match->n_regions], raw_match->n_regions, 1, text_element->encoding);
                     
                     if (raw_match->n_regions > 1)
                     {
                         SEXP group_matches = PROTECT(allocMatrix(STRSXP, 1, raw_match->n_regions-1));
-                        ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->n_regions, raw_match->n_matches, l, group_names, text_element->encoding);
+                        ore_char_matrix(group_matches, (const char **) raw_match->matches, raw_match->byte_lengths, raw_match->n_regions, raw_match->n_matches, l, group_names, text_element->encoding);
                         setAttrib(match, install("groups"), group_matches);
                         UNPROTECT(1);
                     }
@@ -508,8 +508,14 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
     encoding_t *encoding;
     if (ore_strnicmp(encoding_name, "auto", 4) == 0)
     {
-        cetype_t r_enc = getCharCE(STRING_ELT(patterns, 0));
-        encoding = ore_encoding(NULL, NULL, &r_enc);
+        // Take the encoding from the first pattern, if there are any patterns (otherwise nothing will be compiled anyway)
+        if (!isNull(patterns))
+            encoding = ore_string_encoding(STRING_ELT(patterns, 0));
+        else
+        {
+            cetype_t r_enc = CE_NATIVE;
+            encoding = ore_encoding(NULL, ONIG_ENCODING_ASCII, &r_enc);
+        }
     }
     else
         encoding = ore_encoding(encoding_name, NULL, NULL);
@@ -530,7 +536,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
         SEXP mapping = STRING_ELT(mappings_, j);
         if (!isNull(patterns) && *CHAR(STRING_ELT(patterns, j)) != '\0')
         {
-            regex = ore_compile(CHAR(STRING_ELT(patterns,j)), options, encoding, "ruby");
+            regex = ore_compile(CHAR(STRING_ELT(patterns,j)), getCharCE(STRING_ELT(patterns,j)), options, encoding, "ruby");
             
             const int n_groups = onig_number_of_captures(regex);
             backref_info = ore_find_backrefs(CHAR(mapping), regex);
@@ -564,7 +570,7 @@ SEXP ore_switch_all (SEXP text_, SEXP mappings_, SEXP options_, SEXP encoding_na
             else
             {
                 text_element_t *text_element = ore_text_element(text, i, FALSE, NULL);
-                if (text_element == NULL || !ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+                if (text_element == NULL || !ore_consistent_encodings(text_element->encoding, regex->enc))
                     continue;
                 
                 // Do the match

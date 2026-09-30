@@ -45,3 +45,8 @@ tryCatch({
 }, finally=Sys.setlocale("LC_CTYPE", locale))
 expect_equal(found, c("caf\u00E9","ol\u00E9"))
 expect_equal(substituted, "caf\u00E9 0l\u00E9")
+
+# Replacement functions receive the whole of each match, including when there are several groups
+expect_equal(ore_repl("(a)b", toupper, "abab", all=TRUE), "ABAB")
+expect_equal(ore_repl("(a)(b)", function(x) paste(groups(x),collapse="+"), "abab", all=TRUE), "a+ba+b")
+expect_equal(ore_switch("a", "x", encoding="auto"), "x")

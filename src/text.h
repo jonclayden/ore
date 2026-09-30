@@ -17,6 +17,7 @@ typedef struct {
     OnigEncoding    onig_enc;
     cetype_t        r_enc;
     Rboolean        convert;
+    Rboolean        assumed;
 } encoding_t;
 
 typedef struct {
@@ -42,11 +43,13 @@ char * ore_realloc (const void *ptr, const size_t new_len, const size_t old_len,
 
 encoding_t * ore_encoding (const char *name, OnigEncoding onig_enc, cetype_t *r_enc);
 
-Rboolean ore_consistent_encodings (OnigEncoding first, OnigEncoding second);
+encoding_t * ore_string_encoding (SEXP string);
+
+Rboolean ore_consistent_encodings (encoding_t *text_encoding, OnigEncoding regex_enc);
 
 void * ore_iconv_handle (encoding_t *encoding);
 
-const char * ore_iconv (void *iconv_handle, const char *old);
+const char * ore_iconv (void *iconv_handle, const char *old, const size_t old_len, size_t *new_len);
 
 void ore_iconv_done (void *iconv_handle);
 
@@ -57,6 +60,10 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
 SEXP ore_text_element_to_rchar (text_element_t *element);
 
 SEXP ore_string_to_rchar (const char *string, encoding_t *encoding);
+
+SEXP ore_bytes_to_rchar (const char *bytes, const size_t length, encoding_t *encoding);
+
+SEXP ore_convert_bytes (void *iconv_handle, const char *bytes, const size_t length, const cetype_t r_enc);
 
 void ore_text_done (text_t *text);
 

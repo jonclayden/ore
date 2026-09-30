@@ -4,6 +4,7 @@
 #include <R.h>
 #include <Rdefines.h>
 #include <Rinternals.h>
+#include <R_ext/Riconv.h>
 
 #include "compile.h"
 #include "text.h"
@@ -36,6 +37,11 @@ typedef struct {
     size_t      context_size;
     char       *number;
     char       *number_start;
+    
+    OnigEncoding    onig_enc;
+    const UChar   * end;
+    Rboolean        unicode;
+    void          * iconv_handle;
 } printstate_t;
 
 // Extract an element of an R list by name
@@ -290,6 +296,11 @@ static void ore_push_byte (printstate_t *state, const char byte, const int width
         ore_do_push_byte(state, 'n', 1);
         break;
         
+        case '\r':
+        ore_do_push_byte(state, '\\', 1);
+        ore_do_push_byte(state, 'r', 1);
+        break;
+        
         default:
         ore_do_push_byte(state, byte, width);
     }
@@ -298,30 +309,72 @@ static void ore_push_byte (printstate_t *state, const char byte, const int width
     state->loc += width;
 }
 
-// Push a fixed number of (possibly multibyte) characters to the buffers
-static UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncoding encoding)
+// Work out the display width of a character
+static int ore_char_width (printstate_t *state, const UChar *ptr, const int char_len)
 {
-    for (int i=0; i<n; i++)
+    int width;
+    if (state->unicode)
     {
-        int char_len = ONIGENC_MBC_ENC_LEN(encoding, ptr, ptr+encoding->max_enc_len);
-        int width;
+        // For UTF-8 and Latin-1 text, the code point is the Unicode one
+        width = mk_wcwidth((wchar_t) ONIGENC_MBC_TO_CODE(state->onig_enc, ptr, ptr+char_len));
+    }
+    else
+    {
+        // Otherwise the text is in the native encoding, so the C library can interpret it
+        wchar_t wc;
+        if (mbtowc(&wc, (const char *) ptr, char_len) > 0)
+            width = mk_wcwidth(wc);
+        else
+            width = 1;
+    }
+    
+    // Control characters have negative width, but take up no space if printed
+    return (width < 0) ? 0 : width;
+}
+
+// Push a fixed number of (possibly multibyte) characters to the buffers
+static UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n)
+{
+    for (int i=0; i<n && ptr < state->end; i++)
+    {
+        const int char_len = ONIGENC_MBC_ENC_LEN(state->onig_enc, ptr, ptr+state->onig_enc->max_enc_len);
+        int width = ore_char_width(state, ptr, char_len);
+        
+        // Tab, newline and carriage return characters are expanded into their escaped versions to avoid spurious space in the result
+        if (*ptr == '\t' || *ptr == '\n' || *ptr == '\r')
+            width = 2;
+        
+        // Convert the character to the native encoding for display, if necessary, substituting '?' if that isn't possible
+        const char *bytes = (const char *) ptr;
+        size_t n_bytes = (size_t) char_len;
+        char converted[16];
+        if (state->iconv_handle != NULL)
+        {
+            const char *in = bytes;
+            size_t in_left = n_bytes;
+            char *out = converted;
+            size_t out_left = sizeof(converted);
+            Riconv(state->iconv_handle, NULL, NULL, NULL, NULL);
+            if (Riconv(state->iconv_handle, &in, &in_left, &out, &out_left) == (size_t) -1 || out == converted)
+            {
+                converted[0] = '?';
+                out = converted + 1;
+                width = 1;
+            }
+            bytes = converted;
+            n_bytes = (size_t) (out - converted);
+        }
         
         // Start a new line if the buffers are full, which can happen before the line's width is used up if there are zero-width characters
         // The extra two bytes allow for tabs and newlines, which are printed as escapes
-        if (!ore_have_space(state, char_len + 2))
+        if (!ore_have_space(state, n_bytes + 2))
             ore_print_line(state);
         
-        wchar_t wc;
-        mbtowc(&wc, (const char *) ptr, char_len);
-        width = mk_wcwidth(wc);
+        ore_push_byte(state, bytes[0], width);
+        for (size_t k=1; k<n_bytes; k++)
+            ore_push_byte(state, bytes[k], 0);
         
-        // Tab and newline characters are expanded into their escaped versions to avoid spurious space in the result
-        if (*ptr == '\t' || *ptr == '\n')
-            width = 2;
-        
-        ore_push_byte(state, *(ptr++), width);
-        for (int k=1; k<char_len; k++)
-            ore_push_byte(state, *(ptr++), 0);
+        ptr += char_len;
     }
     
     return ptr;
@@ -343,10 +396,19 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     // NB: There is only one string in the object, since each searched string produces a new "orematch" object
     SEXP text_ = ore_get_list_element(match, "text");
     const UChar *text = (const UChar *) CHAR(STRING_ELT(text_, 0));
-    cetype_t r_encoding = getCharCE(STRING_ELT(text_, 0));
-    encoding_t *encoding = ore_encoding(NULL, NULL, &r_encoding);
+    const cetype_t r_encoding = getCharCE(STRING_ELT(text_, 0));
+    encoding_t *encoding = ore_string_encoding(STRING_ELT(text_, 0));
     const UChar *end = text + strlen(CHAR(STRING_ELT(text_, 0)));
     size_t text_len = onigenc_strlen_null(encoding->onig_enc, text);
+    
+    // Text with a declared encoding is converted to the native encoding for display, character by character
+    void *iconv_handle = NULL;
+    if (r_encoding == CE_UTF8 || r_encoding == CE_LATIN1)
+    {
+        iconv_handle = Riconv_open("", r_encoding == CE_UTF8 ? "UTF-8" : "latin1");
+        if (iconv_handle == (void *) -1)
+            iconv_handle = NULL;
+    }
     
     // Retrieve offsets and convert to C convention by subtracting 1
     const int *offsets_ = (const int *) INTEGER(ore_get_list_element(match, "offsets"));
@@ -358,7 +420,13 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     const int *lengths = (const int *) INTEGER(ore_get_list_element(match, "lengths"));
     
     // Create the print state object
-    printstate_t *state = ore_printstate(context, width, max_lines, use_colour, n_matches, encoding->onig_enc->max_enc_len);
+    // Characters may take more bytes after conversion for display (e.g. from Latin-1 to UTF-8), so allow for that
+    const int max_enc_len = (encoding->onig_enc->max_enc_len > 6) ? encoding->onig_enc->max_enc_len : 6;
+    printstate_t *state = ore_printstate(context, width, max_lines, use_colour, n_matches, max_enc_len);
+    state->onig_enc = encoding->onig_enc;
+    state->end = end;
+    state->unicode = (r_encoding == CE_UTF8 || r_encoding == CE_LATIN1);
+    state->iconv_handle = iconv_handle;
     
     // Print precontext, matched text, and postcontext for each match
     size_t start = 0;
@@ -378,12 +446,18 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         else
             precontext_len = offsets[i] - start;
         
+        // If the offset is beyond the end of the text, which can happen if the match was made in a different encoding, give up
         ptr = ore_step(encoding->onig_enc, text, end, offsets[i] - precontext_len);
+        if (ptr == NULL)
+        {
+            reached_end = TRUE;
+            break;
+        }
         
         // Push precontext, switch to match mode, print matched text, and then switch back
-        ptr = ore_push_chars(state, ptr, precontext_len, encoding->onig_enc);
+        ptr = ore_push_chars(state, ptr, precontext_len);
         ore_switch_state(state, TRUE);
-        ptr = ore_push_chars(state, ptr, lengths[i], encoding->onig_enc);
+        ptr = ore_push_chars(state, ptr, lengths[i]);
         ore_switch_state(state, FALSE);
         
         // Update starting position for next loop
@@ -410,7 +484,7 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
         }
         
         // Push the postcontext
-        ptr = ore_push_chars(state, ptr, postcontext_len, encoding->onig_enc);
+        ptr = ore_push_chars(state, ptr, postcontext_len);
         
         // Update the start position to the end of the postcontext
         start += postcontext_len;
@@ -432,6 +506,9 @@ SEXP ore_print_match (SEXP match, SEXP context_, SEXP width_, SEXP max_lines_, S
     
     // Flush the buffers
     ore_print_line(state);
+    
+    if (iconv_handle != NULL)
+        Riconv_close(iconv_handle);
     
     return R_NilValue;
 }

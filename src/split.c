@@ -42,7 +42,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
             SET_ELEMENT(results, i, ScalarString(NA_STRING));
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding->onig_enc, regex->enc))
+        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));

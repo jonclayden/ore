@@ -101,3 +101,21 @@ for (colour in c(FALSE, TRUE))
     expect_true(sum(grepl("match:", limited, fixed=TRUE, useBytes=TRUE)) <= 3)
 }
 options(ore.colour=NULL)
+
+# Strings without a declared encoding (here UTF-8 bytes) are matched in the encoding given by the "ore.encoding" option
+native <- rawToChar(as.raw(c(0x63,0x61,0x66,0xc3,0xa9)))
+if (identical(getOption("ore.encoding"), "UTF-8"))
+{
+    expect_equal(ore_search("\\w+", native)$lengths, 4L)
+    expect_equal(ore_search("\\w+", native)$matches, native)
+}
+
+# Printing escapes carriage returns, and converts text with a declared encoding for display
+options(ore.colour=FALSE)
+expect_true(any(grepl("a\\r", capture.output(print(ore_search("b", "a\rb"))), fixed=TRUE)))
+if (isTRUE(l10n_info()$`UTF-8`))
+{
+    output <- capture.output(print(ore_search("\\w+", iconv("caf\u00e9","UTF-8","latin1"))))
+    expect_true(any(grepl("caf\u00e9", output, fixed=TRUE)))
+}
+options(ore.colour=NULL)

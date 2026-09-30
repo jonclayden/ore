@@ -4,7 +4,7 @@
 #include "onigmo.h"
 #include "text.h"
 
-regex_t * ore_compile (const char *pattern, const char *options, encoding_t *encoding, const char *syntax_name);
+regex_t * ore_compile (const char *pattern, const cetype_t pattern_enc, const char *options, encoding_t *encoding, const char *syntax_name);
 
 regex_t * ore_retrieve (SEXP regex_, encoding_t *encoding);
 
