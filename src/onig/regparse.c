@@ -2187,7 +2187,6 @@ enum ReduceType {
   RQ_AQ,       /* to '*?'   */
   RQ_QQ,       /* to '??'   */
   RQ_P_QQ,     /* to '+)??' */
-  RQ_PQ_Q      /* to '+?)?' */
 };
 
 static enum ReduceType const ReduceTypeTable[6][6] = {
@@ -2197,7 +2196,7 @@ static enum ReduceType const ReduceTypeTable[6][6] = {
   {RQ_A,    RQ_A,    RQ_DEL, RQ_ASIS, RQ_P_QQ, RQ_DEL},  /* '+'  */
   {RQ_DEL,  RQ_AQ,   RQ_AQ,  RQ_DEL,  RQ_AQ,   RQ_AQ},   /* '??' */
   {RQ_DEL,  RQ_DEL,  RQ_DEL, RQ_DEL,  RQ_DEL,  RQ_DEL},  /* '*?' */
-  {RQ_ASIS, RQ_PQ_Q, RQ_DEL, RQ_AQ,   RQ_AQ,   RQ_DEL}   /* '+?' */
+  {RQ_ASIS, RQ_ASIS, RQ_ASIS, RQ_AQ,  RQ_AQ,   RQ_DEL}   /* '+?' */
 };
 
 extern void
@@ -2232,12 +2231,6 @@ onig_reduce_nested_quantifier(Node* pnode, Node* cnode)
     p->target = cnode;
     p->lower  = 0;  p->upper = 1;  p->greedy = 0;
     c->lower  = 1;  c->upper = REPEAT_INFINITE;  c->greedy = 1;
-    return ;
-    break;
-  case RQ_PQ_Q:
-    p->target = cnode;
-    p->lower  = 0;  p->upper = 1;  p->greedy = 1;
-    c->lower  = 1;  c->upper = REPEAT_INFINITE;  c->greedy = 0;
     return ;
     break;
   case RQ_ASIS:
@@ -4352,7 +4345,7 @@ fetch_char_property_to_ctype(UChar** src, UChar* end, ScanEnv* env)
   OnigEncoding enc = env->enc;
   UChar *prev, *start, *p = *src;
 
-  r = 0;
+  r = ONIGERR_INVALID_CHAR_PROPERTY_NAME;
   start = prev = p;
 
   while (!PEND) {
@@ -4366,7 +4359,6 @@ fetch_char_property_to_ctype(UChar** src, UChar* end, ScanEnv* env)
       return r;
     }
     else if (c == '(' || c == ')' || c == '{' || c == '|') {
-      r = ONIGERR_INVALID_CHAR_PROPERTY_NAME;
       break;
     }
   }
@@ -5498,6 +5490,22 @@ clear_not_flag_cclass(CClassNode* cc, OnigEncoding enc)
 }
 #endif /* CASE_FOLD_IS_APPLIED_INSIDE_NEGATIVE_CCLASS */
 
+static inline bool
+is_singlebyte_range(OnigCodePoint code, OnigEncoding enc)
+{
+  /* single byte encoding */
+  if (ONIGENC_MBC_MAXLEN(enc) == 1) {
+    return true;
+  }
+
+  /* wide char encoding */
+  if (ONIGENC_MBC_MINLEN(enc) > 1) {
+    return false;
+  }
+
+  return (code < 0x80);
+}
+
 typedef struct {
   ScanEnv*    env;
   CClassNode* cc;
@@ -5541,31 +5549,28 @@ i_apply_case_fold(OnigCodePoint from, OnigCodePoint to[],
     if ((is_in != 0 && !IS_NCCLASS_NOT(cc)) ||
 	(is_in == 0 &&  IS_NCCLASS_NOT(cc))) {
       if (add_flag) {
-	if (ONIGENC_MBC_MINLEN(env->enc) > 1 || *to >= SINGLE_BYTE_SIZE) {
-	  r = add_code_range0(&(cc->mbuf), env, *to, *to, 0);
-	  if (r < 0) return r;
-	}
-	else {
-	  BITSET_SET_BIT(bs, *to);
-	}
+        if (is_singlebyte_range(*to, env->enc)) {
+          BITSET_SET_BIT(bs, *to);
+        } else {
+          r = add_code_range0(&(cc->mbuf), env, *to, *to, 0);
+          if (r < 0) return r;
+        }
       }
     }
 #else
     if (is_in != 0) {
       if (add_flag) {
-	if (ONIGENC_MBC_MINLEN(env->enc) > 1 || *to >= SINGLE_BYTE_SIZE) {
-	  if (IS_NCCLASS_NOT(cc)) clear_not_flag_cclass(cc, env->enc);
-	  r = add_code_range0(&(cc->mbuf), env, *to, *to, 0);
-	  if (r < 0) return r;
-	}
-	else {
-	  if (IS_NCCLASS_NOT(cc)) {
-	    BITSET_CLEAR_BIT(bs, *to);
-	  }
-	  else {
-	    BITSET_SET_BIT(bs, *to);
-	  }
-	}
+        if (is_singlebyte_range(*to, env->enc)) {
+          if (IS_NCCLASS_NOT(cc)) {
+            BITSET_CLEAR_BIT(bs, *to);
+          } else {
+            BITSET_SET_BIT(bs, *to);
+          }
+        } else {
+          if (IS_NCCLASS_NOT(cc)) clear_not_flag_cclass(cc, env->enc);
+          r = add_code_range0(&(cc->mbuf), env, *to, *to, 0);
+          if (r < 0) return r;
+        }
       }
     }
 #endif /* CASE_FOLD_IS_APPLIED_INSIDE_NEGATIVE_CCLASS */
@@ -5735,8 +5740,11 @@ create_property_node(Node **np, ScanEnv* env, const char* propname)
   if (IS_NULL(*np)) return ONIGERR_MEMORY;
   cc = NCCLASS(*np);
   r = add_property_to_cc(cc, propname, 0, env);
-  if (r != 0)
+  if (r != 0) {
+    /* *np is a slot in node_common, which is freed again on error */
     onig_node_free(*np);
+    *np = NULL_NODE;
+  }
   return r;
 }
 
@@ -5975,7 +5983,8 @@ node_extended_grapheme_cluster(Node** np, ScanEnv* env)
           R_ERR(add_code_range(&(cc->mbuf), env, 0x000A, 0x000A)); /* CR */
           R_ERR(add_code_range(&(cc->mbuf), env, 0x000D, 0x000D)); /* LF */
           R_ERR(not_code_range_buf(env->enc, cc->mbuf, &inverted_buf, env));
-          cc->mbuf = inverted_buf; /* TODO: check what to do with buffer before inversion */
+          bbuf_free(cc->mbuf);
+          cc->mbuf = inverted_buf;
 
           env->warnings_flag &= dup_not_warned; /* TODO: fix false warning */
         }
@@ -6540,7 +6549,7 @@ parse_subexp(Node** top, OnigToken* tok, int term,
 	     UChar** src, UChar* end, ScanEnv* env)
 {
   int r;
-  Node *node, **headp;
+  Node *node, *topnode, **headp;
 
   *top = NULL;
   env->parse_depth++;
@@ -6556,23 +6565,31 @@ parse_subexp(Node** top, OnigToken* tok, int term,
     *top = node;
   }
   else if (r == TK_ALT) {
-    *top  = onig_node_new_alt(node, NULL);
-    headp = &(NCDR(*top));
+    topnode = onig_node_new_alt(node, NULL);
+    headp   = &(NCDR(topnode));
     while (r == TK_ALT) {
       r = fetch_token(tok, src, end, env);
-      if (r < 0) return r;
+      if (r < 0) {
+	onig_node_free(topnode);
+	return r;
+      }
       r = parse_branch(&node, tok, term, src, end, env);
       if (r < 0) {
-	onig_node_free(node);
+        /* the failed branch is not linked into topnode yet: free both */
+        onig_node_free(node);
+	onig_node_free(topnode);
 	return r;
       }
 
       *headp = onig_node_new_alt(node, NULL);
-      headp = &(NCDR(*headp));
+      headp  = &(NCDR(*headp));
     }
 
-    if (tok->type != (enum TokenSyms )term)
+    if (tok->type != (enum TokenSyms )term) {
+      onig_node_free(topnode);
       goto err;
+    }
+    *top = topnode;
   }
   else {
     onig_node_free(node);

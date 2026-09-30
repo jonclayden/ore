@@ -203,6 +203,10 @@ unset_addr_list_add(UnsetAddrList* uslist, int offset, struct _Node* node)
 static int
 add_opcode(regex_t* reg, int opcode)
 {
+  /* Every instruction passes here, so this is where a program that would
+     outgrow its offset type is stopped, while it is still being emitted. */
+  if (reg->used > MAX_COMPILED_PROGRAM_SIZE)
+    return ONIGERR_TOO_BIG_COMPILED_PROGRAM;
   BBUF_ADD1(reg, opcode);
   return 0;
 }
@@ -374,6 +378,7 @@ compile_tree_empty_check(Node* node, regex_t* reg, int empty_info)
     r = add_mem_num(reg, reg->num_null_check); /* NULL CHECK ID */
     if (r) return r;
     reg->num_null_check++;
+    if ((MemNumType)reg->num_null_check <= 0) return ONIGERR_TOO_MANY_NULL_CHECK;
   }
 
   r = compile_tree(node, reg);
@@ -683,6 +688,7 @@ compile_range_repeat_node(QtfrNode* qn, int target_len, int empty_info,
   if (r) return r;
   r = add_mem_num(reg, num_repeat); /* OP_REPEAT ID */
   reg->num_repeat++;
+  if ((MemNumType)reg->num_repeat <= 0) return ONIGERR_TOO_MANY_RANGE_REPEAT;
   if (r) return r;
   r = add_rel_addr(reg, target_len + SIZE_OP_REPEAT_INC);
   if (r) return r;
@@ -719,6 +725,10 @@ is_anychar_star_quantifier(QtfrNode* qn)
 }
 
 #define QUANTIFIER_EXPAND_LIMIT_SIZE   50
+/* (tlen * n <= QUANTIFIER_EXPAND_LIMIT_SIZE) without overflowing int: tlen
+   and n are each bounded by ONIG_MAX_REPEAT_NUM, but their product is not. */
+#define IS_EXPAND_LIMIT_OK(tlen, n) \
+  ((n) <= 0 || (tlen) <= QUANTIFIER_EXPAND_LIMIT_SIZE / (n))
 #define CKN_ON   (ckn > 0)
 
 #ifdef USE_COMBINATION_EXPLOSION_CHECK
@@ -983,7 +993,7 @@ compile_length_quantifier_node(QtfrNode* qn, regex_t* reg)
     mod_tlen = tlen;
 
   if (infinite &&
-      (qn->lower <= 1 || tlen * qn->lower <= QUANTIFIER_EXPAND_LIMIT_SIZE)) {
+      (qn->lower <= 1 || IS_EXPAND_LIMIT_OK(tlen, qn->lower))) {
     if (qn->lower == 1 && tlen > QUANTIFIER_EXPAND_LIMIT_SIZE) {
       len = SIZE_OP_JUMP;
     }
@@ -1009,8 +1019,8 @@ compile_length_quantifier_node(QtfrNode* qn, regex_t* reg)
     len = SIZE_OP_JUMP + tlen;
   }
   else if (!infinite && qn->greedy &&
-           (qn->upper == 1 || (tlen + SIZE_OP_PUSH) * qn->upper
-                                      <= QUANTIFIER_EXPAND_LIMIT_SIZE)) {
+           (qn->upper == 1 ||
+            IS_EXPAND_LIMIT_OK(tlen + SIZE_OP_PUSH, qn->upper))) {
     len = tlen * qn->lower;
     len += (SIZE_OP_PUSH + tlen) * (qn->upper - qn->lower);
   }
@@ -1060,7 +1070,7 @@ compile_quantifier_node(QtfrNode* qn, regex_t* reg)
     mod_tlen = tlen;
 
   if (infinite &&
-      (qn->lower <= 1 || tlen * qn->lower <= QUANTIFIER_EXPAND_LIMIT_SIZE)) {
+      (qn->lower <= 1 || IS_EXPAND_LIMIT_OK(tlen, qn->lower))) {
     if (qn->lower == 1 && tlen > QUANTIFIER_EXPAND_LIMIT_SIZE) {
       if (qn->greedy) {
 #ifdef USE_OP_PUSH_OR_JUMP_EXACT
@@ -1130,8 +1140,8 @@ compile_quantifier_node(QtfrNode* qn, regex_t* reg)
     r = compile_tree(qn->target, reg);
   }
   else if (!infinite && qn->greedy &&
-           (qn->upper == 1 || (tlen + SIZE_OP_PUSH) * qn->upper
-                                  <= QUANTIFIER_EXPAND_LIMIT_SIZE)) {
+           (qn->upper == 1 ||
+            IS_EXPAND_LIMIT_OK(tlen + SIZE_OP_PUSH, qn->upper))) {
     int n = qn->upper - qn->lower;
 
     r = compile_tree_n_times(qn->target, qn->lower, reg);
@@ -1914,7 +1924,7 @@ noname_disable_map(Node** plink, GroupNumRemap* map, int* counter)
 }
 
 static int
-renumber_node_backref(Node* node, GroupNumRemap* map)
+renumber_node_backref(Node* node, GroupNumRemap* map, const int num_mem)
 {
   int i, pos, n, old_num;
   int *backs;
@@ -1930,6 +1940,7 @@ renumber_node_backref(Node* node, GroupNumRemap* map)
     backs = bn->back_dynamic;
 
   for (i = 0, pos = 0; i < old_num; i++) {
+    if (backs[i] > num_mem)  return ONIGERR_INVALID_BACKREF;
     n = map[backs[i]].new_val;
     if (n > 0) {
       backs[pos] = n;
@@ -1942,7 +1953,7 @@ renumber_node_backref(Node* node, GroupNumRemap* map)
 }
 
 static int
-renumber_by_map(Node* node, GroupNumRemap* map)
+renumber_by_map(Node* node, GroupNumRemap* map, const int num_mem)
 {
   int r = 0;
 
@@ -1950,28 +1961,30 @@ renumber_by_map(Node* node, GroupNumRemap* map)
   case NT_LIST:
   case NT_ALT:
     do {
-      r = renumber_by_map(NCAR(node), map);
+      r = renumber_by_map(NCAR(node), map, num_mem);
     } while (r == 0 && IS_NOT_NULL(node = NCDR(node)));
     break;
   case NT_QTFR:
-    r = renumber_by_map(NQTFR(node)->target, map);
+    r = renumber_by_map(NQTFR(node)->target, map, num_mem);
     break;
   case NT_ENCLOSE:
     {
       EncloseNode* en = NENCLOSE(node);
-      if (en->type == ENCLOSE_CONDITION)
+      if (en->type == ENCLOSE_CONDITION) {
+	if (en->regnum > num_mem)  return ONIGERR_INVALID_BACKREF;
 	en->regnum = map[en->regnum].new_val;
-      r = renumber_by_map(en->target, map);
+      }
+      r = renumber_by_map(en->target, map, num_mem);
     }
     break;
 
   case NT_BREF:
-    r = renumber_node_backref(node, map);
+    r = renumber_node_backref(node, map, num_mem);
     break;
 
   case NT_ANCHOR:
     if (NANCHOR(node)->target)
-      r = renumber_by_map(NANCHOR(node)->target, map);
+      r = renumber_by_map(NANCHOR(node)->target, map, num_mem);
     break;
 
   default:
@@ -2033,7 +2046,7 @@ disable_noname_group_capture(Node** root, regex_t* reg, ScanEnv* env)
   r = noname_disable_map(root, map, &counter);
   if (r != 0) return r;
 
-  r = renumber_by_map(*root, map);
+  r = renumber_by_map(*root, map, env->num_mem);
   if (r != 0) return r;
 
   for (i = 1, pos = 1; i <= env->num_mem; i++) {
@@ -3364,7 +3377,7 @@ next_setup(Node* node, Node* next_node, regex_t* reg)
   }
   else if (type == NT_ENCLOSE) {
     EncloseNode* en = NENCLOSE(node);
-    if (en->type == ENCLOSE_MEMORY) {
+    if (en->type == ENCLOSE_MEMORY && !IS_ENCLOSE_CALLED(en)) {
       node = en->target;
       goto retry;
     }
