@@ -272,7 +272,7 @@ static UChar * ore_push_chars (printstate_t *state, UChar *ptr, int n, OnigEncod
 {
     for (int i=0; i<n; i++)
     {
-        int char_len = onigenc_mbclen_approximate(ptr, ptr+encoding->max_enc_len, encoding);
+        int char_len = ONIGENC_MBC_ENC_LEN(encoding, ptr, ptr+encoding->max_enc_len);
         int width;
         wchar_t wc;
         mbtowc(&wc, (const char *) ptr, char_len);

@@ -357,8 +357,6 @@ int onigenc_ascii_only_case_map(OnigCaseFoldType* flagP, const OnigUChar** pp, c
 
 ONIG_EXTERN
 int onigenc_mbclen(const OnigUChar* p,const OnigUChar* e, const struct OnigEncodingTypeST* enc);
-ONIG_EXTERN
-int onigenc_mbclen_approximate(const OnigUChar* p,const OnigUChar* e, const struct OnigEncodingTypeST* enc);
 
 #define ONIGENC_MBC_ENC_LEN(enc,p,e)           onigenc_mbclen(p,e,enc)
 #define ONIGENC_MBC_MAXLEN(enc)               ((enc)->max_enc_len)

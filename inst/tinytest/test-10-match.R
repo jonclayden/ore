@@ -64,3 +64,10 @@ regexString <- "(?<numbers>\\d+)"
 regex <- ore(regexString)
 expect_equal(dimnames(groups(ore_search(regex, "1.7"))), list(NULL,"numbers"))
 expect_equal(dimnames(groups(ore_search(regexString, "1.7"))), list(NULL,"numbers"))
+
+# Repeated empty matches, including at the end of the text and in multibyte encodings
+expect_equal(ore_search(ore("x*",encoding="ASCII"), "ab", all=TRUE)$offsets, 1:3)
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "ab", all=TRUE)$offsets, 1:3)
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$offsets, 1:3)
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$byteOffsets, c(1L,3L,4L))
+expect_equal(ore_search(ore("x*|b",encoding="UTF-8"), "ébé", all=TRUE)$offsets, 1:4)

@@ -107,9 +107,11 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
             regex->options = options;
             
             // If there's no non-empty match, advance the starting point by one character and re-enable empty matches
-            if (return_value == ONIG_MISMATCH)
+            // If we're already at the end of the text there is nowhere left to search, so the mismatch stands
+            if (return_value == ONIG_MISMATCH && start_ptr < end_ptr)
             {
-                start_ptr += onigenc_mbclen_approximate(start_ptr, end_ptr, regex->enc);
+                start_ptr += ONIGENC_MBC_ENC_LEN(regex->enc, start_ptr, end_ptr);
+                start_offset++;
                 return_value = onig_search(regex, (UChar *) text, end_ptr, start_ptr, end_ptr, region, ONIG_OPTION_NONE);
             }
         }
