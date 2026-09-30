@@ -35,6 +35,18 @@ if ("SHIFT-JIS" %in% iconvlist())
     expect_equal(sapply(results,"[[","offsets"), c(14L,14L,14L,14L))
     expect_equal(sapply(results,"[[","byteOffsets"), c(18L,22L,18L,18L))
     
+    # Text read from a file is converted to UTF-8 when it's returned to R
+    expect_equal(matches(s1), matches(s2))
+    expect_equal(Encoding(matches(s1)), "UTF-8")
+    expect_equal(matches(s4), matches(s2))
+    
     # Binary search
     expect_equal(matches(ore_search("\\w+",ore_file("hello.bin",binary=TRUE))), "Hello")
 }
+
+# An encoding name that is unknown to both Oniguruma and iconv gives a warning, not a crash
+path <- tempfile()
+writeLines("abc", path)
+expect_warning(result <- ore_search("b", ore_file(path,encoding="nonesuch")), "not supported")
+expect_equal(matches(result), "b")
+unlink(path)

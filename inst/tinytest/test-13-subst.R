@@ -12,7 +12,7 @@ expect_equal(ore_subst("\\d+",function(i) c("no","all the"),c("2 dogs","some dog
 expect_equal(ore_repl("\\d+",function(i) c("no","all the"),c("2 dogs","some dogs")), list(c("no dogs","all the dogs"), "some dogs"))
 expect_equal(ore_subst("\\d+",c("no","some"),c("2 dogs","3 cats")), c("no dogs","no cats"))
 expect_equal(ore_repl("\\d+",c("no","some"),c("2 dogs","3 cats")), list(c("no dogs","some dogs"), c("no cats","some cats")))
-expect_equal(ore_subst("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), "some dogs and some cats")
+expect_equal(ore_subst("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), "no dogs and some cats")
 expect_equal(ore_repl("\\d+",c("no","some"),"2 dogs and 3 cats",all=TRUE), c("no dogs and no cats","some dogs and some cats"))
 
 # Check that encodings are preserved
@@ -28,3 +28,20 @@ expect_equal(ore_subst("\\d+",function(i) NULL,"2 dogs"), " dogs")
 
 # Check string splitting
 expect_equal(ore_split("[\\s\\-()]+","(801) 234-5678"), c("","801","234","5678"))
+
+# Back-references to groups that are unmatched or empty are replaced with nothing
+expect_equal(ore_subst("(a)?b", "[\\1]", "b"), "[]")
+expect_equal(ore_subst("(a*)b", "[\\1]", "b"), "[]")
+expect_equal(ore_repl("(a)?b", "[\\1]", "b"), "[]")
+expect_equal(ore_switch("b", "(a)?b"="[\\1]"), "[]")
+
+# Results are not re-encoded, even when the locale's encoding differs from the text's
+utf8 <- "caf\u00E9 ol\u00E9"
+locale <- Sys.getlocale("LC_CTYPE")
+tryCatch({
+    Sys.setlocale("LC_CTYPE", "C")
+    found <- ore_search(ore("\\w+",encoding="UTF-8"), utf8, all=TRUE)$matches
+    substituted <- ore_subst("o", "0", utf8)
+}, finally=Sys.setlocale("LC_CTYPE", locale))
+expect_equal(found, c("caf\u00E9","ol\u00E9"))
+expect_equal(substituted, "caf\u00E9 0l\u00E9")

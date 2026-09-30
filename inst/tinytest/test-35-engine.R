@@ -32,8 +32,8 @@ expect_equal(ore_search("((?:\\d|foo|bar)+)(\\.\\g<1>){2}", "1.2.3")$matches, "1
 # Case-insensitive character classes with small code points (Bugs #16145 and #21176)
 for (enc in c("UTF-8", "latin1"))
 {
-    o_acute <- iconv(c("ó","abcÓ"), "UTF-8", enc)
-    e_acute <- iconv(c("é","CAFÉ"), "UTF-8", enc)
+    o_acute <- iconv(c("\u00F3","abc\u00D3"), "UTF-8", enc)
+    e_acute <- iconv(c("\u00E9","CAF\u00C9"), "UTF-8", enc)
     expect_true(o_acute[2] %~% ore("[x", o_acute[1], "]", options="i", encoding=enc), info=enc)
     expect_true(e_acute[2] %~% ore("[x", e_acute[1], "]", options="i", encoding=enc), info=enc)
 }
@@ -52,15 +52,15 @@ expect_null(ore_search("(?:.{46341,}){46341}", strrep("x",10)))
 
 # Extended grapheme clusters, which previously crashed in UTF-8 because of outdated Unicode tables
 clusters <- function (text) ore_search(ore("\\X",encoding="UTF-8"), enc2utf8(text), all=TRUE)$matches
-expect_equal(clusters("éa"), c("é","a"))
+expect_equal(clusters("e\u0301a"), c("e\u0301","a"))
 expect_equal(clusters("a\r\nb"), c("a","\r\n","b"))
-expect_equal(clusters("각x"), c("각","x"))
+expect_equal(clusters("\u1100\u1161\u11A8x"), c("\u1100\u1161\u11A8","x"))
 expect_equal(clusters("\U0001F1EC\U0001F1E7\U0001F1EF\U0001F1F5"), c("\U0001F1EC\U0001F1E7","\U0001F1EF\U0001F1F5"))
-expect_equal(clusters("\U0001F468‍\U0001F469‍\U0001F467!"), c("\U0001F468‍\U0001F469‍\U0001F467","!"))
-expect_equal(clusters("क्षि"), "क्षि")
-expect_equal(clusters("க்ஷ"), c("க்","ஷ"))
+expect_equal(clusters("\U0001F468\u200D\U0001F469\u200D\U0001F467!"), c("\U0001F468\u200D\U0001F469\u200D\U0001F467","!"))
+expect_equal(clusters("\u0915\u094D\u0937\u093F"), "\u0915\u094D\u0937\u093F")
+expect_equal(clusters("\u0B95\u0BCD\u0BB7"), c("\u0B95\u0BCD","\u0BB7"))
 expect_equal(ore_search(ore("\\X",encoding="latin1"), "ab", all=TRUE)$matches, c("a","b"))
 
 # Properties from recent Unicode versions
 expect_true("\U00010D50" %~% "\\p{Garay}")
-expect_true("ა" %~% ore("Ა", options="i"))
+expect_true("\u10D0" %~% ore("\u1C90", options="i"))

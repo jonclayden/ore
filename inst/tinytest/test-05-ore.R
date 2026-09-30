@@ -18,3 +18,11 @@ expect_equal(ore_escape("-?\\d+"), "-\\?\\\\d\\+")
 
 expect_stdout(print(simpleRegex), "0 groups")
 expect_stdout(print(ore("(?<numbers>\\d+)")), "1 group, 1 named")
+
+# Encoding names are matched in full, with or without separators
+expect_true("\xa8" %~% ore("\\w", encoding="ISO-8859-15"))
+expect_true("\xa8" %~% ore("\\w", encoding="iso8859_15"))
+expect_false("\xa8" %~% ore("\\w", encoding="ISO-8859-1"))
+expect_true("\xa8" %~% ore("\\w", encoding="LATIN9"))
+expect_true("\xfd" %~% ore("\\w", encoding="LATIN5"))
+expect_warning(ore("a", encoding="UTF-8-ish"), "not supported")

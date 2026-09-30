@@ -68,19 +68,36 @@ expect_equal(dimnames(groups(ore_search(regexString, "1.7"))), list(NULL,"number
 # Repeated empty matches, including at the end of the text and in multibyte encodings
 expect_equal(ore_search(ore("x*",encoding="ASCII"), "ab", all=TRUE)$offsets, 1:3)
 expect_equal(ore_search(ore("x*",encoding="UTF-8"), "ab", all=TRUE)$offsets, 1:3)
-expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$offsets, 1:3)
-expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éb", all=TRUE)$byteOffsets, c(1L,3L,4L))
-expect_equal(ore_search(ore("x*|b",encoding="UTF-8"), "ébé", all=TRUE)$offsets, 1:4)
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "\u00E9b", all=TRUE)$offsets, 1:3)
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "\u00E9b", all=TRUE)$byteOffsets, c(1L,3L,4L))
+expect_equal(ore_search(ore("x*|b",encoding="UTF-8"), "\u00E9b\u00E9", all=TRUE)$offsets, 1:4)
 
 # Starting points at or beyond the end of the text
-expect_equal(ore_search(ore("x*",encoding="UTF-8"), "éab", start=4L)$offsets, 4L)
-expect_null(ore_search(ore("x*",encoding="UTF-8"), "éab", start=5L))
-expect_null(ore_search(ore("x*",encoding="UTF-8"), "éab", start=10L, all=TRUE))
+expect_equal(ore_search(ore("x*",encoding="UTF-8"), "\u00E9ab", start=4L)$offsets, 4L)
+expect_null(ore_search(ore("x*",encoding="UTF-8"), "\u00E9ab", start=5L))
+expect_null(ore_search(ore("x*",encoding="UTF-8"), "\u00E9ab", start=10L, all=TRUE))
 expect_equal(ore_search(ore("x*",encoding="ASCII"), "abc", start=4L)$offsets, 4L)
 expect_null(ore_search(ore("x*",encoding="ASCII"), "abc", start=5L))
 
 # Encoding names are matched case-insensitively
 expect_equal(attr(ore("a",encoding="utf-8"),"encoding"), "utf-8")
-expect_true("é" %~% ore("\\w",encoding="utf8"))
-expect_true(iconv("é","UTF-8","latin1") %~% ore("\\w",encoding="Latin1"))
-expect_false("é" %~% ore("\\w",encoding="ascii"))
+expect_true("\u00E9" %~% ore("\\w",encoding="utf8"))
+expect_true(iconv("\u00E9","UTF-8","latin1") %~% ore("\\w",encoding="Latin1"))
+expect_false("\u00E9" %~% ore("\\w",encoding="ascii"))
+
+# A failed search must not be retried from a later starting point
+expect_false("ba" %~% "\\Ga")
+expect_equal(ore_subst("\\Ga", "X", "ba"), "ba")
+expect_equal(ore_search("\\Gb", "ab", start=2L)$offsets, 2L)
+
+# Printing lines full of zero-width characters, with and without colour
+text <- strrep(paste0("a", strrep("\u0301", 30)), 200)
+for (colour in c(FALSE, TRUE))
+{
+    options(ore.colour=colour)
+    output <- capture.output(print(ore_search("a", text, all=TRUE)))
+    expect_true(length(output) > 1 && all(validUTF8(output)))
+    limited <- capture.output(print(ore_search("a", text, all=TRUE), lines=3))
+    expect_true(sum(grepl("match:", limited, fixed=TRUE, useBytes=TRUE)) <= 3)
+}
+options(ore.colour=NULL)
