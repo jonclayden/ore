@@ -2,6 +2,81 @@ Significant changes to the "ore" package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.8.0
+
+- The bundled Onigmo regular expression library has been brought up to date
+  with fixes made since version 6.2.0, both upstream and in the copy maintained
+  as part of Ruby. These address a number of crashes, memory errors and
+  incorrect results, particularly with unusual or malformed regexes.
+- Unicode data has been updated from version 9.0 to version 17.0, so character
+  properties (`\p{...}`) and case-insensitive matching now cover recent
+  additions such as additional scripts and emoji. The `\X` (extended grapheme
+  cluster) escape, which previously crashed R when used with UTF-8 text, now
+  works and follows current Unicode segmentation rules.
+- A group that matches an empty string is now returned as an empty string,
+  rather than `NA`. Groups that don't take part in a match are still `NA`, and
+  their offsets and lengths are now `NA` too.
+- When several replacement strings are given to `ore_subst()`, they are now
+  applied to successive matches, as documented. Previously the last one used
+  was applied to all matches, unless the replacements contained
+  back-references.
+- Strings with no declared encoding (such as those read by `readLines()`
+  without its `encoding` argument) are now matched in the encoding given by the
+  `ore.encoding` option when the regex is given as a string, rather than being
+  treated as ASCII. Previously, for example, `\w` would not match accented
+  letters in such strings.
+- Encoding names are now matched in full, and in a case-insensitive and
+  separator-insensitive way, so names such as "ISO-8859-15" are now handled
+  correctly rather than being treated as ISO-8859-1 (due to a partial match).
+  The "LATINn" aliases now refer to the standard encodings, and unrecognised
+  names give a warning.
+- Text read from files or connections in encodings other than ASCII, UTF-8 or
+  Latin-1 (e.g., Shift-JIS) is now converted to UTF-8 when returned to R.
+- Searching files in UTF-16 or UTF-32 now works.
+- Results from UTF-8 text are no longer corrupted when the session locale uses
+  a different encoding.
+- Vectors mixing UTF-8 and Latin-1 strings are now searched fully when the
+  regex is given as a string, rather than elements in the "other" encoding
+  being skipped with a warning.
+- Regexes created with `ore()` and then saved (e.g., with `saveRDS()`) and
+  loaded again now keep their options and syntax.
+- Starting positions passed to the main functions must now be positive
+  integers; zero, negative and `NA` values produce an error rather than being
+  quietly treated as giving no match. Starting positions beyond the end of the
+  text, which crashed R with multibyte encodings, now consistently give no
+  match.
+- Calling `ore()` with a missing (`NA`) pattern is now an error, and
+  unsupported letters in its `options` argument produce a warning rather than
+  being ignored.
+- `ore_repl()` now passes the correct matched text to replacement functions
+  when there are several matches and the regex contains groups, and no longer
+  fails when there are several groups and several matches.
+- Back-references to groups that don't take part in a match, or match an empty
+  string, previously crashed R. They are now replaced with nothing.
+- The `\G` anchor could match when it shouldn't, because a failed search was
+  retried from later in the text. Failed searches are no longer repeated, which
+  also makes searches faster when many strings don't match.
+- Character offsets of repeated empty matches were wrong in multibyte
+  encodings. This has been corrected.
+- Searching large numbers of strings, with `ore_search()` or `%~%`, is now
+  substantially faster, due to more efficient memory use.
+- Printed matches now use display widths based on current Unicode data, so
+  emoji, wide characters and newer combining marks line up correctly. Text is
+  converted to the session's encoding for display, with characters that can't
+  be shown replaced by "?", and carriage returns are shown as "\r". A crash when
+  printing text containing many zero-width characters has been fixed.
+- `es()` now only removes the escape from "\\#{", leaving other backslashes
+  intact.
+- Connections opened by the package in order to search them are now closed
+  again afterwards. Connections that were already open are left open.
+- `ore_escape()` now preserves the declared encoding of its argument.
+- The native encoding is now detected more reliably when the package is loaded,
+  using R's own locale information where possible. In a Latin-1 locale the
+  `ore.encoding` option is now set to "latin1", and the C locale is treated as
+  ASCII without a startup message.
+
+===============================================================================
+
 VERSION 1.7.5
 
 - There is now special handling of repeated zero-length matches to avoid
