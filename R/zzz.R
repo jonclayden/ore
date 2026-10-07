@@ -3,8 +3,17 @@
 {
     .Call(C_ore_init)
     
-    match <- ore_search("^(([A-Z_ ]+)\\.)?([\\w\\-.:]+)$", toupper(Sys.getlocale("LC_CTYPE")))
-    if (is.null(match))
+    # R knows whether the locale uses UTF-8 or Latin-1, and the C locale is plain ASCII; otherwise try to work out the encoding from the locale name
+    locale <- Sys.getlocale("LC_CTYPE")
+    localeInfo <- l10n_info()
+    match <- ore_search("^(([A-Z_ ]+)\\.)?([\\w\\-.:]+)$", toupper(locale))
+    if (isTRUE(localeInfo$`UTF-8`))
+        encoding <- "UTF-8"
+    else if (isTRUE(localeInfo$`Latin-1`))
+        encoding <- "latin1"
+    else if (locale %in% c("C","POSIX"))
+        encoding <- "ASCII"
+    else if (is.null(match))
     {
         .Workspace$message <- "ore: Cannot determine native encoding - you may want to set the \"ore.encoding\" option manually"
         encoding <- "ASCII"
