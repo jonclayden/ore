@@ -63,8 +63,8 @@ VERSION 1.8.0
 - Printed matches now use display widths based on current Unicode data, so
   emoji, wide characters and newer combining marks line up correctly. Text is
   converted to the session's encoding for display, with characters that can't
-  be shown replaced by "?", and carriage returns are shown as "\r". A crash when
-  printing text containing many zero-width characters has been fixed.
+  be shown replaced by "?", and carriage returns are shown as "\r". A crash
+  when printing text containing many zero-width characters has been fixed.
 - `es()` now only removes the escape from "\\#{", leaving other backslashes
   intact.
 - Connections opened by the package in order to search them are now closed
