@@ -5499,17 +5499,17 @@ clear_not_flag_cclass(CClassNode* cc, OnigEncoding enc)
 }
 #endif /* CASE_FOLD_IS_APPLIED_INSIDE_NEGATIVE_CCLASS */
 
-static inline bool
+static inline int
 is_singlebyte_range(OnigCodePoint code, OnigEncoding enc)
 {
   /* single byte encoding */
   if (ONIGENC_MBC_MAXLEN(enc) == 1) {
-    return true;
+    return 1;
   }
 
   /* wide char encoding */
   if (ONIGENC_MBC_MINLEN(enc) > 1) {
-    return false;
+    return 0;
   }
 
   return (code < 0x80);
