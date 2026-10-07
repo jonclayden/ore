@@ -312,8 +312,12 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     }
     
     // Check whether we're searching in a binary file
-    SEXP binary_attr = getAttrib(text_, install("binary"));
-    const Rboolean binary = inherits(text_, "orefile") && !isNull(binary_attr) && asLogical(binary_attr) == TRUE;
+    Rboolean binary = FALSE;
+    if (inherits(text_, "orefile"))
+    {
+        SEXP binary_attr = getAttrib(text_, install("binary"));
+        binary = !isNull(binary_attr) && asLogical(binary_attr) == TRUE;
+    }
     
     // Retrieve the text and the regex
     text_t *text = ore_text(text_);
@@ -513,14 +517,12 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         onig_free(alternative_regex);
     ore_text_done(text);
     
-    UNPROTECT(n_protected);
-    
     // Return just the first (and only) element of the full list, if requested
     if (simplify && text->length == 1)
-        return VECTOR_ELT(results, 0);
+        results = VECTOR_ELT(results, 0);
     else
-    {
         setAttrib(results, R_ClassSymbol, mkString("orematches"));
-        return results;
-    }
+    
+    UNPROTECT(n_protected);
+    return results;
 }
