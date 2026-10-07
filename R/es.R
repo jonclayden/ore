@@ -49,8 +49,8 @@ es <- function (text, round = NULL, signif = NULL, envir = parent.frame())
     # Do the main substitution
     results <- ore_repl("(?<!\\\\)\\#\\{([^\\}]*)\\}", function(match,envir) veval(groups(match),envir), text, envir=envir, all=TRUE, simplify=FALSE)
     
-    # Replace escaped '#' characters
-    results <- lapply(results, function(r) ore_subst(ore("\\#",syntax="fixed"), "#", r, all=TRUE))
+    # Replace escaped '#{' sequences, leaving any other backslashes alone
+    results <- lapply(results, function(r) ore_subst(ore("\\#{",syntax="fixed"), "#{", r, all=TRUE))
     
     return (unlist(results))
 }
