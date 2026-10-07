@@ -19,7 +19,9 @@ the former case, this will first be passed through \code{\link{ore}}.}
 \item{replacement}{A character vector, or a function to be applied to the
 matches.}
 
-\item{text}{A vector of strings to match against.}
+\item{text}{A vector of strings to match against, or the result of a call
+to \code{\link{ore_file}}, in which case the contents of the file are treated
+as a single string.}
 
 \item{...}{Further arguments to \code{replacement}, if it is a function.}
 

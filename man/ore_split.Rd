@@ -11,7 +11,9 @@ ore_split(regex, text, start = 1L, simplify = TRUE)
 \item{regex}{A single character string or object of class \code{"ore"}. In
 the former case, this will first be passed through \code{\link{ore}}.}
 
-\item{text}{A vector of strings to match against.}
+\item{text}{A vector of strings to match against, or the result of a call
+to \code{\link{ore_file}}, in which case the contents of the file are split
+as a single string.}
 
 \item{start}{An optional vector of offsets (in characters) at which to start
 searching. Will be recycled to the length of \code{text}.}

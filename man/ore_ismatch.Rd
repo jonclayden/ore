@@ -19,7 +19,8 @@ X \%~|\% Y
 \arguments{
 \item{regex}{A single character string or object of class \code{"ore"}.}
 
-\item{text}{A character vector of strings to search.}
+\item{text}{A character vector of strings to search, or a connection, or
+the result of a call to \code{\link{ore_file}} (see \code{\link{ore_search}}).}
 
 \item{keepNA}{If \code{TRUE}, \code{NA}s will be propagated from \code{text}
 into the return value. Otherwise, they evaluate \code{FALSE}.}

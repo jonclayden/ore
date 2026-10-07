@@ -24,7 +24,8 @@ A string of class \code{"orefile"}, with the \code{encoding} and
 }
 \description{
 Identify a file path to be used as a text source for a subsequent call to
-\code{\link{ore_search}}.
+\code{\link{ore_search}}, or to \code{\link{ore_ismatch}},
+\code{\link{ore_split}}, \code{\link{ore_subst}} or \code{\link{ore_switch}}.
 }
 \seealso{
 \code{\link{ore_search}} for actually searching through the file.

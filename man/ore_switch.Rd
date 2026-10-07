@@ -8,7 +8,9 @@
 ore_switch(text, ..., options = "", encoding = getOption("ore.encoding"))
 }
 \arguments{
-\item{text}{A vector of strings to match against.}
+\item{text}{A vector of strings to match against, or the result of a call
+to \code{\link{ore_file}}, in which case the contents of the file are treated
+as a single string.}
 
 \item{...}{One or more string arguments specifying a possible return value.
 These are generally named with a regex, and the string is only used for a

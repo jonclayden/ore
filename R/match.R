@@ -337,7 +337,8 @@ ore_lastmatch <- ore.lastmatch <- function (simplify = TRUE)
 #' match the regular expression.
 #' 
 #' @param regex A single character string or object of class \code{"ore"}.
-#' @param text A character vector of strings to search.
+#' @param text A character vector of strings to search, or a connection, or
+#'   the result of a call to \code{\link{ore_file}} (see \code{\link{ore_search}}).
 #' @param keepNA If \code{TRUE}, \code{NA}s will be propagated from \code{text}
 #'   into the return value. Otherwise, they evaluate \code{FALSE}.
 #' @param ... Further arguments to \code{\link{ore_search}}.
@@ -404,7 +405,9 @@ ore_ismatch <- ore.ismatch <- function (regex, text, keepNA = getOption("ore.kee
 #' \code{\link[base]{strsplit}} function in base R.
 #' 
 #' @inheritParams ore_search
-#' @param text A vector of strings to match against.
+#' @param text A vector of strings to match against, or the result of a call
+#'   to \code{\link{ore_file}}, in which case the contents of the file are split
+#'   as a single string.
 #' @param simplify If \code{TRUE}, a character vector containing the pieces
 #'   will be returned if \code{text} is of length 1. Otherwise, a list of such
 #'   objects will always be returned.
@@ -454,7 +457,9 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
 #' match by \code{ore_repl}.
 #' 
 #' @inheritParams ore_search
-#' @param text A vector of strings to match against.
+#' @param text A vector of strings to match against, or the result of a call
+#'   to \code{\link{ore_file}}, in which case the contents of the file are treated
+#'   as a single string.
 #' @param replacement A character vector, or a function to be applied to the
 #'   matches.
 #' @param ... Further arguments to \code{replacement}, if it is a function.
@@ -505,7 +510,9 @@ ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, st
 #' regex: once matched, later options are ignored.
 #' 
 #' @inheritParams ore
-#' @param text A vector of strings to match against.
+#' @param text A vector of strings to match against, or the result of a call
+#'   to \code{\link{ore_file}}, in which case the contents of the file are treated
+#'   as a single string.
 #' @param ... One or more string arguments specifying a possible return value.
 #'   These are generally named with a regex, and the string is only used for a
 #'   given \code{text} element if the regex matches (and no previous one

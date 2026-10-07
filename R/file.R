@@ -1,7 +1,8 @@
 #' Use a file as a text source
 #' 
 #' Identify a file path to be used as a text source for a subsequent call to
-#' \code{\link{ore_search}}.
+#' \code{\link{ore_search}}, or to \code{\link{ore_ismatch}},
+#' \code{\link{ore_split}}, \code{\link{ore_subst}} or \code{\link{ore_switch}}.
 #' 
 #' @param path A character string giving the file path.
 #' @param encoding A character string giving the encoding of the file. This
