@@ -36,3 +36,10 @@ expect_true("ABC" %~% regexes[[1]])
 expect_true("a.c" %~% regexes[[2]])
 expect_false("abc" %~% regexes[[2]])
 expect_equal(groups(ore_search(regexes[[3]], "abc")), groups(ore_search(ore("(?<first>a)b(?<second>c)"), "abc")))
+
+# Missing values in patterns, and unsupported options, are reported
+expect_error(ore(NA_character_), "missing values")
+expect_warning(ore("a", options="z"), "not supported")
+
+# Escaping keeps the declared encoding
+expect_equal(Encoding(ore_escape(iconv("caf\u00e9.","UTF-8","latin1"))), "latin1")

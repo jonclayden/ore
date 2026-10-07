@@ -119,3 +119,23 @@ if (isTRUE(l10n_info()$`UTF-8`))
     expect_true(any(grepl("caf\u00e9", output, fixed=TRUE)))
 }
 options(ore.colour=NULL)
+
+# Groups that don't take part in a match are NA; groups that match an empty string are empty
+match <- ore_search("x(a)?(b*)y", "..xy")
+expect_equal(groups(match), matrix(c(NA,""),nrow=1))
+expect_equal(match$groups$offsets, matrix(c(NA,4L),nrow=1))
+expect_equal(match$groups$lengths, matrix(c(NA,0L),nrow=1))
+
+# Groups captured in a lookbehind can start before the starting point
+expect_equal(ore_search("(?<=(.))b", "\u00E9\u00E9b", start=3L)$groups$offsets, matrix(2L,nrow=1))
+
+# Starting positions must be positive, but may be beyond the end of the text
+expect_error(ore_search("a", "abc", start=0L), "positive")
+expect_error(ore_subst("a", "b", "abc", start=NA), "positive")
+expect_null(ore_search("a", "abc", start=10L))
+
+# A regex given as a string is compiled as necessary for text elements in different encodings
+mixed <- c("\u00E9t\u00E9", iconv("\u00E9t\u00E9","UTF-8","latin1"))
+expect_silent(results <- ore_search("\\w+", mixed, simplify=FALSE))
+expect_equal(unname(sapply(results, "[[", "matches")), c("\u00E9t\u00E9","\u00E9t\u00E9"))
+expect_equal(ore_subst("t", "T", mixed), c("\u00E9T\u00E9","\u00E9T\u00E9"))

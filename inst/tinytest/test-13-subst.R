@@ -50,3 +50,8 @@ expect_equal(substituted, "caf\u00E9 0l\u00E9")
 expect_equal(ore_repl("(a)b", toupper, "abab", all=TRUE), "ABAB")
 expect_equal(ore_repl("(a)(b)", function(x) paste(groups(x),collapse="+"), "abab", all=TRUE), "a+ba+b")
 expect_equal(ore_switch("a", "x", encoding="auto"), "x")
+
+# Errors in replacement functions are passed on intact
+expect_error(ore_subst("a", function(x) stop("boom"), "abc"), "boom")
+condition <- tryCatch(ore_repl("a", function(x) stop(structure(class=c("customError","error","condition"), list(message="custom",call=NULL))), "abc"), error=function(e) e)
+expect_inherits(condition, "customError")

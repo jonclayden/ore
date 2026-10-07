@@ -67,3 +67,16 @@ if (all(c("UTF-16LE","UTF-32BE") %in% iconvlist()))
     }
 }
 expect_warning(ore_search(ore("a",encoding="UTF-16LE"), "abc"), "does not match")
+
+# Connections that were opened for searching are closed again afterwards, but others are left open
+path <- tempfile()
+writeLines("abc", path)
+con <- file(path)
+ore_search("b", con)
+expect_false(isOpen(con))
+close(con)
+con <- file(path, "r")
+ore_search("b", con)
+expect_true(isOpen(con))
+close(con)
+unlink(path)
