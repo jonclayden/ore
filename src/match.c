@@ -304,8 +304,12 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     
     // Check whether the text argument is actually a file path
     const Rboolean using_file = inherits(text_, "orefile") || inherits(text_, "connection");
+    int n_protected = 0;
     if (!using_file)
+    {
         PROTECT(text_ = AS_CHARACTER(text_));
+        n_protected++;
+    }
     
     // Check whether we're searching in a binary file
     SEXP binary_attr = getAttrib(text_, install("binary"));
@@ -317,22 +321,20 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     regex_t *alternative_regex = NULL;
     
     SEXP group_names = R_NilValue;
-    Rboolean group_names_protected = FALSE;
     if (inherits(regex_, "ore"))
-        group_names = getAttrib(regex_, install("groupNames"));
+    {
+        PROTECT(group_names = getAttrib(regex_, install("groupNames")));
+        n_protected++;
+    }
     else
     {
         const int n_groups = onig_number_of_captures(regex);
         if (n_groups > 0)
         {
             PROTECT(group_names = NEW_CHARACTER(n_groups));
-            if (ore_group_name_vector(group_names, regex))
-                group_names_protected = TRUE;
-            else
-            {
-                UNPROTECT(1);
+            n_protected++;
+            if (!ore_group_name_vector(group_names, regex))
                 group_names = R_NilValue;
-            }
         }
     }
     
@@ -348,6 +350,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     
     SEXP results;
     PROTECT(results = NEW_LIST(text->length));
+    n_protected++;
     
     // Step through each string to be searched
     for (size_t i=0; i<text->length; i++)
@@ -419,7 +422,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             //   memcpy(RAW(result_text), text_element->start, text_element->end - text_element->start);
             // In this case, though, the print functions would need updating to handle raw vectors
             if (binary)
-                result_text = R_NilValue;
+                PROTECT(result_text = R_NilValue);
             else if (using_file)
                 PROTECT(result_text = ScalarString(ore_text_element_to_rchar(text_element)));
             else
@@ -446,7 +449,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_ELEMENT(result, 6, matches);
             
             // Unprotect everything back to "result_text"
-            UNPROTECT(binary ? 6 : 7);
+            UNPROTECT(7);
             
             // If there are groups present, extract them
             if (raw_match->n_regions > 1)
@@ -510,7 +513,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         onig_free(alternative_regex);
     ore_text_done(text);
     
-    UNPROTECT(2 + group_names_protected - using_file);
+    UNPROTECT(n_protected);
     
     // Return just the first (and only) element of the full list, if requested
     if (simplify && text->length == 1)

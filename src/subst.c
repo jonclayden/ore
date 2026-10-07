@@ -179,7 +179,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     regex_t *regex = ore_retrieve(regex_, text->encoding);
     regex_t *alternative_regex = NULL;
     const int n_groups = onig_number_of_captures(regex);
-    SEXP group_names = getAttrib(regex_, install("groupNames"));
+    SEXP group_names = PROTECT(getAttrib(regex_, install("groupNames")));
     const Rboolean all = asLogical(all_) == TRUE;
     int *start = INTEGER(start_);
     
@@ -339,7 +339,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         onig_free(alternative_regex);
     ore_text_done(text);
     
-    UNPROTECT(1);
+    UNPROTECT(2);
     return results;
 }
 
@@ -354,7 +354,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     regex_t *regex = ore_retrieve(regex_, text->encoding);
     regex_t *alternative_regex = NULL;
     const int n_groups = onig_number_of_captures(regex);
-    SEXP group_names = getAttrib(regex_, install("groupNames"));
+    SEXP group_names = PROTECT(getAttrib(regex_, install("groupNames")));
     const Rboolean all = asLogical(all_) == TRUE;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
@@ -428,6 +428,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         rawmatch_t *raw_match = ore_search(element_regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         int replacement_len = base_replacement_len;
+        int n_protected = 0;
         
         // A 2D array of strings to hold literal replacements for each match
         const char ***replacements = NULL;
@@ -438,6 +439,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
             if (isFunction(replacement_))
             {
                 SEXP parts = PROTECT(NEW_LIST(raw_match->n_matches));
+                n_protected++;
                 for (int l=0; l<raw_match->n_matches; l++)
                 {
                     SEXP match = PROTECT(NEW_CHARACTER(1));
@@ -503,6 +505,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         }
         
         SEXP result = PROTECT(NEW_CHARACTER(replacement_len));
+        n_protected++;
         for (int j=0; j<replacement_len; j++)
         {
             // If there is no match there is no replacement, so the return value is the original string
@@ -526,7 +529,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         
         SET_ELEMENT(results, i, result);
         
-        UNPROTECT(raw_match != NULL && isFunction(replacement_) ? 2 : 1);
+        UNPROTECT(n_protected);
     }
     
     if (text->source == VECTOR_SOURCE)
@@ -537,7 +540,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         onig_free(alternative_regex);
     ore_text_done(text);
     
-    UNPROTECT(1);
+    UNPROTECT(2);
     
     // Return just the first (and only) element of the full list, if requested
     if (simplify && text->length == 1)
