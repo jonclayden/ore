@@ -1,3 +1,12 @@
+# Check and convert a vector of starting positions, which must be positive (although they may be beyond the end of the text)
+.checkStart <- function (start)
+{
+    start <- as.integer(start)
+    if (length(start) == 0L || anyNA(start) || any(start < 1L))
+        stop("Starting positions must be positive integers")
+    return (start)
+}
+
 #' Search for matches to a regular expression
 #' 
 #' Search a character vector, or the content of a file or connection, for one
@@ -84,7 +93,7 @@
 #' @export ore.search ore_search ore.match ore_match
 ore_search <- ore.search <- ore_match <- ore.match <- function (regex, text, all = FALSE, start = 1L, simplify = TRUE, incremental = !all)
 {
-    match <- .Call(C_ore_search_all, regex, text, as.logical(all), as.integer(start), as.logical(simplify), as.logical(incremental))
+    match <- .Call(C_ore_search_all, regex, text, as.logical(all), .checkStart(start), as.logical(simplify), as.logical(incremental))
     
     .Workspace$lastMatch <- match
     return (match)
@@ -352,7 +361,7 @@ ore_lastmatch <- ore.lastmatch <- function (simplify = TRUE)
 ore_ismatch <- ore.ismatch <- function (regex, text, keepNA = getOption("ore.keepNA",FALSE), ...)
 {
     match <- ore_search(regex, text, simplify=FALSE, ...)
-    result <- !sapply(match, is.null)
+    result <- lengths(match) > 0L
     if (keepNA)
         result[is.na(text)] <- NA
     return (result)
@@ -411,7 +420,7 @@ ore_split <- ore.split <- function (regex, text, start = 1L, simplify = TRUE)
     if (!is.character(text))
         text <- as.character(text)
     
-    return (.Call(C_ore_split, regex, text, as.integer(start), as.logical(simplify)))
+    return (.Call(C_ore_split, regex, text, .checkStart(start), as.logical(simplify)))
 }
 
 #' Replace matched substrings with new text
@@ -473,7 +482,7 @@ ore_subst <- ore.subst <- function (regex, replacement, text, ..., all = FALSE, 
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
         
-    return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), as.integer(start), new.env(), pairlist(...)))
+    return (.Call(C_ore_substitute_all, regex, replacement, text, as.logical(all), .checkStart(start), new.env(), pairlist(...)))
 }
 
 #' @rdname ore_subst
@@ -485,7 +494,7 @@ ore_repl <- ore.repl <- function (regex, replacement, text, ..., all = FALSE, st
     if (!is.character(replacement))
         replacement <- match.fun(replacement)
     
-    return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), as.integer(start), as.logical(simplify), new.env(), pairlist(...)))
+    return (.Call(C_ore_replace_all, regex, replacement, text, as.logical(all), .checkStart(start), as.logical(simplify), new.env(), pairlist(...)))
 }
 
 #' String multiplexing
