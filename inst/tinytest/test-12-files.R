@@ -1,7 +1,15 @@
 expect_error(ore_file("nonesuch.txt"))
 
+# Check whether iconv can actually convert to an encoding: iconvlist() may be
+# a static list fixed when R was built, so it can include encodings whose
+# conversion modules are not installed (e.g. in minimal Linux containers)
+can_convert <- function (encoding)
+{
+    tryCatch(!is.null(iconv("a", "UTF-8", encoding, toRaw=TRUE)[[1]]), error=function(e) FALSE)
+}
+
 # Local iconv support for SHIFT-JIS is necessary for these tests
-if ("SHIFT-JIS" %in% iconvlist())
+if (can_convert("SHIFT-JIS"))
 {
     # Four ways to search in a SHIFT-JIS-encoded file:
     #   1. Use ore_file(), declaring the encoding, and use the internal
@@ -52,7 +60,7 @@ expect_equal(matches(result), "b")
 unlink(path)
 
 # Files in UTF-16 or UTF-32, which are not ASCII-compatible
-if (all(c("UTF-16LE","UTF-32BE") %in% iconvlist()))
+if (can_convert("UTF-16LE") && can_convert("UTF-32BE"))
 {
     for (encoding in c("UTF-16LE","UTF-32BE"))
     {
