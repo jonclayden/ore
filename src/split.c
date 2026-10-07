@@ -18,6 +18,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
     // Convert R objects to C types
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
+    regex_t *alternative_regex = NULL;
     const Rboolean simplify = asLogical(simplify_) == TRUE;
     int *start = INTEGER(start_);
     
@@ -42,7 +43,10 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
             SET_ELEMENT(results, i, ScalarString(NA_STRING));
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
+        
+        // Find a regex that can be used with this element's encoding, which may differ from that of other elements
+        regex_t *element_regex = ore_element_regex(regex_, regex, text_element->encoding, &alternative_regex);
+        if (element_regex == NULL)
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
@@ -50,7 +54,7 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
         }
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, TRUE, (size_t) start[i % start_len] - 1);
+        rawmatch_t *raw_match = ore_search(element_regex, text_element->start, text_element->end, TRUE, (size_t) start[i % start_len] - 1);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
@@ -96,6 +100,8 @@ SEXP ore_split (SEXP regex_, SEXP text_, SEXP start_, SEXP simplify_)
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_free(regex, regex_);
+    if (alternative_regex != NULL)
+        onig_free(alternative_regex);
     ore_text_done(text);
     
     UNPROTECT(1);

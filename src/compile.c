@@ -83,6 +83,9 @@ regex_t * ore_compile (const char *pattern, const cetype_t pattern_enc, const ch
             case 'i':
             onig_options |= ONIG_OPTION_IGNORECASE;
             break;
+            
+            default:
+            warning("Option \"%c\" is not supported, and will be ignored", *option_pointer);
         }
         
         option_pointer++;
@@ -186,6 +189,28 @@ void ore_free (regex_t *regex, SEXP source)
         onig_free(regex);
 }
 
+// Retrieve a regex suitable for searching a particular text element
+// This is the main regex if its encoding is consistent with the element's; otherwise, if the regex was given as a string, it is compiled again in the element's encoding
+// Any such alternative regex is stored for reuse, and should be freed by the caller when finished with; NULL is returned if no suitable regex is available
+regex_t * ore_element_regex (SEXP regex_, regex_t *regex, encoding_t *encoding, regex_t **alternative)
+{
+    if (ore_consistent_encodings(encoding, regex->enc))
+        return regex;
+    else if (inherits(regex_, "ore"))
+        return NULL;
+    
+    if (*alternative == NULL || !ore_consistent_encodings(encoding, (*alternative)->enc))
+    {
+        if (*alternative != NULL)
+            onig_free(*alternative);
+        *alternative = NULL;
+        SEXP pattern = STRING_ELT(regex_, 0);
+        *alternative = ore_compile(CHAR(pattern), getCharCE(pattern), "", encoding, "ruby");
+    }
+    
+    return *alternative;
+}
+
 // Create a pattern string by concatenating the elements of the supplied vector, parenthesising named elements
 static char * ore_build_pattern (SEXP pattern_)
 {
@@ -196,10 +221,14 @@ static char * ore_build_pattern (SEXP pattern_)
     // Count up the full length of the string
     size_t pattern_len = 0;
     for (int i=0; i<pattern_parts; i++)
+    {
+        if (STRING_ELT(pattern_, i) == NA_STRING)
+            error("The regex pattern contains missing values");
         pattern_len += strlen(CHAR(STRING_ELT(pattern_, i)));
+    }
     
-    // Allocate memory for all parts, plus surrounding parentheses
-    char *pattern = R_alloc(2*pattern_parts + pattern_len, 1);
+    // Allocate memory for all parts, plus surrounding parentheses and a terminating nul
+    char *pattern = R_alloc(2*pattern_parts + pattern_len + 1, 1);
     
     // Retrieve element names
     SEXP names = getAttrib(pattern_, R_NamesSymbol);

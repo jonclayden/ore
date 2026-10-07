@@ -353,18 +353,28 @@ void ore_iconv_done (void *iconv_handle)
 }
 
 // Helper functions to read a chunk of data from a file or connection
-static size_t ore_read_file (void *handle, void *buffer, size_t bytes)
+// Files are only opened when they are first read, so that errors beforehand (e.g. in compiling the regex) can't leave them open
+static size_t ore_read_file (text_t *text, void *buffer, size_t bytes)
 {
-    FILE *file = (FILE *) handle;
-    return fread(buffer, 1, bytes, file);
+    if (text->handle == NULL)
+    {
+        text->handle = fopen(CHAR(STRING_ELT(text->object,0)), "rb");
+        if (text->handle == NULL)
+            error("Could not open file %s", CHAR(STRING_ELT(text->object,0)));
+    }
+    return fread(buffer, 1, bytes, (FILE *) text->handle);
 }
 
 #ifdef USING_CONNECTIONS
-static size_t ore_read_connection (void *handle, void *buffer, size_t bytes)
+// Connections that aren't already open are opened here, and closed again by ore_text_done()
+static size_t ore_read_connection (text_t *text, void *buffer, size_t bytes)
 {
-    Rconnection connection = (Rconnection) handle;
+    Rconnection connection = (Rconnection) text->handle;
     if (!connection->isopen)
+    {
         connection->open(connection);
+        text->opened = TRUE;
+    }
     return R_ReadConnection(connection, buffer, bytes);
 }
 #endif
@@ -375,15 +385,22 @@ text_t * ore_text (SEXP text_)
     text_t *text = (text_t *) R_alloc(1, sizeof(text_t));
     text->object = text_;
     text->length = 1;
+    text->handle = NULL;
+    text->opened = FALSE;
+    for (int i=0; i<4; i++)
+        text->element_encodings[i] = NULL;
     
     if (inherits(text_, "orefile"))
     {
         const SEXP encoding_name = getAttrib(text_, install("encoding"));
         text->encoding = ore_encoding(CHAR(STRING_ELT(encoding_name,0)), NULL, NULL);
         text->source = FILE_SOURCE;
-        text->handle = fopen(CHAR(STRING_ELT(text_,0)), "rb");
-        if (text->handle == NULL)
+        
+        // Check that the file can be read, but don't keep it open yet (see ore_read_file)
+        FILE *file = fopen(CHAR(STRING_ELT(text_,0)), "rb");
+        if (file == NULL)
             error("Could not open file %s", CHAR(STRING_ELT(text_,0)));
+        fclose(file);
     }
 #ifdef USING_CONNECTIONS
     else if (inherits(text_, "connection"))
@@ -398,7 +415,6 @@ text_t * ore_text (SEXP text_)
     {
         text->length = length(text_);
         text->source = VECTOR_SOURCE;
-        text->handle = NULL;
         
         // The overall encoding (used for compiling regexes given as strings) is that of the first element that isn't pure ASCII, if any
         text->encoding = NULL;
@@ -423,6 +439,27 @@ text_t * ore_text (SEXP text_)
     return text;
 }
 
+// Find the encoding of a string in a text vector, reusing encoding structures where possible
+// Strings are distinguished only by whether they are ASCII, and their declared encoding (UTF-8, Latin-1, or native/other)
+static encoding_t * ore_cached_string_encoding (text_t *text, SEXP string)
+{
+    const cetype_t r_enc = getCharCE(string);
+    int index;
+    if (r_enc == CE_BYTES || ore_is_ascii(CHAR(string)))
+        index = 0;
+    else if (r_enc == CE_UTF8)
+        index = 1;
+    else if (r_enc == CE_LATIN1)
+        index = 2;
+    else
+        index = 3;
+    
+    // The ASCII encoding records the declared encoding, so it is only reused for strings that match
+    if (text->element_encodings[index] == NULL || (index == 0 && text->element_encodings[0]->r_enc != r_enc))
+        text->element_encodings[index] = ore_string_encoding(string);
+    return text->element_encodings[index];
+}
+
 // Extract the text element with the specified index
 // For file and connection sources, index is ignored but reading may be incremental, passing in the previously read fragment
 text_element_t * ore_text_element (text_t *text, const size_t index, const Rboolean incremental, text_element_t *previous)
@@ -430,7 +467,8 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
     if (text == NULL)
         return NULL;
     
-    text_element_t *element = (text_element_t *) R_alloc(1, sizeof(text_element_t));
+    // The element structure is reused (including for incremental reading, where "previous" will be the same object)
+    text_element_t *element = &text->element;
     element->incomplete = FALSE;
     
     if (text->source == VECTOR_SOURCE)
@@ -441,7 +479,7 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
         const char *string = CHAR(str_element);
         element->start = string;
         element->end = string + strlen(string);
-        element->encoding = ore_string_encoding(str_element);
+        element->encoding = ore_cached_string_encoding(text, str_element);
     }
     else
     {
@@ -464,10 +502,10 @@ text_element_t * ore_text_element (text_t *text, const size_t index, const Rbool
         {
             size_t bytes_read = 0;
             if (text->source == FILE_SOURCE)
-                bytes_read = ore_read_file(text->handle, ptr, buffer_size);
+                bytes_read = ore_read_file(text, ptr, buffer_size);
 #ifdef USING_CONNECTIONS
             else if (text->source == CONNECTION_SOURCE)
-                bytes_read = ore_read_connection(text->handle, ptr, buffer_size);
+                bytes_read = ore_read_connection(text, ptr, buffer_size);
 #endif
             ptr += bytes_read;
             
@@ -541,7 +579,17 @@ SEXP ore_convert_bytes (void *iconv_handle, const char *bytes, const size_t leng
 // Tidy up a text object, where needed
 void ore_text_done (text_t *text)
 {
-    // R handles closing connections, but plain files need to be closed manually
-    if (text != NULL && text->source == FILE_SOURCE)
+    // Files are closed, and connections are closed if they weren't open before they were read
+    if (text == NULL || text->handle == NULL)
+        return;
+    else if (text->source == FILE_SOURCE)
         fclose((FILE *) text->handle);
+#ifdef USING_CONNECTIONS
+    else if (text->source == CONNECTION_SOURCE && text->opened)
+    {
+        Rconnection connection = (Rconnection) text->handle;
+        connection->close(connection);
+    }
+#endif
+    text->handle = NULL;
 }

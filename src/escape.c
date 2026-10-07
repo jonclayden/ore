@@ -71,7 +71,7 @@ SEXP ore_escape (SEXP text_)
         }
         
         *result_ptr = '\0';
-        SET_STRING_ELT(results, i, mkChar(result));
+        SET_STRING_ELT(results, i, mkCharCE(result, getCharCE(r_element)));
     }
     
     setAttrib(results, R_NamesSymbol, getAttrib(text_,R_NamesSymbol));

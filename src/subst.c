@@ -2,6 +2,7 @@
 
 #include <R.h>
 #include <Rdefines.h>
+#include <Rversion.h>
 #include <Rinternals.h>
 
 #include "compile.h"
@@ -18,6 +19,46 @@ typedef struct {
     int   * lengths;
     int   * group_numbers;
 } backref_info_t;
+
+// Data needed to evaluate a replacement function, and to tidy up if R jumps out of it (e.g. because of an error)
+typedef struct {
+    SEXP        call;
+    SEXP        environment;
+    regex_t   * regex;
+    SEXP        regex_;
+    regex_t   * alternative_regex;
+} eval_data_t;
+
+static SEXP ore_do_eval (void *data)
+{
+    eval_data_t *eval_data = (eval_data_t *) data;
+    return eval(eval_data->call, eval_data->environment);
+}
+
+static void ore_eval_cleanup (void *data, Rboolean jump)
+{
+    if (jump)
+    {
+        eval_data_t *eval_data = (eval_data_t *) data;
+        ore_free(eval_data->regex, eval_data->regex_);
+        if (eval_data->alternative_regex != NULL)
+            onig_free(eval_data->alternative_regex);
+    }
+}
+
+// Evaluate a call to a replacement function, freeing the regexes if the evaluation doesn't return normally
+static SEXP ore_eval_replacement (SEXP call, SEXP environment, regex_t *regex, SEXP regex_, regex_t *alternative_regex)
+{
+#if defined(R_VERSION) && R_VERSION >= R_Version(3,5,0)
+    eval_data_t eval_data = { call, environment, regex, regex_, alternative_regex };
+    SEXP cont = PROTECT(R_MakeUnwindCont());
+    SEXP result = R_UnwindProtect(ore_do_eval, &eval_data, ore_eval_cleanup, &eval_data, cont);
+    UNPROTECT(1);
+    return result;
+#else
+    return eval(call, environment);
+#endif
+}
 
 // Retrieve the text of a match or group, which is stored as NULL if the group did not take part in the match or matched an empty string
 static const char * ore_group_text (const rawmatch_t *match, const int match_index, const int group)
@@ -136,6 +177,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
     // Convert R objects to C types
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
+    regex_t *alternative_regex = NULL;
     const int n_groups = onig_number_of_captures(regex);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
@@ -196,7 +238,10 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
             SET_STRING_ELT(results, i, NA_STRING);
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
+        
+        // Find a regex that can be used with this element's encoding, which may differ from that of other elements
+        regex_t *element_regex = ore_element_regex(regex_, regex, text_element->encoding, &alternative_regex);
+        if (element_regex == NULL)
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_STRING_ELT(results, i, ore_text_element_to_rchar(text_element));
@@ -204,7 +249,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         }
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
+        rawmatch_t *raw_match = ore_search(element_regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         // If there's no match the return value is the original string
         if (raw_match == NULL)
@@ -233,7 +278,7 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
                 
                 // This is arcane R API territory: we create a LANGSXP (an evaluable pairlist), and append the "..." pairlist, then evaluate the result and coerce to a character vector
                 SEXP call = PROTECT(listAppend(lang2(replacement_, matches), function_args));
-                SEXP result = PROTECT(eval(call, environment));
+                SEXP result = PROTECT(ore_eval_replacement(call, environment, regex, regex_, alternative_regex));
                 SEXP char_result = PROTECT(coerceVector(result, STRSXP));
                 const int result_len = length(char_result);
                 
@@ -290,6 +335,8 @@ SEXP ore_substitute_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, 
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_free(regex, regex_);
+    if (alternative_regex != NULL)
+        onig_free(alternative_regex);
     ore_text_done(text);
     
     UNPROTECT(1);
@@ -305,6 +352,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
     // Convert R objects to C types
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
+    regex_t *alternative_regex = NULL;
     const int n_groups = onig_number_of_captures(regex);
     SEXP group_names = getAttrib(regex_, install("groupNames"));
     const Rboolean all = asLogical(all_) == TRUE;
@@ -366,7 +414,10 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
             SET_ELEMENT(results, i, ScalarString(NA_STRING));
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
+        
+        // Find a regex that can be used with this element's encoding, which may differ from that of other elements
+        regex_t *element_regex = ore_element_regex(regex_, regex, text_element->encoding, &alternative_regex);
+        if (element_regex == NULL)
         {
             warning("Encoding of text element %d does not match the regex", i+1);
             SET_ELEMENT(results, i, ScalarString(ore_text_element_to_rchar(text_element)));
@@ -374,7 +425,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         }
         
         // Do the match
-        rawmatch_t *raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
+        rawmatch_t *raw_match = ore_search(element_regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         int replacement_len = base_replacement_len;
         
@@ -403,7 +454,7 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
                     setAttrib(match, R_ClassSymbol, mkString("orearg"));
                     
                     SEXP call = PROTECT(listAppend(lang2(replacement_, match), function_args));
-                    SEXP result = PROTECT(eval(call, environment));
+                    SEXP result = PROTECT(ore_eval_replacement(call, environment, regex, regex_, alternative_regex));
                     SEXP char_result = PROTECT(coerceVector(result, STRSXP));
                     
                     const int result_len = length(char_result);
@@ -482,6 +533,8 @@ SEXP ore_replace_all (SEXP regex_, SEXP replacement_, SEXP text_, SEXP all_, SEX
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_free(regex, regex_);
+    if (alternative_regex != NULL)
+        onig_free(alternative_regex);
     ore_text_done(text);
     
     UNPROTECT(1);

@@ -21,19 +21,22 @@ typedef struct {
 } encoding_t;
 
 typedef struct {
-    SEXP            object;
-    size_t          length;
-    source_t        source;
-    void          * handle;
-    encoding_t    * encoding;
-} text_t;
-
-typedef struct {
     const char    * start;
     const char    * end;
     encoding_t    * encoding;
     Rboolean        incomplete;
 } text_element_t;
+
+typedef struct {
+    SEXP            object;
+    size_t          length;
+    source_t        source;
+    void          * handle;
+    Rboolean        opened;
+    encoding_t    * encoding;
+    encoding_t    * element_encodings[4];
+    text_element_t  element;
+} text_t;
 
 int ore_strnicmp (const char *str1, const char *str2, size_t num);
 

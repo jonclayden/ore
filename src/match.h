@@ -15,7 +15,7 @@ typedef struct {
     char ** matches;
 } rawmatch_t;
 
-rawmatch_t * ore_rawmatch_alloc (const int n_regions);
+rawmatch_t * ore_rawmatch_alloc (const int n_regions, const int capacity);
 
 void ore_rawmatch_extend (rawmatch_t *match);
 

@@ -8,15 +8,15 @@
 #include "text.h"
 #include "match.h"
 
-// Block size for match data; memory is allocated in chunks this big
-#define MATCH_BLOCK_SIZE    128
+// Initial capacity for match data when all matches are wanted; it doubles when more space is needed
+#define MATCH_INITIAL_CAPACITY  16
 
-// Allocate memory for a rawmatch_t object with capacity one block, and its contents
-rawmatch_t * ore_rawmatch_alloc (const int n_regions)
+// Allocate memory for a rawmatch_t object with the specified capacity (in matches), and its contents
+rawmatch_t * ore_rawmatch_alloc (const int n_regions, const int capacity)
 {
     // Allocate memory for the struct itself, and set its initial capacity
     rawmatch_t *match = (rawmatch_t *) R_alloc(1, sizeof(rawmatch_t));
-    match->capacity = MATCH_BLOCK_SIZE;
+    match->capacity = capacity;
     match->n_regions = n_regions;
     
     // Allocate memory for matrix variables
@@ -30,11 +30,11 @@ rawmatch_t * ore_rawmatch_alloc (const int n_regions)
     return match;
 }
 
-// Extend an existing rawmatch_t object, increasing its capacity by MATCH_BLOCK_SIZE and reallocating memory accordingly
+// Extend an existing rawmatch_t object, doubling its capacity and reallocating memory accordingly
 void ore_rawmatch_extend (rawmatch_t *match)
 {
     const size_t old_len = (size_t) match->capacity * match->n_regions;
-    match->capacity += MATCH_BLOCK_SIZE;
+    match->capacity *= 2;
     const size_t new_len = (size_t) match->capacity * match->n_regions;
     
     match->offsets = (int *) ore_realloc(match->offsets, new_len, old_len, sizeof(int));
@@ -126,21 +126,33 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
         {
             // Set up output data structures the first time
             if (result == NULL)
-                result = ore_rawmatch_alloc(region->num_regs);
+                result = ore_rawmatch_alloc(region->num_regs, all ? MATCH_INITIAL_CAPACITY : 1);
             else if (match_number >= result->capacity)
                 ore_rawmatch_extend(result);
             
             // Regions are the whole match and then subgroups
             for (int i=0; i<region->num_regs; i++)
             {
-                // Work out the offset and length of the region, in bytes and chars
-                length = region->end[i] - region->beg[i];
                 const size_t loc = match_number * region->num_regs + i;
                 
+                // Groups that did not take part in the match (which must be optional) have no location, and their text is stored as NULL
+                if (region->beg[i] == ONIG_REGION_NOTPOS)
+                {
+                    result->byte_offsets[loc] = result->byte_lengths[loc] = NA_INTEGER;
+                    result->offsets[loc] = result->lengths[loc] = NA_INTEGER;
+                    result->matches[loc] = NULL;
+                    continue;
+                }
+                
+                // Work out the offset and length of the region, in bytes and chars
+                const UChar *region_start = (UChar *) text + region->beg[i];
+                const UChar *region_end = (UChar *) text + region->end[i];
+                length = region->end[i] - region->beg[i];
                 result->byte_offsets[loc] = region->beg[i];
                 result->byte_lengths[loc] = length;
                 
                 // If we're using a single-byte encoding the offsets and byte offsets will be the same
+                // Otherwise characters are counted from the starting point, which a group may precede if it is captured in a lookbehind
                 if (regex->enc->max_enc_len == 1)
                 {
                     result->offsets[loc] = result->byte_offsets[loc];
@@ -148,19 +160,17 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
                 }
                 else
                 {
-                    result->offsets[loc] = start_offset + onigenc_strlen(regex->enc, start_ptr, (UChar *) text+region->beg[i]);
-                    result->lengths[loc] = onigenc_strlen(regex->enc, (UChar *) text+region->beg[i], (UChar *) text+region->end[i]);
+                    if (region_start >= start_ptr)
+                        result->offsets[loc] = start_offset + onigenc_strlen(regex->enc, start_ptr, region_start);
+                    else
+                        result->offsets[loc] = start_offset - onigenc_strlen(regex->enc, region_start, start_ptr);
+                    result->lengths[loc] = onigenc_strlen(regex->enc, region_start, region_end);
                 }
                 
-                // Set missing groups (which must be optional) to NULL; otherwise store match text
-                if (length == 0 && i > 0)
-                    result->matches[loc] = NULL;
-                else
-                {
-                    ore_rawmatch_store_string(result, loc, text+region->beg[i], length);
-                    if (length == 0)
-                        zerolen_offset = region->beg[0];
-                }
+                // Store the matched text, which may be empty
+                ore_rawmatch_store_string(result, loc, text+region->beg[i], length);
+                if (i == 0 && length == 0)
+                    zerolen_offset = region->beg[0];
             }
             
             // Advance the starting point beyond the current match
@@ -171,9 +181,10 @@ rawmatch_t * ore_search (regex_t *regex, const char *text, const char *text_end,
         }
         else
         {
-            // Report the error message if there was one
+            // Report the error message if there was one, after tidying up
             char message[ONIG_MAX_ERROR_MESSAGE_LEN];
             onig_error_code_to_str((UChar *) message, return_value);
+            onig_region_free(region, 1);
             error("Oniguruma search: %s\n", message);
         }
         
@@ -224,7 +235,10 @@ void ore_int_matrix (SEXP mat, const int *data, const int n_regions, const int n
     for (int i=0; i<n_matches; i++)
     {
         for (int j=1; j<n_regions; j++)
-            ptr[(j-1)*n_matches + i] = data[i*n_regions + j] + increment;
+        {
+            const int value = data[i*n_regions + j];
+            ptr[(j-1)*n_matches + i] = (value == NA_INTEGER) ? NA_INTEGER : value + increment;
+        }
     }
     
     // Set column names if supplied
@@ -300,6 +314,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
     // Retrieve the text and the regex
     text_t *text = ore_text(text_);
     regex_t *regex = ore_retrieve(regex_, text->encoding);
+    regex_t *alternative_regex = NULL;
     
     SEXP group_names = R_NilValue;
     Rboolean group_names_protected = FALSE;
@@ -347,7 +362,10 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             SET_ELEMENT(results, i, R_NilValue);
             continue;
         }
-        else if (!ore_consistent_encodings(text_element->encoding, regex->enc))
+        
+        // Find a regex that can be used with this element's encoding, which may differ from that of other elements
+        regex_t *element_regex = ore_element_regex(regex_, regex, text_element->encoding, &alternative_regex);
+        if (element_regex == NULL)
         {
             warning("Encoding of text element %lu does not match the regex", (unsigned long) i+1);
             SET_ELEMENT(results, i, R_NilValue);
@@ -355,7 +373,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         }
         
         // Do the match
-        raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
+        raw_match = ore_search(element_regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         
         // If there is more text to come from the source, and there is no match so far, or the match may be incomplete, extract more and continue
         while (text_element->incomplete)
@@ -371,7 +389,7 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
             
             // Ask again for the element, to get more of it, and rerun the match
             text_element = ore_text_element(text, i, incremental, text_element);
-            raw_match = ore_search(regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
+            raw_match = ore_search(element_regex, text_element->start, text_element->end, all, (size_t) start[i % start_len] - 1);
         }
         
         // Assign NULL if there's no match, otherwise build up an "orematch" object
@@ -488,6 +506,8 @@ SEXP ore_search_all (SEXP regex_, SEXP text_, SEXP all_, SEXP start_, SEXP simpl
         setAttrib(results, R_NamesSymbol, getAttrib(text->object,R_NamesSymbol));
     
     ore_free(regex, regex_);
+    if (alternative_regex != NULL)
+        onig_free(alternative_regex);
     ore_text_done(text);
     
     UNPROTECT(2 + group_names_protected - using_file);
